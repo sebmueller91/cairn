@@ -100,6 +100,19 @@ class Account(Base):
     )
 
 
+class AuditLog(Base):
+    __tablename__ = "audit_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ts: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    actor: Mapped[TxnSource] = mapped_column(Enum(TxnSource), nullable=False)
+    action: Mapped[str] = mapped_column(String, nullable=False)  # create|update|delete
+    entity: Mapped[str] = mapped_column(String, nullable=False)
+    entity_id: Mapped[str] = mapped_column(String, nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String, nullable=False)
+    diff_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class Instrument(Base):
     __tablename__ = "instrument"
 
@@ -208,6 +221,7 @@ class Txn(Base):
     )
     currency: Mapped[str] = mapped_column(String(3), nullable=False)
     fx_rate: Mapped[Quantity | None] = mapped_column(Quantity, nullable=True)
+    split_ratio: Mapped[Quantity | None] = mapped_column(Quantity, nullable=True)
     fees: Mapped[Money] = mapped_column(Money, nullable=False, default=0)
     tax: Mapped[Money] = mapped_column(Money, nullable=False, default=0)
     amount_eur: Mapped[Money] = mapped_column(Money, nullable=False)
@@ -223,6 +237,12 @@ class Txn(Base):
     )
     note: Mapped[str | None] = mapped_column(Text, nullable=True)
     source: Mapped[TxnSource] = mapped_column(Enum(TxnSource), nullable=False)
+    # Hash of the original write payload — the only reliable way to tell an
+    # identical resend (idempotent no-op) from a genuinely different
+    # payload reusing the same external_id (409), since not every input
+    # field (e.g. the raw `amount` for non-BUY/SELL types) survives into
+    # stored columns once amount_eur is derived.
+    payload_hash: Mapped[str] = mapped_column(String, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
