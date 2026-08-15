@@ -113,9 +113,15 @@ Two phase-4 additions worth knowing before you hit them as surprises:
   `price_point` history (or fails loudly with `no_price_available`) —
   earlier phases stored the flag but didn't act on it.
 
-`LOAN_PAYMENT`, `EXTRA_REPAYMENT`, and `VALUATION` are recognized types but
-rejected with `unsupported_transaction_type` until phase 5 builds the
-`loan` and `valuation_anchor` tables they need.
+`VALUATION` is a recognized type but rejected with
+`unsupported_transaction_type` — `LOAN_PAYMENT`/`EXTRA_REPAYMENT` were the
+same until phase 5 built the `loan` table, but both work now.
+
+**MCP server:** `mcp_server/` wraps the write/read endpoints above as
+native tool calls (spec 7.5's "optional extension") — same validation,
+same idempotency, it just calls the same API instead of raw curl. See
+`mcp_server/README.md` to configure it in Claude Code/Desktop. Runs
+locally on your own machine, not deployed to the Pi.
 
 ## Handling documents
 
