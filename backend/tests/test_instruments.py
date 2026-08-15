@@ -65,6 +65,37 @@ def test_decimal_fields_are_exact(client, auth_headers):
     assert body["ter_pct"] == "0.00"
 
 
+def test_delete_rejects_instrument_with_transactions(client, auth_headers):
+    account = client.post(
+        "/api/accounts",
+        json={"name": "Test Brokerage", "type": "BROKERAGE", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()
+    instrument = client.post(
+        "/api/instruments",
+        json={**SAMPLE_INSTRUMENT, "name": "Test Delete Guard", "isin": "XX0000000050"},
+        headers=auth_headers,
+    ).json()
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": "instr-delete-guard",
+            "date": "2024-01-10",
+            "type": "BUY",
+            "account_id": account["id"],
+            "instrument_id": instrument["id"],
+            "quantity": "1",
+            "price": "10.00",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+
+    resp = client.delete(f"/api/instruments/{instrument['id']}", headers=auth_headers)
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "instrument_has_transactions"
+
+
 def test_valuation_config_for_modeled_instrument(client, auth_headers):
     payload = {
         **SAMPLE_INSTRUMENT,

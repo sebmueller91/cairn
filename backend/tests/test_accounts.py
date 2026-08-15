@@ -68,3 +68,38 @@ def test_session_cookie_auth(client):
 def test_session_cookie_rejects_invalid_token(client):
     login = client.post("/api/auth/session", json={"token": "wrong"})
     assert login.status_code == 401
+
+
+def test_delete_rejects_account_with_transactions(client, auth_headers):
+    account = client.post(
+        "/api/accounts", json=SAMPLE_ACCOUNT, headers=auth_headers
+    ).json()
+    instrument = client.post(
+        "/api/instruments",
+        json={
+            "name": "Test ETF",
+            "isin": "XX0000000040",
+            "asset_class": "EQUITY",
+            "valuation_mode": "MARKET",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": "acct-delete-guard",
+            "date": "2024-01-10",
+            "type": "BUY",
+            "account_id": account["id"],
+            "instrument_id": instrument["id"],
+            "quantity": "1",
+            "price": "10.00",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+
+    resp = client.delete(f"/api/accounts/{account['id']}", headers=auth_headers)
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_has_transactions"

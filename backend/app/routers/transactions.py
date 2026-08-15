@@ -228,6 +228,7 @@ def delete_transaction(
     _scope=Depends(require_write_scope),
 ) -> None:
     txn = _get_txn_or_404(db, txn_id)
+    batch_id = txn.import_batch_id
     audit.record(
         db,
         actor=TxnSource.AGENT,
@@ -237,4 +238,14 @@ def delete_transaction(
         payload_hash=txn.payload_hash,
     )
     db.delete(txn)
+    db.flush()
+    # A batch left with zero transactions (the common case: single manual
+    # entries each get their own batch of one, per docs/data-model.md
+    # invariant 4) is just clutter — remove it rather than let empty
+    # batches accumulate.
+    remaining = db.query(Txn).filter(Txn.import_batch_id == batch_id).first()
+    if remaining is None:
+        batch = db.get(ImportBatch, batch_id)
+        if batch is not None:
+            db.delete(batch)
     db.commit()

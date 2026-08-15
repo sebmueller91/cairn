@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Instrument
+from app.models import Instrument, Txn
 from app.schemas import InstrumentCreate, InstrumentRead, InstrumentUpdate
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -115,5 +115,14 @@ def delete_instrument(
     _scope=Depends(require_write_scope),
 ) -> None:
     instrument = _get_or_404(db, instrument_id)
+    has_txns = db.query(Txn).filter(Txn.instrument_id == instrument_id).first() is not None
+    if has_txns:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "instrument_has_transactions",
+                "params": {"instrument_id": instrument_id},
+            },
+        )
     db.delete(instrument)
     db.commit()

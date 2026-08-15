@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Account
+from app.models import Account, Txn
 from app.schemas import AccountCreate, AccountRead, AccountUpdate
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -71,5 +71,21 @@ def delete_account(
     _scope=Depends(require_write_scope),
 ) -> None:
     account = _get_or_404(db, account_id)
+    has_txns = (
+        db.query(Txn)
+        .filter(
+            (Txn.account_id == account_id) | (Txn.counter_account_id == account_id)
+        )
+        .first()
+        is not None
+    )
+    if has_txns:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "account_has_transactions",
+                "params": {"account_id": account_id},
+            },
+        )
     db.delete(account)
     db.commit()
