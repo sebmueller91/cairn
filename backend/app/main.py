@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 
-from app.routers import accounts, auth, health
+from app.routers import accounts, auth, health, instruments
 
 app = FastAPI(
     title="Cairn API",
@@ -11,3 +11,4 @@ app = FastAPI(
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(accounts.router)
+app.include_router(instruments.router)

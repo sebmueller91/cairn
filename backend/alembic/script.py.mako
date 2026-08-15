@@ -9,6 +9,8 @@ from typing import Sequence, Union
 
 from alembic import op
 import sqlalchemy as sa
+
+import app.db_types  # noqa: F401  autogenerate references app.db_types.Money/Quantity by name but never imports the module itself
 ${imports if imports else ""}
 
 revision: str = ${repr(up_revision)}
