@@ -12,5 +12,10 @@
     "en": "English"
   },
   "apiToken": "API token",
-  "loggedInAs": "Signed in"
+  "loggedInAs": "Signed in",
+  "export": {
+    "title": "Data export",
+    "description": "All accounts, instruments, transactions, valuation anchors, and loan parameters as CSV and JSON — independent of schema and application.",
+    "download": "Download export"
+  }
 }

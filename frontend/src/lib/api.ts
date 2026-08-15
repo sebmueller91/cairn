@@ -271,10 +271,10 @@ export interface AllocationResponse {
 
 export interface DataQualityIssue {
   kind: string;
-  instrument_id: number;
-  instrument_name: string;
-  account_id: number;
   detail: string;
+  instrument_id: number | null;
+  instrument_name: string | null;
+  account_id: number | null;
   age_days: number | null;
 }
 

@@ -5,7 +5,8 @@ positions; adds no new storage.
 """
 
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, datetime, timezone
+from pathlib import Path
 
 from sqlalchemy.orm import Session
 
@@ -18,27 +19,60 @@ STALE_PRICE_DAYS = 7
 # longer threshold than a tradeable instrument's price, so this only
 # flags an anchor that's genuinely been left untouched for years.
 STALE_VALUATION_DAYS = 730
+# spec 6.6: "the data quality panel warns when the last successful backup
+# is older than 48 hours."
+STALE_BACKUP_HOURS = 48
+# Same file scripts/backup.sh writes and app.routers.health reads — a
+# module-level path rather than importing health.py, so this stays a
+# read-only aggregation with no dependency on another router.
+_LAST_SUCCESS_FILE = Path("/backup-status/last_success")
 
 
 @dataclass
 class DataQualityIssue:
     kind: str
-    instrument_id: int
-    instrument_name: str
-    account_id: int
     detail: str
+    # None for system-level issues (e.g. backup staleness) that aren't
+    # about a specific instrument/account.
+    instrument_id: int | None = None
+    instrument_name: str | None = None
+    account_id: int | None = None
     age_days: int | None = None
+
+
+def _backup_issue(now: datetime) -> DataQualityIssue | None:
+    try:
+        text = _LAST_SUCCESS_FILE.read_text().strip()
+    except FileNotFoundError:
+        return DataQualityIssue(kind="missing_backup", detail="No successful backup recorded yet")
+    if not text:
+        return DataQualityIssue(kind="missing_backup", detail="No successful backup recorded yet")
+    last = datetime.fromisoformat(text)
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    age_hours = (now - last).total_seconds() / 3600
+    if age_hours > STALE_BACKUP_HOURS:
+        return DataQualityIssue(
+            kind="stale_backup",
+            detail=f"Last successful backup is {int(age_hours)}h old",
+            age_days=int(age_hours / 24),
+        )
+    return None
 
 
 def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQualityIssue]:
     as_of = as_of or date.today()
+    issues: list[DataQualityIssue] = []
+
+    backup_issue = _backup_issue(datetime.now(timezone.utc))
+    if backup_issue is not None:
+        issues.append(backup_issue)
 
     txns = db.query(Txn).filter(Txn.voided_at.is_(None), Txn.instrument_id.isnot(None)).all()
     events = [txn_to_event(t) for t in txns]
     positions = compute_positions(events)
 
     instruments = {i.id: i for i in db.query(Instrument).all()}
-    issues: list[DataQualityIssue] = []
 
     for (account_id, instrument_id), pos in positions.items():
         if pos.quantity == 0:

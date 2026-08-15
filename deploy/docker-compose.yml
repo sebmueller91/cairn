@@ -13,6 +13,9 @@ services:
       API_TOKEN_READONLY: ${API_TOKEN_READONLY:-}
     volumes:
       - /srv/cairn/data:/data
+      # Written by scripts/backup.sh on host cron (ADR 0009/0012) —
+      # read-only from the API's side, it never writes here itself.
+      - /srv/cairn/backups:/backup-status:ro
     read_only: true
     tmpfs:
       - /tmp

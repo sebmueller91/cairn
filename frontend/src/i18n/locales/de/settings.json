@@ -12,5 +12,10 @@
     "en": "Englisch"
   },
   "apiToken": "API-Token",
-  "loggedInAs": "Angemeldet"
+  "loggedInAs": "Angemeldet",
+  "export": {
+    "title": "Datenexport",
+    "description": "Alle Konten, Instrumente, Transaktionen, Bewertungsanker und Kreditparameter als CSV und JSON — unabhängig von Schema und Anwendung.",
+    "download": "Export herunterladen"
+  }
 }

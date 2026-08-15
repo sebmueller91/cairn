@@ -20,6 +20,17 @@ export function Settings() {
           <ThemeToggle />
         </div>
       </Card>
+
+      <Card className="max-w-md space-y-2">
+        <h2 className="font-medium">{t("export.title")}</h2>
+        <p className="text-sm text-text-muted">{t("export.description")}</p>
+        <a
+          href="/api/export/full"
+          className="inline-block rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg"
+        >
+          {t("export.download")}
+        </a>
+      </Card>
     </div>
   );
 }

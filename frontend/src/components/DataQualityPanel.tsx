@@ -21,7 +21,8 @@ export function DataQualityPanel() {
           <li key={idx} className="flex items-baseline gap-2">
             <span className="text-warning">●</span>
             <span>
-              {issue.instrument_name}: {t(`dataQuality.kinds.${issue.kind}`)}
+              {issue.instrument_name ? `${issue.instrument_name}: ` : ""}
+              {t(`dataQuality.kinds.${issue.kind}`)}
             </span>
           </li>
         ))}

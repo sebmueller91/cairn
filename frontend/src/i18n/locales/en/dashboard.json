@@ -20,7 +20,9 @@
       "missing_price": "No price data",
       "stale_valuation": "Valuation is stale",
       "missing_valuation": "No valuation data",
-      "no_cost_basis": "No cost basis recorded"
+      "no_cost_basis": "No cost basis recorded",
+      "missing_backup": "No successful backup yet",
+      "stale_backup": "Backup is stale"
     }
   }
 }

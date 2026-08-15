@@ -371,10 +371,10 @@ class AllocationResponse(BaseModel):
 
 class DataQualityIssueRead(BaseModel):
     kind: str
-    instrument_id: int
-    instrument_name: str
-    account_id: int
     detail: str
+    instrument_id: int | None = None
+    instrument_name: str | None = None
+    account_id: int | None = None
     age_days: int | None = None
 
 

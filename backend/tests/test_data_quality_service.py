@@ -1,6 +1,6 @@
 """Invented ISINs and quantities only, per AGENTS.md."""
 
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 
 
@@ -227,11 +227,51 @@ def test_stale_house_valuation_is_flagged(client, auth_headers, db_session):
 
 
 def test_data_quality_endpoint_end_to_end(client, auth_headers):
+    # No positions -> no per-instrument issues, but the backup-status file
+    # doesn't exist in a test environment either, so that one issue is
+    # expected rather than a fully empty list.
     resp = client.get("/api/data-quality", headers=auth_headers)
     assert resp.status_code == 200
-    assert resp.json() == {"issues": []}
+    issues = resp.json()["issues"]
+    assert [i["kind"] for i in issues] == ["missing_backup"]
 
 
 def test_data_quality_endpoint_requires_auth(client):
     resp = client.get("/api/data-quality")
     assert resp.status_code == 401
+
+
+def test_backup_issue_missing_file(monkeypatch):
+    from app import data_quality_service
+
+    monkeypatch.setattr(
+        data_quality_service, "_LAST_SUCCESS_FILE", data_quality_service.Path("/nope/does-not-exist")
+    )
+    issue = data_quality_service._backup_issue(datetime.now(timezone.utc))
+    assert issue is not None
+    assert issue.kind == "missing_backup"
+
+
+def test_backup_issue_fresh_backup_is_clean(tmp_path, monkeypatch):
+    from app import data_quality_service
+
+    marker = tmp_path / "last_success"
+    now = datetime.now(timezone.utc)
+    marker.write_text((now - timedelta(hours=1)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_SUCCESS_FILE", marker)
+
+    assert data_quality_service._backup_issue(now) is None
+
+
+def test_backup_issue_stale_backup_is_flagged(tmp_path, monkeypatch):
+    from app import data_quality_service
+
+    marker = tmp_path / "last_success"
+    now = datetime.now(timezone.utc)
+    marker.write_text((now - timedelta(hours=72)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_SUCCESS_FILE", marker)
+
+    issue = data_quality_service._backup_issue(now)
+    assert issue is not None
+    assert issue.kind == "stale_backup"
+    assert issue.age_days == 3

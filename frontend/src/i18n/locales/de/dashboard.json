@@ -20,7 +20,9 @@
       "missing_price": "Kein Preis vorhanden",
       "stale_valuation": "Bewertung ist veraltet",
       "missing_valuation": "Keine Bewertung vorhanden",
-      "no_cost_basis": "Keine Anschaffungskosten erfasst"
+      "no_cost_basis": "Keine Anschaffungskosten erfasst",
+      "missing_backup": "Noch kein erfolgreiches Backup",
+      "stale_backup": "Backup ist veraltet"
     }
   }
 }
