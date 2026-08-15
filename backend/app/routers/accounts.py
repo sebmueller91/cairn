@@ -1,0 +1,75 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.auth import get_scope, require_write_scope
+from app.database import get_db
+from app.models import Account
+from app.schemas import AccountCreate, AccountRead, AccountUpdate
+
+router = APIRouter(prefix="/api/accounts", tags=["accounts"])
+
+
+def _get_or_404(db: Session, account_id: int) -> Account:
+    account = db.get(Account, account_id)
+    if account is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "account_not_found", "params": {"id": account_id}},
+        )
+    return account
+
+
+@router.post("", response_model=AccountRead, status_code=status.HTTP_201_CREATED)
+def create_account(
+    body: AccountCreate,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> Account:
+    account = Account(**body.model_dump())
+    db.add(account)
+    db.commit()
+    db.refresh(account)
+    return account
+
+
+@router.get("", response_model=list[AccountRead])
+def list_accounts(
+    db: Session = Depends(get_db),
+    _scope=Depends(get_scope),
+) -> list[Account]:
+    return list(db.query(Account).order_by(Account.sort_order, Account.id).all())
+
+
+@router.get("/{account_id}", response_model=AccountRead)
+def get_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    _scope=Depends(get_scope),
+) -> Account:
+    return _get_or_404(db, account_id)
+
+
+@router.patch("/{account_id}", response_model=AccountRead)
+def update_account(
+    account_id: int,
+    body: AccountUpdate,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> Account:
+    account = _get_or_404(db, account_id)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(account, field, value)
+    db.commit()
+    db.refresh(account)
+    return account
+
+
+@router.delete("/{account_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_account(
+    account_id: int,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> None:
+    account = _get_or_404(db, account_id)
+    db.delete(account)
+    db.commit()
