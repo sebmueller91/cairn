@@ -343,6 +343,32 @@ class AttributionResponse(BaseModel):
     periods: list[AttributionPeriod]
 
 
+class TargetAllocationUpdate(BaseModel):
+    # asset_class -> target percentage (0-100), must sum to 100 if non-empty.
+    targets: dict[str, DecimalStr]
+
+
+class DriftRowRead(BaseModel):
+    asset_class: str
+    current_value_eur: DecimalStr
+    current_pct: DecimalStr
+    target_pct: DecimalStr
+    drift_pp: DecimalStr
+    drift_value_eur: DecimalStr
+
+
+class RebalanceProposalRead(BaseModel):
+    asset_class: str
+    amount_eur: DecimalStr
+
+
+class AllocationResponse(BaseModel):
+    drift: list[DriftRowRead]
+    rebalance_full: list[RebalanceProposalRead]
+    # Only populated when ?contribution=<amount> was passed.
+    rebalance_purchases_only: list[RebalanceProposalRead] | None = None
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 

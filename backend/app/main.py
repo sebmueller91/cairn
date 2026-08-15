@@ -6,6 +6,7 @@ from app.config import get_settings
 from app.routers import (
     accounts,
     admin,
+    allocation,
     attribution,
     auth,
     health,
@@ -60,3 +61,4 @@ app.include_router(house_index.router)
 app.include_router(loans.router)
 app.include_router(performance.router)
 app.include_router(attribution.router)
+app.include_router(allocation.router)
