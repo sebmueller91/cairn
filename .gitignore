@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+.pytest_cache/
+
+# Data — never committed, lives outside the repo on the Pi (/srv/cairn/)
+*.db
+*.db-wal
+*.db-shm
+
+# Secrets
+.env
+!deploy/.env.example
+
+# Source documents you book from
+inbox/*
+!inbox/.gitkeep
+
+# OS
+.DS_Store
