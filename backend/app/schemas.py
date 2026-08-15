@@ -300,6 +300,26 @@ class NetWorthPoint(BaseModel):
     value_eur: DecimalStr
 
 
+class PerformancePoint(BaseModel):
+    date: date_
+    index_value: float
+
+
+class PerformanceResponse(BaseModel):
+    scope: str
+    period: str
+    method: str
+    start_date: date_
+    end_date: date_
+    # TWR: total chained return over the period. MWR: annualised XIRR.
+    # None for MWR when the flows didn't converge (e.g. all same-sign,
+    # or a degenerate single-flow period) — never a fabricated number.
+    return_pct: float | None
+    # Only populated for method=twr — a base-100 growth curve for
+    # charting. MWR is a single annualised rate, not a curve.
+    curve: list[PerformancePoint] | None = None
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 

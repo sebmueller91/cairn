@@ -12,6 +12,7 @@ from app.routers import (
     import_batches,
     instruments,
     loans,
+    performance,
     positions,
     price_sources,
     prices,
@@ -56,3 +57,4 @@ app.include_router(reconcile.router)
 app.include_router(valuations.router)
 app.include_router(house_index.router)
 app.include_router(loans.router)
+app.include_router(performance.router)
