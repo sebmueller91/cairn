@@ -1,14 +1,21 @@
 """The snapshot engine (spec 3.7): for every day since the first
-transaction, materializes position values, cash balances, and a total —
-so a 10-year chart doesn't refold the entire ledger on every request
-(ADR 0003). Always a cache: `rebuild_snapshots` recreates it completely
-and is the ground truth. No watermark/incremental optimization yet — that
-can only ever make this *faster*, never *different*, so it's deferred
-until the full-table dataset volume actually needs it.
+transaction, materializes position values, cash balances, and the three
+notions of wealth from spec 4.1 — so a 10-year chart doesn't refold the
+entire ledger on every request (ADR 0003). Always a cache:
+`rebuild_snapshots` recreates it completely and is the ground truth. No
+watermark/incremental optimization yet — that can only ever make this
+*faster*, never *different*, so it's deferred until the full-table
+dataset volume actually needs it.
 
-Scope covered in phase 2: MARKET-valued positions and NOMINAL cash
-accounts only. ANCHORED/MODELED/AMORTIZING_LIABILITY (house, car, loan)
-arrive in phase 5 and extend this same table, not a new one.
+Phase 5 extends MARKET/NOMINAL (phase 2) with ANCHORED/MODELED (house,
+car — via app.valuation_service, called directly per day rather than
+precomputed into a carry-forward series like MARKET prices, since a
+household realistically has one house and one car, not dozens of
+instruments) and AMORTIZING_LIABILITY (loan balances, via
+app.loan_service). 'investable' keeps its phase-2 meaning; 'gross' adds
+house/car; 'net' subtracts loan balances from 'gross' — exactly spec
+4.1's three perspectives, computed once here rather than three times at
+read time.
 """
 
 from datetime import date, timedelta
@@ -18,15 +25,20 @@ from sqlalchemy.orm import Session
 
 from app.cash_service import all_known_deposits, interpolate_cash_balance
 from app.ledger import compute_positions, txn_to_event
+from app.loan_service import LoanConfig, loan_balance
 from app.models import (
     Account,
     AccountType,
     DailySnapshot,
     FxRate,
     Instrument,
+    Loan,
     PricePoint,
     Txn,
+    TransactionType,
+    ValuationMode,
 )
+from app.valuation_service import current_instrument_value
 
 
 def _quantity_snapshots_by_date(events: list) -> dict[date, dict]:
@@ -109,9 +121,32 @@ def rebuild_snapshots(db: Session) -> int:
                 [(s.date, s.amount_eur) for s in statements], known_deposits
             )
 
+    loans = db.query(Loan).all()
+    loan_configs: dict[int, LoanConfig] = {}
+    for loan in loans:
+        extra_repayments = [
+            (t.date, t.amount_eur)
+            for t in db.query(Txn)
+            .filter(
+                Txn.account_id == loan.account_id,
+                Txn.type == TransactionType.EXTRA_REPAYMENT,
+                Txn.voided_at.is_(None),
+            )
+            .all()
+        ]
+        loan_configs[loan.id] = LoanConfig(
+            principal=loan.principal,
+            annual_rate_pct=loan.rate_pct,
+            start_date=loan.start_date,
+            monthly_payment=loan.monthly_payment,
+            extra_repayments=extra_repayments,
+        )
+
     all_dates = list(snapshot_dates)
     for daily in cash_daily.values():
         all_dates.extend(daily.keys())
+    for loan in loans:
+        all_dates.append(loan.start_date)
     if not all_dates:
         db.query(DailySnapshot).delete()
         db.commit()
@@ -132,27 +167,39 @@ def rebuild_snapshots(db: Session) -> int:
             current_positions = qty_snapshots[snapshot_dates[snap_idx]]
             snap_idx += 1
 
-        total_value = Decimal(0)
+        investable_value = Decimal(0)
+        physical_asset_value = Decimal(0)
         for (account_id, instrument_id), pos in current_positions.items():
             if pos.quantity == 0:
                 continue
             instrument = instruments.get(instrument_id)
-            if instrument is None or instrument.valuation_mode != "MARKET":
+            if instrument is None:
                 continue
-            prices = price_series.get(instrument_id)
-            if not prices:
-                continue
-            price = _lookup_carry_forward(prices, day, idx_cache)
-            if price is None:
-                continue
-            if instrument.currency == "EUR":
-                fx = Decimal(1)
-            else:
-                rates = fx_series.get(instrument.currency)
-                fx = _lookup_carry_forward(rates, day, idx_cache) if rates else None
-                if fx is None:
+
+            if instrument.valuation_mode == ValuationMode.MARKET:
+                prices = price_series.get(instrument_id)
+                if not prices:
                     continue
-            value_eur = pos.quantity * price * fx
+                price = _lookup_carry_forward(prices, day, idx_cache)
+                if price is None:
+                    continue
+                if instrument.currency == "EUR":
+                    fx = Decimal(1)
+                else:
+                    rates = fx_series.get(instrument.currency)
+                    fx = _lookup_carry_forward(rates, day, idx_cache) if rates else None
+                    if fx is None:
+                        continue
+                value_eur = pos.quantity * price * fx
+                investable_value += value_eur
+            elif instrument.valuation_mode in (ValuationMode.ANCHORED, ValuationMode.MODELED):
+                value_eur = current_instrument_value(db, instrument_id, day)
+                if value_eur is None:
+                    continue
+                physical_asset_value += value_eur
+            else:
+                continue
+
             db.add(
                 DailySnapshot(
                     date=day,
@@ -163,7 +210,6 @@ def rebuild_snapshots(db: Session) -> int:
                     cost_basis_eur=pos.cost_basis_eur,
                 )
             )
-            total_value += value_eur
 
         for account_id, daily in cash_daily.items():
             balance = daily.get(day)
@@ -177,12 +223,36 @@ def rebuild_snapshots(db: Session) -> int:
                     value_eur=balance,
                 )
             )
-            total_value += balance
+            investable_value += balance
+
+        liabilities_value = Decimal(0)
+        for loan in loans:
+            if day < loan.start_date:
+                continue
+            balance = loan_balance(loan_configs[loan.id], day)
+            db.add(
+                DailySnapshot(
+                    date=day,
+                    scope_type="loan",
+                    scope_id=str(loan.id),
+                    value_eur=-balance,
+                )
+            )
+            liabilities_value += balance
+
+        gross_value = investable_value + physical_asset_value
+        net_value = gross_value - liabilities_value
 
         db.add(
             DailySnapshot(
-                date=day, scope_type="total", scope_id="investable", value_eur=total_value
+                date=day, scope_type="total", scope_id="investable", value_eur=investable_value
             )
+        )
+        db.add(
+            DailySnapshot(date=day, scope_type="total", scope_id="gross", value_eur=gross_value)
+        )
+        db.add(
+            DailySnapshot(date=day, scope_type="total", scope_id="net", value_eur=net_value)
         )
         days_written += 1
         day += timedelta(days=1)

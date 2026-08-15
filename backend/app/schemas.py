@@ -123,12 +123,14 @@ class InstrumentRead(BaseModel):
     updated_at: datetime
 
 
-# Types requiring a Loan or valuation_anchor table (phase 5, not built yet)
-# are deliberately not accepted by the phase-1 transactions endpoint.
+# VALUATION stays excluded permanently: POST /api/valuations +
+# valuation_anchor is the real mechanism (spec ch. 9's own table sketch
+# already treats anchors as a separate resource, not a txn), so a
+# VALUATION-type transaction row would just be a second, redundant path
+# to the same data. LOAN_PAYMENT/EXTRA_REPAYMENT were phase-5-gated on the
+# `loan` table existing — it does now.
 UNSUPPORTED_TXN_TYPES = {
     TransactionType.VALUATION,
-    TransactionType.LOAN_PAYMENT,
-    TransactionType.EXTRA_REPAYMENT,
 }
 
 
@@ -328,6 +330,84 @@ class ReconcileResponse(BaseModel):
     account_id: int
     as_of: date_
     differences: list[ReconcileDifference]
+
+
+class ValuationAnchorCreate(BaseModel):
+    instrument_id: int
+    date: date_
+    value_eur: DecimalStr
+    method: str = "manual"
+    confidence: str | None = None
+    source: str | None = None
+    note: str | None = None
+
+
+class ValuationAnchorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    instrument_id: int
+    date: date_
+    value_eur: DecimalStr
+    method: str
+    confidence: str | None
+    source: str | None
+    note: str | None
+    created_at: datetime
+
+
+class HouseIndexPointCreate(BaseModel):
+    series: str
+    date: date_
+    index_value: DecimalStr
+
+
+class HouseIndexPointRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    series: str
+    date: date_
+    index_value: DecimalStr
+
+
+class LoanCreate(BaseModel):
+    account_id: int
+    principal: DecimalStr
+    rate_pct: DecimalStr
+    start_date: date_
+    fixed_until: date_ | None = None
+    monthly_payment: DecimalStr
+    payment_day: int = 1
+    extra_repayment_allowance_pct: DecimalStr | None = None
+
+
+class LoanUpdate(BaseModel):
+    rate_pct: DecimalStr | None = None
+    fixed_until: date_ | None = None
+    monthly_payment: DecimalStr | None = None
+    payment_day: int | None = None
+    extra_repayment_allowance_pct: DecimalStr | None = None
+
+
+class LoanRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    account_id: int
+    principal: DecimalStr
+    rate_pct: DecimalStr
+    start_date: date_
+    fixed_until: date_ | None
+    monthly_payment: DecimalStr
+    payment_day: int
+    extra_repayment_allowance_pct: DecimalStr | None
+
+
+class LoanStatus(BaseModel):
+    loan: LoanRead
+    balance_eur: DecimalStr
+    ltv: DecimalStr | None = None
+    house_value_eur: DecimalStr | None = None
 
 
 class ErrorDetail(BaseModel):

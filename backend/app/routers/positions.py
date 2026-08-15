@@ -1,4 +1,5 @@
 from collections import defaultdict
+from datetime import date
 from decimal import Decimal
 
 from fastapi import APIRouter, Depends
@@ -6,9 +7,11 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope
 from app.database import get_db
+from app.db_types import quantize_money
 from app.ledger import TxnEvent, compute_positions, txn_to_event
-from app.models import FxRate, Instrument, PricePoint, Txn
+from app.models import Instrument, Txn, ValuationMode
 from app.schemas import PositionRead
+from app.valuation_service import current_instrument_value
 
 router = APIRouter(prefix="/api/positions", tags=["positions"])
 
@@ -25,34 +28,18 @@ def _load_events(db: Session, account_id: int | None) -> list[TxnEvent]:
 def _latest_value_eur(
     db: Session, instrument: Instrument | None, quantity: Decimal
 ) -> Decimal | None:
-    """Same "latest price, convert via latest FX" idea as the snapshot
-    engine's carry-forward lookup, but for a single as-of-today point
-    rather than a full daily walk — MARKET instruments only, same
-    phase-2 scope boundary as everywhere else this quarter touches
-    valuation."""
-    if instrument is None or instrument.valuation_mode != "MARKET":
+    """MARKET is a per-unit price (multiply by quantity held); ANCHORED/
+    MODELED (house/car) is already the value of the whole holding, since
+    a house is never fractionally owned the way a share position is —
+    quantity there is always 1 and multiplying again would be wrong."""
+    if instrument is None:
         return None
-    price_point = (
-        db.query(PricePoint)
-        .filter(PricePoint.instrument_id == instrument.id)
-        .order_by(PricePoint.date.desc())
-        .first()
-    )
-    if price_point is None:
+    value = current_instrument_value(db, instrument.id, date.today())
+    if value is None:
         return None
-    if instrument.currency == "EUR":
-        fx = Decimal(1)
-    else:
-        fx_row = (
-            db.query(FxRate)
-            .filter(FxRate.currency == instrument.currency)
-            .order_by(FxRate.date.desc())
-            .first()
-        )
-        if fx_row is None:
-            return None
-        fx = fx_row.eur_rate
-    return quantity * price_point.close * fx
+    if instrument.valuation_mode == ValuationMode.MARKET:
+        return quantize_money(quantity * value)
+    return quantize_money(value)
 
 
 @router.get("", response_model=list[PositionRead])

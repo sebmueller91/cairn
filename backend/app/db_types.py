@@ -8,6 +8,18 @@ from sqlalchemy.types import String, TypeDecorator
 # the only way to guarantee exact round-tripping (docs/data-model.md).
 
 
+def quantize_money(value: Decimal) -> Decimal:
+    """The same 2dp rule Money enforces at the DB boundary, exposed for
+    money values computed on the fly (e.g. a loan balance from
+    loan_service) and returned directly in an API response without ever
+    passing through a Money column — those need the same clean,
+    consistent precision a stored amount always has, not however many
+    decimal places fell out of the arithmetic that produced them."""
+    if not isinstance(value, Decimal):
+        value = Decimal(str(value))
+    return value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+
 class Money(TypeDecorator):
     """EUR amounts. Always quantized to exactly 2 decimal places."""
 
@@ -17,10 +29,7 @@ class Money(TypeDecorator):
     def process_bind_param(self, value, dialect) -> str | None:
         if value is None:
             return None
-        if not isinstance(value, Decimal):
-            value = Decimal(str(value))
-        quantized = value.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        return str(quantized)
+        return str(quantize_money(value))
 
     def process_result_value(self, value, dialect) -> Decimal | None:
         if value is None:

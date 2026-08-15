@@ -299,3 +299,53 @@ class Txn(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now(), onupdate=func.now()
     )
+
+
+class ValuationAnchor(Base):
+    """A point the ANCHORED/MODELED valuation curve is pinned to (spec
+    3.4/3.3): the house's purchase price, a later appraisal, a car
+    trade-in offer. Distinct from `txn` — an anchor never moves cash or
+    quantity, it just recalibrates a formula."""
+
+    __tablename__ = "valuation_anchor"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    instrument_id: Mapped[int] = mapped_column(
+        ForeignKey("instrument.id"), nullable=False
+    )
+    date: Mapped[date] = mapped_column(Date, nullable=False)
+    value_eur: Mapped[Money] = mapped_column(Money, nullable=False)
+    method: Mapped[str] = mapped_column(String, nullable=False)  # purchase|appraisal|trade_in|other
+    confidence: Mapped[str | None] = mapped_column(String, nullable=True)
+    source: Mapped[str | None] = mapped_column(String, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class Loan(Base):
+    __tablename__ = "loan"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    account_id: Mapped[int] = mapped_column(ForeignKey("account.id"), nullable=False)
+    principal: Mapped[Money] = mapped_column(Money, nullable=False)
+    rate_pct: Mapped[Quantity] = mapped_column(Quantity, nullable=False)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    fixed_until: Mapped[date | None] = mapped_column(Date, nullable=True)
+    monthly_payment: Mapped[Money] = mapped_column(Money, nullable=False)
+    payment_day: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    extra_repayment_allowance_pct: Mapped[Quantity | None] = mapped_column(
+        Quantity, nullable=True
+    )
+
+
+class HousePriceIndexPoint(Base):
+    """Destatis GENESIS table 61262 (spec 3.4), one series per district
+    type. Populated by the fetch job — real Destatis credentials require
+    a one-off registration the app can't do on its own, so this table can
+    also be filled by hand until that's done."""
+
+    __tablename__ = "house_price_index_point"
+
+    series: Mapped[str] = mapped_column(String, primary_key=True)
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    index_value: Mapped[Quantity] = mapped_column(Quantity, nullable=False)

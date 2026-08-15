@@ -25,13 +25,16 @@ def get_networth_timeseries(
     from_: date | None = Query(default=None, alias="from"),
     to: date | None = None,
     granularity: str = "day",
+    # spec 4.1's three notions of wealth. Defaults to 'investable' — the
+    # allocation view's own default perspective (spec 4.1: "if the house
+    # is 60% of total wealth, an equity share of 18% of total wealth
+    # isn't actionable"), not an arbitrary choice.
+    scope: str = "investable",
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[NetWorthPoint]:
-    # Only the 'investable' total exists until phase 5 adds house/car/loan
-    # and with them the gross/net perspectives from spec 4.1.
     query = db.query(DailySnapshot).filter(
-        DailySnapshot.scope_type == "total", DailySnapshot.scope_id == "investable"
+        DailySnapshot.scope_type == "total", DailySnapshot.scope_id == scope
     )
     if from_ is not None:
         query = query.filter(DailySnapshot.date >= from_)

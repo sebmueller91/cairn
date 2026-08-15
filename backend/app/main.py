@@ -8,14 +8,17 @@ from app.routers import (
     admin,
     auth,
     health,
+    house_index,
     import_batches,
     instruments,
+    loans,
     positions,
     price_sources,
     prices,
     reconcile,
     timeseries,
     transactions,
+    valuations,
 )
 
 @asynccontextmanager
@@ -50,3 +53,6 @@ app.include_router(import_batches.router)
 app.include_router(admin.router)
 app.include_router(timeseries.router)
 app.include_router(reconcile.router)
+app.include_router(valuations.router)
+app.include_router(house_index.router)
+app.include_router(loans.router)

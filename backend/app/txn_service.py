@@ -14,7 +14,16 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.ledger import InsufficientHoldingError, TxnEvent, compute_positions, txn_to_event
-from app.models import Account, FxRate, Instrument, PriceMode, PricePoint, Txn, TransactionType
+from app.models import (
+    Account,
+    AccountType,
+    FxRate,
+    Instrument,
+    PriceMode,
+    PricePoint,
+    Txn,
+    TransactionType,
+)
 from app.schemas import UNSUPPORTED_TXN_TYPES, TransactionCreate
 
 _AMOUNT_ONLY_TYPES = {
@@ -25,7 +34,20 @@ _AMOUNT_ONLY_TYPES = {
     TransactionType.DEPOSIT,
     TransactionType.WITHDRAWAL,
     TransactionType.BALANCE_STATEMENT,
+    # Record-keeping / cash-flow tracking only — the loan balance itself
+    # comes from loan_service's amortization model, not from summing
+    # these. interest_part/principal_part (spec 2.3) aren't stored
+    # separately: both are always derivable from the loan's own rate and
+    # the balance just before this payment, so storing them too would be
+    # a second, driftable copy of the same number.
+    TransactionType.LOAN_PAYMENT,
+    # EXTRA_REPAYMENT is the one type that actually feeds back into the
+    # model — loan_service reads these directly off the ledger by type
+    # and account, not from a separate config list.
+    TransactionType.EXTRA_REPAYMENT,
 }
+
+_LOAN_ONLY_TYPES = {TransactionType.LOAN_PAYMENT, TransactionType.EXTRA_REPAYMENT}
 
 
 class TxnValidationError(Exception):
@@ -149,6 +171,12 @@ def validate_references(db: Session, payload: TransactionCreate) -> None:
             raise TxnValidationError(
                 "unknown_instrument", {"instrument_id": payload.instrument_id}
             )
+
+    if payload.type in _LOAN_ONLY_TYPES and account.type != AccountType.LOAN:
+        raise TxnValidationError(
+            "not_a_loan_account",
+            {"account_id": payload.account_id, "type": payload.type.value},
+        )
 
 
 def check_holdings(db: Session, payload: TransactionCreate) -> None:
