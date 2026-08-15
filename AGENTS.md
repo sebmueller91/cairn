@@ -31,16 +31,25 @@ Decided — see `docs/adr/0001` through `0013` for the reasoning behind each.
   for an `HttpOnly` cookie via `POST /api/auth/session`.
 - **Build/deploy:** native `arm64` build on the (Apple Silicon) dev Mac —
   same architecture as the Pi, no QEMU — pushed to a local `registry:2`
-  container on the Pi, deployed via `scripts/deploy.sh`
-  (`docker compose pull && up -d`, with a pre-migration `.backup` +
-  `integrity_check` first per ADR 0008).
+  container on the Pi, deployed via `scripts/deploy.sh`, which now also
+  builds the frontend and rsyncs `dist/` to the Pi (`docker compose pull &&
+  up -d`, with a pre-migration `.backup` + `integrity_check` first per
+  ADR 0008).
+- **TLS/entry point:** Caddy is the only published port (80/443); the api
+  container is not published to the host at all, only reachable from Caddy
+  over the compose network (ADR 0014). Certificate is a local `mkcert` CA
+  (no domain available) covering `raspberrypi5`, `<pi-fqdn>`,
+  and the Pi's LAN IP — every device needs the mkcert root CA trusted once
+  to see the app as secure.
 - **Jobs:** price fetch and snapshot rebuild run in-process (APScheduler);
   backup runs from host cron, deliberately decoupled from the API
   container's own health (ADR 0009).
 
 Runtime layout on the Pi: `/srv/cairn/data` (bind-mounted SQLite),
 `/srv/cairn/config/.env` (secrets, never committed), `/srv/cairn/backups`,
-`/srv/cairn/registry`. The API token lives there and in your password
+`/srv/cairn/registry`, `/srv/cairn/frontend-dist` (built SPA, served by
+Caddy), `/srv/cairn/tls` (mkcert cert + key, never committed), and
+`/srv/cairn/Caddyfile`. The API token lives there and in your password
 manager — not only in `.env`.
 
 ## Hard rules

@@ -1,0 +1,30 @@
+# TLS via a local mkcert CA (docs/adr/0014-tls-single-entry-point.md,
+# spec 6.3's "alternative" route — no domain, so no ACME/DNS-01). The cert
+# covers every name a device on the LAN might actually use to reach the
+# Pi: the plain mDNS-ish hostname, the FRITZ!Box-resolved FQDN, and the
+# LAN IP itself.
+{
+	admin off
+	auto_https off
+}
+
+:80 {
+	redir https://{host}{uri} permanent
+}
+
+raspberrypi5:443, <pi-fqdn>:443, <pi-lan-ip>:443 {
+	tls /etc/caddy/tls/raspberrypi5.pem /etc/caddy/tls/raspberrypi5-key.pem
+
+	# Single entry point (spec 6.4): the api container is never published
+	# to the host directly, only reachable through Caddy on the compose
+	# network.
+	handle /api/* {
+		reverse_proxy api:8000
+	}
+
+	handle {
+		root * /srv/frontend
+		try_files {path} /index.html
+		file_server
+	}
+}

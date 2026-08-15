@@ -1,14 +1,12 @@
-# Phase 0: API published directly on the LAN for pipeline verification.
-# Caddy (TLS termination, single published entry point per ADR 0011 / spec
-# 6.4) arrives with the PWA/offline work (phase 6) — until then the api
-# container's port is the only thing exposed, which is acceptable for a
-# plain-HTTP, LAN-only, no-service-worker phase.
+# Phase 6: Caddy is now the single published entry point (ADR 0014, spec
+# 6.4) — the api container is no longer published to the host at all, only
+# reachable from Caddy over the compose network by service name.
 services:
   api:
     image: ${REGISTRY:-localhost:5000}/cairn-api:${TAG:-latest}
     restart: unless-stopped
-    ports:
-      - "8000:8000"
+    expose:
+      - "8000"
     environment:
       DATABASE_PATH: /data/cairn.db
       API_TOKEN: ${API_TOKEN}
@@ -22,3 +20,26 @@ services:
       - ALL
     security_opt:
       - no-new-privileges:true
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /srv/cairn/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /srv/cairn/tls:/etc/caddy/tls:ro
+      - /srv/cairn/frontend-dist:/srv/frontend:ro
+      - caddy_data:/data
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+
+volumes:
+  caddy_data:

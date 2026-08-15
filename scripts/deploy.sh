@@ -1,7 +1,9 @@
 #!/bin/bash
 # Build natively on the Mac (same arch as the Pi, no QEMU — ADR 0007), push
 # to the Pi's local registry, take a pre-migration backup if data already
-# exists (ADR 0008), then pull + restart on the Pi.
+# exists (ADR 0008), then pull + restart on the Pi. Since phase 6 (ADR
+# 0014) this also builds the frontend and syncs it, the Caddyfile, and the
+# mkcert TLS cert — Caddy is the only published entry point now.
 set -euo pipefail
 
 PI_HOST="sebastian@raspberrypi5"
@@ -17,7 +19,17 @@ docker build -t "$REGISTRY/cairn-api:$TAG" ./backend
 echo "==> Pushing to $REGISTRY"
 docker push "$REGISTRY/cairn-api:$TAG"
 
-echo "==> Syncing compose file to the Pi"
+echo "==> Building frontend"
+npm --prefix frontend ci
+npm --prefix frontend run build
+
+echo "==> Ensuring remote directories exist"
+ssh -i "$PI_KEY" "$PI_HOST" 'mkdir -p /srv/cairn/frontend-dist /srv/cairn/tls'
+
+echo "==> Syncing frontend, Caddyfile, TLS cert, and compose file to the Pi"
+rsync -az --delete -e "ssh -i $PI_KEY" frontend/dist/ "$PI_HOST:/srv/cairn/frontend-dist/"
+scp -i "$PI_KEY" deploy/Caddyfile "$PI_HOST:/srv/cairn/Caddyfile"
+scp -i "$PI_KEY" deploy/tls/raspberrypi5.pem deploy/tls/raspberrypi5-key.pem "$PI_HOST:/srv/cairn/tls/"
 scp -i "$PI_KEY" deploy/docker-compose.yml "$PI_HOST:/srv/cairn/docker-compose.yml"
 
 echo "==> Pre-migration backup + deploy on the Pi"
@@ -49,6 +61,6 @@ EOF
 
 echo "==> Waiting for health check"
 sleep 2
-curl -sf "http://raspberrypi5:8000/api/health"
+curl -sf --cacert "$(mkcert -CAROOT)/rootCA.pem" "https://raspberrypi5/api/health"
 echo
 echo "==> Deployed cairn-api:$TAG"
