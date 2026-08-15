@@ -96,7 +96,12 @@ def test_delete_rejects_instrument_with_transactions(client, auth_headers):
     assert resp.json()["detail"]["code"] == "instrument_has_transactions"
 
 
-def test_delete_cascades_price_sources(client, auth_headers):
+def test_delete_cascades_price_sources_and_price_points(client, auth_headers, db_session):
+    from datetime import date
+    from decimal import Decimal
+
+    from app.models import PricePoint
+
     instrument = client.post(
         "/api/instruments",
         json={**SAMPLE_INSTRUMENT, "name": "Test Cascade", "isin": "XX0000000051"},
@@ -107,6 +112,17 @@ def test_delete_cascades_price_sources(client, auth_headers):
         json={"provider": "stooq", "provider_symbol": "TEST.DE"},
         headers=auth_headers,
     )
+    db_session.add(
+        PricePoint(
+            instrument_id=instrument["id"],
+            date=date(2024, 1, 1),
+            close=Decimal("10.00"),
+            currency="EUR",
+            provider="stooq",
+            quality="ok",
+        )
+    )
+    db_session.commit()
 
     resp = client.delete(f"/api/instruments/{instrument['id']}", headers=auth_headers)
     assert resp.status_code == 204
