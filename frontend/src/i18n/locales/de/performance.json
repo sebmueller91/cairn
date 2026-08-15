@@ -1,0 +1,38 @@
+{
+  "title": "Performance",
+  "periods": {
+    "1M": "1M",
+    "3M": "3M",
+    "YTD": "YTD",
+    "1Y": "1J",
+    "3Y": "3J",
+    "5Y": "5J",
+    "inception": "Gesamt"
+  },
+  "methods": {
+    "twr": "TWR",
+    "mwr": "MWR"
+  },
+  "noBenchmark": "Kein Vergleichsindex",
+  "portfolio": "Portfolio",
+  "benchmark": "Vergleichsindex",
+  "mwrNoCurve": "MWR ist eine einzelne annualisierte Rendite, kein Kurvenverlauf.",
+  "noData": "Noch keine Daten für diesen Zeitraum.",
+  "attribution": {
+    "title": "Wertentwicklung im Detail",
+    "start": "Start",
+    "end": "Ende",
+    "granularity": {
+      "month": "Monat",
+      "year": "Jahr"
+    },
+    "buckets": {
+      "deposits_withdrawals": "Ein-/Auszahlungen",
+      "income": "Erträge",
+      "costs": "Kosten",
+      "valuation_adjustments": "Bewertungsänderungen",
+      "fx_effect": "Wechselkurseffekt",
+      "market_gains_losses": "Marktgewinne/-verluste"
+    }
+  }
+}

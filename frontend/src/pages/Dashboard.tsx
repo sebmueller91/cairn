@@ -12,6 +12,7 @@ import {
 import { api, type NetWorthPoint } from "../lib/api";
 import { formatCurrency, formatDate } from "../lib/format";
 import { Card } from "../components/Card";
+import { DataQualityPanel } from "../components/DataQualityPanel";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "ALL";
 
@@ -59,14 +60,16 @@ function rangeFor(period: Period): { from?: string; granularity: "day" | "week" 
 export function Dashboard() {
   const { t, i18n } = useTranslation("dashboard");
   const [period, setPeriod] = useState<Period>("1Y");
+  const [real, setReal] = useState(false);
 
   const { from, granularity } = useMemo(() => rangeFor(period), [period]);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["networth", from, granularity],
+    queryKey: ["networth", from, granularity, real],
     queryFn: () => {
       const params = new URLSearchParams({ granularity });
       if (from) params.set("from", from);
+      if (real) params.set("real", "true");
       return api.get<NetWorthPoint[]>(`/api/timeseries/networth?${params}`);
     },
   });
@@ -86,23 +89,35 @@ export function Dashboard() {
         </div>
       </Card>
 
+      <DataQualityPanel />
+
       <Card>
-        <div className="mb-4 flex items-center justify-between">
+        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-medium">{t("wealthCurve")}</h2>
-          <div className="flex gap-1 rounded-md border border-border p-1">
-            {PERIODS.map((p) => (
-              <button
-                key={p}
-                onClick={() => setPeriod(p)}
-                className={`rounded px-2 py-1 text-xs font-medium ${
-                  p === period
-                    ? "bg-accent text-accent-fg"
-                    : "text-text-muted hover:text-text"
-                }`}
-              >
-                {t(`periods.${p}`)}
-              </button>
-            ))}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs text-text-muted">
+              <input
+                type="checkbox"
+                checked={real}
+                onChange={(e) => setReal(e.target.checked)}
+              />
+              {t("realTerms")}
+            </label>
+            <div className="flex gap-1 rounded-md border border-border p-1">
+              {PERIODS.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => setPeriod(p)}
+                  className={`rounded px-2 py-1 text-xs font-medium ${
+                    p === period
+                      ? "bg-accent text-accent-fg"
+                      : "text-text-muted hover:text-text"
+                  }`}
+                >
+                  {t(`periods.${p}`)}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

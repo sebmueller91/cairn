@@ -51,6 +51,8 @@ export const api = {
     request<T>(path, { method: "POST", body: body ? JSON.stringify(body) : undefined }),
   patch: <T>(path: string, body: unknown) =>
     request<T>(path, { method: "PATCH", body: JSON.stringify(body) }),
+  put: <T>(path: string, body: unknown) =>
+    request<T>(path, { method: "PUT", body: JSON.stringify(body) }),
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
 };
 
@@ -211,4 +213,71 @@ export interface Health {
   last_price_fetch: string | null;
   last_snapshot: string | null;
   last_backup: string | null;
+}
+
+export interface PerformancePoint {
+  date: string;
+  index_value: number;
+}
+
+export interface PerformanceResponse {
+  scope: string;
+  period: string;
+  method: string;
+  start_date: string;
+  end_date: string;
+  return_pct: number | null;
+  curve: PerformancePoint[] | null;
+  benchmark_curve: PerformancePoint[] | null;
+}
+
+export interface AttributionPeriod {
+  start_date: string;
+  end_date: string;
+  start_value: string;
+  end_value: string;
+  deposits_withdrawals: string;
+  income: string;
+  costs: string;
+  valuation_adjustments: string;
+  fx_effect: string;
+  market_gains_losses: string;
+}
+
+export interface AttributionResponse {
+  granularity: string;
+  periods: AttributionPeriod[];
+}
+
+export interface DriftRow {
+  asset_class: string;
+  current_value_eur: string;
+  current_pct: string;
+  target_pct: string;
+  drift_pp: string;
+  drift_value_eur: string;
+}
+
+export interface RebalanceProposal {
+  asset_class: string;
+  amount_eur: string;
+}
+
+export interface AllocationResponse {
+  drift: DriftRow[];
+  rebalance_full: RebalanceProposal[];
+  rebalance_purchases_only: RebalanceProposal[] | null;
+}
+
+export interface DataQualityIssue {
+  kind: string;
+  instrument_id: number;
+  instrument_name: string;
+  account_id: number;
+  detail: string;
+  age_days: number | null;
+}
+
+export interface DataQualityResponse {
+  issues: DataQualityIssue[];
 }

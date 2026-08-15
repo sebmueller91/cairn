@@ -11,5 +11,16 @@
     "5Y": "5J",
     "ALL": "Gesamt"
   },
-  "noData": "Noch keine Daten — lege ein Konto und ein Instrument an und buche eine Transaktion."
+  "noData": "Noch keine Daten — lege ein Konto und ein Instrument an und buche eine Transaktion.",
+  "realTerms": "Inflationsbereinigt",
+  "dataQuality": {
+    "title": "Datenqualität",
+    "kinds": {
+      "stale_price": "Preis ist veraltet",
+      "missing_price": "Kein Preis vorhanden",
+      "stale_valuation": "Bewertung ist veraltet",
+      "missing_valuation": "Keine Bewertung vorhanden",
+      "no_cost_basis": "Keine Anschaffungskosten erfasst"
+    }
+  }
 }

@@ -1,6 +1,8 @@
 {
   "nav": {
     "dashboard": "Dashboard",
+    "performance": "Performance",
+    "allocation": "Allocation",
     "positions": "Positions",
     "transactions": "Transactions",
     "accounts": "Accounts",

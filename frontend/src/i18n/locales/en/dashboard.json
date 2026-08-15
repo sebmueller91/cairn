@@ -11,5 +11,16 @@
     "5Y": "5Y",
     "ALL": "All"
   },
-  "noData": "No data yet — create an account and an instrument, then book a transaction."
+  "noData": "No data yet — create an account and an instrument, then book a transaction.",
+  "realTerms": "Inflation-adjusted",
+  "dataQuality": {
+    "title": "Data quality",
+    "kinds": {
+      "stale_price": "Price is stale",
+      "missing_price": "No price data",
+      "stale_valuation": "Valuation is stale",
+      "missing_valuation": "No valuation data",
+      "no_cost_basis": "No cost basis recorded"
+    }
+  }
 }

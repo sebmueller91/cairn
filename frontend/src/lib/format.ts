@@ -30,6 +30,20 @@ export function formatNumber(
   return new Intl.NumberFormat(intlLocale(lang), options).format(n);
 }
 
+export function formatPercent(
+  value: number | string,
+  lang: string,
+  options?: Intl.NumberFormatOptions,
+): string {
+  const n = typeof value === "string" ? Number(value) : value;
+  return new Intl.NumberFormat(intlLocale(lang), {
+    style: "percent",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+    ...options,
+  }).format(n);
+}
+
 export function formatDate(value: string | Date, lang: string): string {
   const d = typeof value === "string" ? new Date(value) : value;
   return new Intl.DateTimeFormat(intlLocale(lang), {

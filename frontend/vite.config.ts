@@ -63,8 +63,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.CAIRN_API_URL || 'http://raspberrypi5:8000',
+        // Caddy is the only published entry point since ADR 0014 — the
+        // api container's port 8000 is no longer reachable directly, so
+        // this must go through Caddy's HTTPS on :443 like every other
+        // client now. `secure: false` skips verifying the mkcert leaf
+        // cert here since this is a dev-only proxy hop on the same LAN.
+        target: process.env.CAIRN_API_URL || 'https://raspberrypi5',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
@@ -74,8 +80,14 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: process.env.CAIRN_API_URL || 'http://raspberrypi5:8000',
+        // Caddy is the only published entry point since ADR 0014 — the
+        // api container's port 8000 is no longer reachable directly, so
+        // this must go through Caddy's HTTPS on :443 like every other
+        // client now. `secure: false` skips verifying the mkcert leaf
+        // cert here since this is a dev-only proxy hop on the same LAN.
+        target: process.env.CAIRN_API_URL || 'https://raspberrypi5',
         changeOrigin: true,
+        secure: false,
       },
     },
   },

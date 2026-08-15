@@ -33,6 +33,8 @@ function useOldestDataUpdatedAt(): number | null {
 
 const NAV_ITEMS = [
   { to: "/", key: "dashboard" },
+  { to: "/performance", key: "performance" },
+  { to: "/allocation", key: "allocation" },
   { to: "/positions", key: "positions" },
   { to: "/transactions", key: "transactions" },
   { to: "/accounts", key: "accounts" },

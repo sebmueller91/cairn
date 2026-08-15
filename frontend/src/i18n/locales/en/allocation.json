@@ -1,0 +1,22 @@
+{
+  "title": "Allocation",
+  "targets": {
+    "title": "Target allocation",
+    "sum": "Sum: {{sum}}% (must total 100%)"
+  },
+  "drift": {
+    "title": "Drift",
+    "current": "Current",
+    "target": "Target",
+    "driftPp": "Drift"
+  },
+  "rebalance": {
+    "title": "Rebalancing proposal",
+    "contribution": "Next contribution (€)",
+    "full": "Full rebalance",
+    "purchasesOnly": "Purchases only (no selling)",
+    "onTarget": "Already on target.",
+    "buy": "buy {{amount}}",
+    "sell": "sell {{amount}}"
+  }
+}

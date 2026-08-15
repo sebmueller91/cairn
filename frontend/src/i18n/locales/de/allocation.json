@@ -1,0 +1,22 @@
+{
+  "title": "Allokation",
+  "targets": {
+    "title": "Zielallokation",
+    "sum": "Summe: {{sum}} % (muss 100 % ergeben)"
+  },
+  "drift": {
+    "title": "Abweichung",
+    "current": "Aktuell",
+    "target": "Ziel",
+    "driftPp": "Abweichung"
+  },
+  "rebalance": {
+    "title": "Rebalancing-Vorschlag",
+    "contribution": "Nächster Beitrag (€)",
+    "full": "Vollständiges Rebalancing",
+    "purchasesOnly": "Nur Zukäufe (kein Verkauf)",
+    "onTarget": "Bereits im Zielbereich.",
+    "buy": "kaufen {{amount}}",
+    "sell": "verkaufen {{amount}}"
+  }
+}
