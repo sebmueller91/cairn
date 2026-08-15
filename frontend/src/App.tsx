@@ -7,6 +7,7 @@ import { Positions } from "./pages/Positions";
 import { Transactions } from "./pages/Transactions";
 import { Accounts } from "./pages/Accounts";
 import { Instruments } from "./pages/Instruments";
+import { Assets } from "./pages/Assets";
 import { Settings } from "./pages/Settings";
 
 export function App() {
@@ -24,6 +25,7 @@ export function App() {
           <Route path="transactions" element={<Transactions />} />
           <Route path="accounts" element={<Accounts />} />
           <Route path="instruments" element={<Instruments />} />
+          <Route path="assets" element={<Assets />} />
           <Route path="settings" element={<Settings />} />
         </Route>
       </Routes>

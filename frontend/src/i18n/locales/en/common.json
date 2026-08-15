@@ -5,6 +5,7 @@
     "transactions": "Transactions",
     "accounts": "Accounts",
     "instruments": "Instruments",
+    "assets": "Assets",
     "settings": "Settings"
   },
   "actions": {

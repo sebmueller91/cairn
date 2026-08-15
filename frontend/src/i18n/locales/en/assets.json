@@ -34,7 +34,10 @@
       "MODELED": "Modeled",
       "AMORTIZING_LIABILITY": "Amortization schedule",
       "NOMINAL": "Nominal"
-    }
+    },
+    "valuationConfig": "Valuation config (JSON)",
+    "optional": "optional",
+    "invalidConfigJson": "Invalid JSON in the valuation config."
   },
   "positions": {
     "title": "Positions",
@@ -46,6 +49,29 @@
     "groupBy": "Group by",
     "groupByAccount": "Account",
     "groupByInstrument": "Instrument"
+  },
+  "physical": {
+    "pageTitle": "Physical assets",
+    "title": "House & car",
+    "newAnchor": "New valuation anchor",
+    "method": "Method",
+    "methods": {
+      "purchase": "Purchase",
+      "appraisal": "Appraisal",
+      "trade_in": "Trade-in",
+      "other": "Other"
+    },
+    "noLinkedHouse": "—"
+  },
+  "loans": {
+    "title": "Loans",
+    "new": "New loan",
+    "id": "ID",
+    "principal": "Principal",
+    "rate": "Rate",
+    "balance": "Balance",
+    "ltv": "LTV",
+    "monthlyPayment": "Monthly payment"
   },
   "transactions": {
     "title": "Transactions",

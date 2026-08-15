@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Account, Txn
+from app.models import Account, Loan, Txn
 from app.schemas import AccountCreate, AccountRead, AccountUpdate
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -86,6 +86,17 @@ def delete_account(
                 "code": "account_has_transactions",
                 "params": {"account_id": account_id},
             },
+        )
+    # A loan is real financial configuration (principal, rate, schedule),
+    # not disposable cache like a price_source — block like transactions
+    # rather than silently cascading it away. Found live: this FK was
+    # added in phase 5 and this guard wasn't updated for it, so deleting
+    # a LOAN-type account crashed the same way instrument delete once did.
+    has_loan = db.query(Loan).filter(Loan.account_id == account_id).first() is not None
+    if has_loan:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "account_has_loan", "params": {"account_id": account_id}},
         )
     db.delete(account)
     db.commit()

@@ -115,3 +115,26 @@ def test_delete_rejects_account_with_transactions(client, auth_headers):
     resp = client.delete(f"/api/accounts/{account['id']}", headers=auth_headers)
     assert resp.status_code == 409
     assert resp.json()["detail"]["code"] == "account_has_transactions"
+
+
+def test_delete_rejects_account_with_loan(client, auth_headers):
+    loan_account = client.post(
+        "/api/accounts",
+        json={"name": "Mortgage", "type": "LOAN", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()
+    client.post(
+        "/api/loans",
+        json={
+            "account_id": loan_account["id"],
+            "principal": "100000.00",
+            "rate_pct": "6.0",
+            "start_date": "2024-01-01",
+            "monthly_payment": "1000.00",
+        },
+        headers=auth_headers,
+    )
+
+    resp = client.delete(f"/api/accounts/{loan_account['id']}", headers=auth_headers)
+    assert resp.status_code == 409
+    assert resp.json()["detail"]["code"] == "account_has_loan"

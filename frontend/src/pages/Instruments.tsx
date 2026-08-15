@@ -43,18 +43,26 @@ export function Instruments() {
   const [assetClass, setAssetClass] = useState<AssetClass>("EQUITY");
   const [valuationMode, setValuationMode] = useState<ValuationMode>("MARKET");
   const [currency, setCurrency] = useState("EUR");
+  const [valuationConfigJson, setValuationConfigJson] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const needsConfig = valuationMode === "ANCHORED" || valuationMode === "MODELED";
 
   const createInstrument = useMutation({
-    mutationFn: () =>
-      api.post<Instrument>("/api/instruments", {
+    mutationFn: () => {
+      let valuation_config: Record<string, unknown> | undefined;
+      if (needsConfig && valuationConfigJson.trim()) {
+        valuation_config = JSON.parse(valuationConfigJson);
+      }
+      return api.post<Instrument>("/api/instruments", {
         name,
         isin: isin || null,
         ticker: ticker || null,
         asset_class: assetClass,
         valuation_mode: valuationMode,
         currency,
-      }),
+        ...(valuation_config ? { valuation_config } : {}),
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["instruments"] });
       setName("");
@@ -68,6 +76,14 @@ export function Instruments() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    if (needsConfig && valuationConfigJson.trim()) {
+      try {
+        JSON.parse(valuationConfigJson);
+      } catch {
+        setError(t("assets:instruments.invalidConfigJson"));
+        return;
+      }
+    }
     createInstrument.mutate();
   }
 
@@ -162,6 +178,24 @@ export function Instruments() {
             {t("common:actions.create")}
           </button>
         </form>
+        {needsConfig && (
+          <div className="mt-3">
+            <label className="mb-1 block text-xs text-text-muted">
+              {t("assets:instruments.valuationConfig")} ({t("assets:instruments.optional")})
+            </label>
+            <textarea
+              value={valuationConfigJson}
+              onChange={(e) => setValuationConfigJson(e.target.value)}
+              placeholder={
+                valuationMode === "MODELED"
+                  ? '{"purchase_price_eur": "20000.00", "purchase_date": "2024-01-01", "first_registration": "2024-01-01", "mileage_at_purchase_km": 0, "annual_mileage_estimate_km": 12000}'
+                  : '{"index_series": "bavaria-rural"}'
+              }
+              rows={2}
+              className="w-full rounded-md border border-border bg-bg px-3 py-1.5 font-mono text-xs"
+            />
+          </div>
+        )}
         {error && (
           <p className="mt-2 text-sm text-negative" role="alert">
             {error}

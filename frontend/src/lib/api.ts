@@ -174,6 +174,37 @@ export interface NetWorthPoint {
   value_eur: string;
 }
 
+export interface ValuationAnchor {
+  id: number;
+  instrument_id: number;
+  date: string;
+  value_eur: string;
+  method: string;
+  confidence: string | null;
+  source: string | null;
+  note: string | null;
+  created_at: string;
+}
+
+export interface Loan {
+  id: number;
+  account_id: number;
+  principal: string;
+  rate_pct: string;
+  start_date: string;
+  fixed_until: string | null;
+  monthly_payment: string;
+  payment_day: number;
+  extra_repayment_allowance_pct: string | null;
+}
+
+export interface LoanStatus {
+  loan: Loan;
+  balance_eur: string;
+  ltv: string | null;
+  house_value_eur: string | null;
+}
+
 export interface Health {
   status: string;
   database: string;

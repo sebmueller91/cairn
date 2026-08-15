@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: "/transactions", key: "transactions" },
   { to: "/accounts", key: "accounts" },
   { to: "/instruments", key: "instruments" },
+  { to: "/assets", key: "assets" },
   { to: "/settings", key: "settings" },
 ] as const;
 

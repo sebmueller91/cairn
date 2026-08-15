@@ -128,6 +128,32 @@ def test_delete_cascades_price_sources_and_price_points(client, auth_headers, db
     assert resp.status_code == 204
 
 
+def test_delete_cascades_valuation_anchors(client, auth_headers):
+    house = client.post(
+        "/api/instruments",
+        json={
+            "name": "Test House",
+            "asset_class": "REAL_ESTATE",
+            "valuation_mode": "ANCHORED",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()
+    client.post(
+        "/api/valuations",
+        json={
+            "instrument_id": house["id"],
+            "date": "2024-01-01",
+            "value_eur": "400000.00",
+            "method": "purchase",
+        },
+        headers=auth_headers,
+    )
+
+    resp = client.delete(f"/api/instruments/{house['id']}", headers=auth_headers)
+    assert resp.status_code == 204
+
+
 def test_valuation_config_for_modeled_instrument(client, auth_headers):
     payload = {
         **SAMPLE_INSTRUMENT,

@@ -38,6 +38,11 @@ def create_loan(
     return loan
 
 
+@router.get("", response_model=list[LoanRead])
+def list_loans(db: Session = Depends(get_db), _scope=Depends(get_scope)) -> list[Loan]:
+    return db.query(Loan).all()
+
+
 def _get_or_404(db: Session, loan_id: int) -> Loan:
     loan = db.get(Loan, loan_id)
     if loan is None:
@@ -68,6 +73,17 @@ def update_loan(
     db.commit()
     db.refresh(loan)
     return loan
+
+
+@router.delete("/{loan_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_loan(
+    loan_id: int,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> None:
+    loan = _get_or_404(db, loan_id)
+    db.delete(loan)
+    db.commit()
 
 
 @router.get("/{loan_id}/status", response_model=LoanStatus)

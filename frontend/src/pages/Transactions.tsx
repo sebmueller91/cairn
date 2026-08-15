@@ -28,6 +28,12 @@ const TRANSACTION_TYPES: TransactionType[] = [
 ];
 
 const NEEDS_QUANTITY_PRICE: TransactionType[] = ["BUY", "SELL"];
+// OPENING_BALANCE needs a quantity too (spec 2.3: "quantity, value,
+// provisional") but not a price — its cost basis comes from `amount`
+// directly, not quantity*price. Found live: the form only showed a
+// quantity field for BUY/SELL/TRANSFER, so booking an opening balance
+// silently submitted quantity=null and failed with missing_field.
+const NEEDS_QUANTITY: TransactionType[] = ["BUY", "SELL", "TRANSFER", "OPENING_BALANCE"];
 const NEEDS_INSTRUMENT: TransactionType[] = [
   "BUY",
   "SELL",
@@ -90,7 +96,7 @@ export function Transactions() {
         account_id: Number(accountId),
         instrument_id: instrumentId ? Number(instrumentId) : null,
         counter_account_id: counterAccountId ? Number(counterAccountId) : null,
-        quantity: NEEDS_QUANTITY_PRICE.includes(type) || type === "TRANSFER" ? quantity : null,
+        quantity: NEEDS_QUANTITY.includes(type) ? quantity : null,
         price: NEEDS_QUANTITY_PRICE.includes(type) ? price : null,
         amount: NEEDS_AMOUNT.includes(type) ? amount : null,
         currency,
@@ -217,7 +223,7 @@ export function Transactions() {
               </select>
             </div>
           )}
-          {(NEEDS_QUANTITY_PRICE.includes(type) || type === "TRANSFER") && (
+          {NEEDS_QUANTITY.includes(type) && (
             <div>
               <label className="mb-1 block text-xs text-text-muted">
                 {t("common:fields.quantity")}

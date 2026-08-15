@@ -2,6 +2,29 @@ from datetime import date
 from decimal import Decimal
 
 
+def test_delete_loan(client, auth_headers):
+    loan_account = client.post(
+        "/api/accounts",
+        json={"name": "Mortgage", "type": "LOAN", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()
+    loan = client.post(
+        "/api/loans",
+        json={
+            "account_id": loan_account["id"],
+            "principal": "100000.00",
+            "rate_pct": "6.0",
+            "start_date": "2024-01-01",
+            "monthly_payment": "1000.00",
+        },
+        headers=auth_headers,
+    ).json()
+
+    resp = client.delete(f"/api/loans/{loan['id']}", headers=auth_headers)
+    assert resp.status_code == 204
+    assert client.get(f"/api/loans/{loan['id']}", headers=auth_headers).status_code == 404
+
+
 def test_create_loan_requires_a_loan_account(client, auth_headers):
     brokerage = client.post(
         "/api/accounts",

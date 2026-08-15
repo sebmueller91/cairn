@@ -34,7 +34,10 @@
       "MODELED": "Modell",
       "AMORTIZING_LIABILITY": "Tilgungsplan",
       "NOMINAL": "Nominalwert"
-    }
+    },
+    "valuationConfig": "Bewertungskonfiguration (JSON)",
+    "optional": "optional",
+    "invalidConfigJson": "Ungültiges JSON in der Bewertungskonfiguration."
   },
   "positions": {
     "title": "Positionen",
@@ -46,6 +49,29 @@
     "groupBy": "Gruppieren nach",
     "groupByAccount": "Konto",
     "groupByInstrument": "Instrument"
+  },
+  "physical": {
+    "pageTitle": "Sachwerte",
+    "title": "Immobilie & Fahrzeug",
+    "newAnchor": "Neuer Bewertungsanker",
+    "method": "Methode",
+    "methods": {
+      "purchase": "Kauf",
+      "appraisal": "Gutachten",
+      "trade_in": "Inzahlungnahme",
+      "other": "Sonstige"
+    },
+    "noLinkedHouse": "—"
+  },
+  "loans": {
+    "title": "Kredite",
+    "new": "Neuer Kredit",
+    "id": "ID",
+    "principal": "Kreditsumme",
+    "rate": "Zinssatz",
+    "balance": "Restschuld",
+    "ltv": "Beleihung (LTV)",
+    "monthlyPayment": "Monatsrate"
   },
   "transactions": {
     "title": "Transaktionen",

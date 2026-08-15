@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Instrument, PricePoint, PriceSource, Txn
+from app.models import Instrument, PricePoint, PriceSource, Txn, ValuationAnchor
 from app.schemas import InstrumentCreate, InstrumentRead, InstrumentUpdate
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -124,12 +124,18 @@ def delete_instrument(
                 "params": {"instrument_id": instrument_id},
             },
         )
-    # price_source (provider config) and price_point (fetched/cacheable
-    # data, refetchable at any time) both FK to instrument with no ledger
-    # significance — cascade-delete both rather than block, unlike
-    # transactions. Checked every FK referencing instrument.id in
-    # models.py this time, not just the one that happened to crash first.
+    # price_source (provider config), price_point (fetched/cacheable data,
+    # refetchable at any time), and valuation_anchor (a recalibration
+    # point, not a ledger entry) all FK to instrument with no ledger
+    # significance — cascade-delete rather than block, unlike
+    # transactions. valuation_anchor's FK was added in phase 5 and missed
+    # here initially — same class of bug as price_point before it, found
+    # the same way: by actually deleting a house instrument live, not by
+    # re-reading this function and assuming it was still complete.
     db.query(PriceSource).filter(PriceSource.instrument_id == instrument_id).delete()
     db.query(PricePoint).filter(PricePoint.instrument_id == instrument_id).delete()
+    db.query(ValuationAnchor).filter(
+        ValuationAnchor.instrument_id == instrument_id
+    ).delete()
     db.delete(instrument)
     db.commit()
