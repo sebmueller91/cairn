@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Account, Loan, Txn
+from app.models import Account, Loan, Txn, TxnSource
 from app.schemas import AccountCreate, AccountRead, AccountUpdate
 
 router = APIRouter(prefix="/api/accounts", tags=["accounts"])
@@ -27,6 +28,19 @@ def create_account(
 ) -> Account:
     account = Account(**body.model_dump())
     db.add(account)
+    db.flush()  # assigns account.id, needed for the audit record
+    # This router has no source field to distinguish agent vs. manual UI
+    # use — both arrive over the same bearer/cookie auth — so every write
+    # here is logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="create",
+        entity="account",
+        entity_id=account.id,
+        payload_hash="n/a",
+    )
     db.commit()
     db.refresh(account)
     return account
@@ -57,8 +71,27 @@ def update_account(
     _scope=Depends(require_write_scope),
 ) -> Account:
     account = _get_or_404(db, account_id)
+    before = {
+        "name": account.name,
+        "type": account.type.value,
+        "currency": account.currency,
+        "institution": account.institution,
+        "opened_at": str(account.opened_at) if account.opened_at else None,
+        "closed_at": str(account.closed_at) if account.closed_at else None,
+        "archived": account.archived,
+    }
+    updates = body.model_dump(exclude_unset=True, mode="json")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(account, field, value)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="account",
+        entity_id=account.id,
+        payload_hash="n/a",
+        diff={"before": before, "after": updates},
+    )
     db.commit()
     db.refresh(account)
     return account
@@ -98,5 +131,14 @@ def delete_account(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "account_has_loan", "params": {"account_id": account_id}},
         )
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="delete",
+        entity="account",
+        entity_id=account.id,
+        payload_hash="n/a",
+        diff={"deleted": {"name": account.name, "type": account.type.value}},
+    )
     db.delete(account)
     db.commit()

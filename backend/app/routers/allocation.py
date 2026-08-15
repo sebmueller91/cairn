@@ -3,6 +3,7 @@ from decimal import Decimal, InvalidOperation
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.allocation_service import (
     compute_drift,
     current_allocation,
@@ -13,6 +14,7 @@ from app.allocation_service import (
 )
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
+from app.models import TxnSource
 from app.schemas import (
     AllocationResponse,
     DriftRowRead,
@@ -44,6 +46,20 @@ def put_target_allocation(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "targets_must_sum_to_100", "params": {"sum": str(total)}},
         ) from None
+    # A replace-all write, not a per-row create — one audit record for the
+    # whole new state. This router has no source field to distinguish
+    # agent vs. manual UI use — both arrive over the same bearer/cookie
+    # auth — so it's logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE. No single row id, so entity_id is a fixed sentinel.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="target_allocation",
+        entity_id="target_allocation",
+        payload_hash="n/a",
+        diff={"targets": {k: str(v) for k, v in body.targets.items()}},
+    )
     db.commit()
     return get_targets(db)
 

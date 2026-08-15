@@ -11,9 +11,10 @@ once a real fetch job exists.
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import HousePriceIndexPoint
+from app.models import HousePriceIndexPoint, TxnSource
 from app.schemas import HouseIndexPointCreate, HouseIndexPointRead
 
 router = APIRouter(prefix="/api/house-index", tags=["house-index"])
@@ -25,14 +26,38 @@ def upsert_index_point(
     db: Session = Depends(get_db),
     _scope=Depends(require_write_scope),
 ) -> HousePriceIndexPoint:
+    # This router has no source field to distinguish agent vs. manual UI
+    # use — both arrive over the same bearer/cookie auth — so every write
+    # here is logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE. No single id on this table, so entity_id is the
+    # composite "series:date" key.
+    entity_id = f"{body.series}:{body.date}"
     existing = db.get(HousePriceIndexPoint, (body.series, body.date))
     if existing:
+        before = str(existing.index_value)
         existing.index_value = body.index_value
+        audit.record(
+            db,
+            actor=TxnSource.AGENT,
+            action="update",
+            entity="house_price_index_point",
+            entity_id=entity_id,
+            payload_hash="n/a",
+            diff={"before": before, "after": str(body.index_value)},
+        )
         db.commit()
         db.refresh(existing)
         return existing
     row = HousePriceIndexPoint(**body.model_dump())
     db.add(row)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="create",
+        entity="house_price_index_point",
+        entity_id=entity_id,
+        payload_hash="n/a",
+    )
     db.commit()
     db.refresh(row)
     return row

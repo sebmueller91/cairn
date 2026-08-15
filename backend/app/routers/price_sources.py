@@ -1,9 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Instrument, PriceSource
+from app.models import Instrument, PriceSource, TxnSource
 from app.providers.registry import known_provider_names
 from app.schemas import PriceSourceCreate, PriceSourceRead, PriceSourceUpdate
 
@@ -39,6 +40,19 @@ def create_price_source(
         )
     source = PriceSource(instrument_id=instrument_id, **body.model_dump())
     db.add(source)
+    db.flush()  # assigns source.id, needed for the audit record
+    # This router has no source field to distinguish agent vs. manual UI
+    # use — both arrive over the same bearer/cookie auth — so every write
+    # here is logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="create",
+        entity="price_source",
+        entity_id=source.id,
+        payload_hash="n/a",
+    )
     db.commit()
     db.refresh(source)
     return source
@@ -78,8 +92,24 @@ def update_price_source(
     _scope=Depends(require_write_scope),
 ) -> PriceSource:
     source = _get_source_or_404(db, instrument_id, source_id)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    before = {
+        "provider": source.provider,
+        "provider_symbol": source.provider_symbol,
+        "priority": source.priority,
+        "enabled": source.enabled,
+    }
+    updates = body.model_dump(exclude_unset=True)
+    for field, value in updates.items():
         setattr(source, field, value)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="price_source",
+        entity_id=source.id,
+        payload_hash="n/a",
+        diff={"before": before, "after": updates},
+    )
     db.commit()
     db.refresh(source)
     return source
@@ -93,5 +123,14 @@ def delete_price_source(
     _scope=Depends(require_write_scope),
 ) -> None:
     source = _get_source_or_404(db, instrument_id, source_id)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="delete",
+        entity="price_source",
+        entity_id=source.id,
+        payload_hash="n/a",
+        diff={"deleted": {"provider": source.provider, "provider_symbol": source.provider_symbol}},
+    )
     db.delete(source)
     db.commit()

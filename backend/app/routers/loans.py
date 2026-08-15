@@ -3,11 +3,12 @@ from datetime import date as date_type
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
 from app.db_types import quantize_money
 from app.loan_service import LoanConfig, loan_balance, loan_to_value
-from app.models import Account, AccountType, Loan, TransactionType, Txn
+from app.models import Account, AccountType, Loan, TransactionType, Txn, TxnSource
 from app.schemas import LoanCreate, LoanRead, LoanStatus, LoanUpdate
 from app.valuation_service import current_instrument_value
 
@@ -33,6 +34,19 @@ def create_loan(
         )
     loan = Loan(**body.model_dump())
     db.add(loan)
+    db.flush()  # assigns loan.id, needed for the audit record
+    # This router has no source field to distinguish agent vs. manual UI
+    # use — both arrive over the same bearer/cookie auth — so every write
+    # here is logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="create",
+        entity="loan",
+        entity_id=loan.id,
+        payload_hash="n/a",
+    )
     db.commit()
     db.refresh(loan)
     return loan
@@ -68,8 +82,31 @@ def update_loan(
     _scope=Depends(require_write_scope),
 ) -> Loan:
     loan = _get_or_404(db, loan_id)
+    before = {
+        "principal": str(loan.principal),
+        "rate_pct": str(loan.rate_pct),
+        "start_date": str(loan.start_date),
+        "fixed_until": str(loan.fixed_until) if loan.fixed_until else None,
+        "monthly_payment": str(loan.monthly_payment),
+        "payment_day": loan.payment_day,
+        "extra_repayment_allowance_pct": (
+            str(loan.extra_repayment_allowance_pct)
+            if loan.extra_repayment_allowance_pct is not None
+            else None
+        ),
+    }
+    updates = body.model_dump(exclude_unset=True, mode="json")
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(loan, field, value)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="loan",
+        entity_id=loan.id,
+        payload_hash="n/a",
+        diff={"before": before, "after": updates},
+    )
     db.commit()
     db.refresh(loan)
     return loan
@@ -82,6 +119,15 @@ def delete_loan(
     _scope=Depends(require_write_scope),
 ) -> None:
     loan = _get_or_404(db, loan_id)
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="delete",
+        entity="loan",
+        entity_id=loan.id,
+        payload_hash="n/a",
+        diff={"deleted": {"account_id": loan.account_id, "principal": str(loan.principal)}},
+    )
     db.delete(loan)
     db.commit()
 

@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
 from app.look_through_service import compute_look_through
-from app.models import EtfComposition, Instrument
+from app.models import EtfComposition, Instrument, TxnSource
 from app.schemas import (
     EtfCompositionRow,
     EtfCompositionSet,
@@ -42,6 +43,20 @@ def set_composition(
         for category, weight in body.breakdown.items()
     ]
     db.add_all(rows)
+    # A replace-all write, not a per-row create — one audit record for the
+    # whole new state. This router has no source field to distinguish
+    # agent vs. manual UI use — both arrive over the same bearer/cookie
+    # auth — so it's logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="etf_composition",
+        entity_id=instrument_id,
+        payload_hash="n/a",
+        diff={"dimension": body.dimension, "breakdown": {k: str(v) for k, v in body.breakdown.items()}},
+    )
     db.commit()
     return rows
 

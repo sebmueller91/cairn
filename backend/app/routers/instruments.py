@@ -3,9 +3,10 @@ import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Instrument, PricePoint, PriceSource, Txn, ValuationAnchor
+from app.models import Instrument, PricePoint, PriceSource, Txn, TxnSource, ValuationAnchor
 from app.schemas import InstrumentCreate, InstrumentRead, InstrumentUpdate
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -57,6 +58,19 @@ def create_instrument(
         tags_json=json.dumps(body.tags),
     )
     db.add(instrument)
+    db.flush()  # assigns instrument.id, needed for the audit record
+    # This router has no source field to distinguish agent vs. manual UI
+    # use — both arrive over the same bearer/cookie auth — so every write
+    # here is logged as TxnSource.AGENT, same as transactions.py's
+    # PATCH/DELETE.
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="create",
+        entity="instrument",
+        entity_id=instrument.id,
+        payload_hash="n/a",
+    )
     db.commit()
     db.refresh(instrument)
     return _to_read(instrument)
@@ -96,13 +110,38 @@ def update_instrument(
     _scope=Depends(require_write_scope),
 ) -> InstrumentRead:
     instrument = _get_or_404(db, instrument_id)
+    before = {
+        "name": instrument.name,
+        "isin": instrument.isin,
+        "wkn": instrument.wkn,
+        "ticker": instrument.ticker,
+        "valuation_config": json.loads(instrument.valuation_config_json or "{}"),
+        "tags": json.loads(instrument.tags_json or "[]"),
+    }
     updates = body.model_dump(exclude_unset=True, exclude={"valuation_config", "tags"})
     for field, value in updates.items():
         setattr(instrument, field, value)
+    # mode="json" for the diff only, so Decimal fields (ter_pct,
+    # fine_weight_g) serialize to strings rather than tripping json.dumps
+    # inside audit.record.
+    diff_after = body.model_dump(
+        exclude_unset=True, exclude={"valuation_config", "tags"}, mode="json"
+    )
     if body.valuation_config is not None:
         instrument.valuation_config_json = json.dumps(body.valuation_config)
+        diff_after["valuation_config"] = body.valuation_config
     if body.tags is not None:
         instrument.tags_json = json.dumps(body.tags)
+        diff_after["tags"] = body.tags
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="instrument",
+        entity_id=instrument.id,
+        payload_hash="n/a",
+        diff={"before": before, "after": diff_after},
+    )
     db.commit()
     db.refresh(instrument)
     return _to_read(instrument)
@@ -137,5 +176,14 @@ def delete_instrument(
     db.query(ValuationAnchor).filter(
         ValuationAnchor.instrument_id == instrument_id
     ).delete()
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="delete",
+        entity="instrument",
+        entity_id=instrument.id,
+        payload_hash="n/a",
+        diff={"deleted": {"name": instrument.name, "isin": instrument.isin}},
+    )
     db.delete(instrument)
     db.commit()
