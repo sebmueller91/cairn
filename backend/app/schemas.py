@@ -224,6 +224,27 @@ class PositionRead(BaseModel):
     realized_pl_eur: DecimalStr
 
 
+class SupersedeRequest(BaseModel):
+    quantity_tolerance: DecimalStr | None = None
+    cost_basis_tolerance_eur: DecimalStr | None = None
+
+
+class SupersedeDeltaReport(BaseModel):
+    account_id: int
+    instrument_id: int
+    opening_balance_txn_id: int
+    original_quantity: DecimalStr
+    original_cost_basis_eur: DecimalStr
+    recomputed_quantity: DecimalStr
+    recomputed_cost_basis_eur: DecimalStr
+    matched: bool
+    residual_txn_id: int | None = None
+
+
+class SupersedeResponse(BaseModel):
+    reports: list[SupersedeDeltaReport]
+
+
 class ErrorDetail(BaseModel):
     code: str
     params: dict = {}
