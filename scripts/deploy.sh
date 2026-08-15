@@ -31,6 +31,8 @@ rsync -az --delete -e "ssh -i $PI_KEY" frontend/dist/ "$PI_HOST:/srv/cairn/front
 scp -i "$PI_KEY" deploy/Caddyfile "$PI_HOST:/srv/cairn/Caddyfile"
 scp -i "$PI_KEY" deploy/tls/raspberrypi5.pem deploy/tls/raspberrypi5-key.pem "$PI_HOST:/srv/cairn/tls/"
 scp -i "$PI_KEY" deploy/docker-compose.yml "$PI_HOST:/srv/cairn/docker-compose.yml"
+scp -i "$PI_KEY" scripts/backup.sh "$PI_HOST:/srv/cairn/backup.sh"
+ssh -i "$PI_KEY" "$PI_HOST" 'chmod +x /srv/cairn/backup.sh'
 
 echo "==> Pre-migration backup + deploy on the Pi"
 # shellcheck disable=SC2087

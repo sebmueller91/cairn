@@ -37,9 +37,19 @@ source "$ENV_FILE"
 set +a
 
 if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
-  if curl -sf -o "$BACKUP_DIR/cairn-export-$TODAY.zip" \
+  # Caddy's site blocks are matched by Host/SNI, not by which local
+  # address the connection came in on — a request to "localhost" (or any
+  # other name not in the Caddyfile's site list) doesn't match anything
+  # and gets a bare, silent 200 with an empty body, not an error. Found
+  # live: `curl -f` alone treated that as success. Must be one of the
+  # actual configured names, and the body must be positively checked too,
+  # not just the HTTP status.
+  export_zip="$BACKUP_DIR/cairn-export-$TODAY.zip"
+  if curl -sf -o "$export_zip" \
       -H "Authorization: Bearer $API_TOKEN" \
-      "https://localhost/api/export/full" --insecure; then
+      "https://raspberrypi5/api/export/full" --insecure \
+      && [ -s "$export_zip" ] \
+      && python3 -c "import zipfile,sys; sys.exit(0 if zipfile.is_zipfile(sys.argv[1]) else 1)" "$export_zip"; then
     export_ok=true
   fi
 fi
