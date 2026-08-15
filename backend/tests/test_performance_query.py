@@ -173,6 +173,57 @@ def test_performance_endpoint_mwr_end_to_end(client, auth_headers, db_session):
     assert isinstance(body["return_pct"], float)
 
 
+def test_performance_endpoint_benchmark_overlay(client, auth_headers, db_session):
+    from app.models import PricePoint
+
+    _setup_scenario(client, auth_headers, db_session)
+
+    benchmark = client.post(
+        "/api/instruments",
+        json={
+            "name": "World ETF", "isin": "XX0000000601",
+            "asset_class": "EQUITY", "valuation_mode": "MARKET", "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()["id"]
+    for d, close in [(date(2024, 1, 1), "50.00"), (date(2024, 1, 20), "55.00")]:
+        db_session.add(
+            PricePoint(
+                instrument_id=benchmark, date=d, close=Decimal(close),
+                currency="EUR", provider="test", quality="ok",
+            )
+        )
+    db_session.commit()
+
+    resp = client.get(
+        "/api/performance",
+        params={
+            "scope": "total", "period": "inception", "method": "twr",
+            "benchmark_instrument_id": benchmark,
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["benchmark_curve"] is not None
+    assert len(body["benchmark_curve"]) == len(body["curve"])
+    # Benchmark moved 50 -> 55 = +10% over the window, with the *same*
+    # flow schedule as the real portfolio (which never sold anything
+    # into the benchmark) -> its own TWR should read exactly 10%.
+    last = body["benchmark_curve"][-1]["index_value"]
+    assert last == pytest.approx(110.0, abs=1e-6)
+
+
+def test_performance_endpoint_no_benchmark_curve_when_not_requested(client, auth_headers, db_session):
+    _setup_scenario(client, auth_headers, db_session)
+    resp = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "inception", "method": "twr"},
+        headers=auth_headers,
+    )
+    assert resp.json()["benchmark_curve"] is None
+
+
 def test_performance_endpoint_rejects_invalid_scope(client, auth_headers):
     resp = client.get(
         "/api/performance", params={"scope": "bogus"}, headers=auth_headers

@@ -318,6 +318,11 @@ class PerformanceResponse(BaseModel):
     # Only populated for method=twr — a base-100 growth curve for
     # charting. MWR is a single annualised rate, not a curve.
     curve: list[PerformancePoint] | None = None
+    # Only populated when a benchmark_instrument_id was requested and the
+    # method is twr: "what if every contribution had gone into this
+    # instead" (spec 4.2), same base-100 scale as `curve` for a direct
+    # chart overlay.
+    benchmark_curve: list[PerformancePoint] | None = None
 
 
 class RebuildSnapshotsResponse(BaseModel):

@@ -9,6 +9,7 @@ from app.performance_service import (
     cumulative_index,
     daily_returns,
     mwr,
+    shadow_value_series,
     twr,
     xirr,
 )
@@ -115,6 +116,40 @@ def test_xirr_multiple_flows_solves_npv_to_zero():
 def test_xirr_requires_both_signs():
     assert xirr([(date(2026, 1, 1), Decimal(-1000)), (date(2026, 6, 1), Decimal(-200))]) is None
     assert xirr([(date(2026, 1, 1), Decimal(1000))]) is None
+
+
+def test_shadow_value_series_single_contribution():
+    d1, d2, d3 = date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 3)
+    dates = [d1, d2, d3]
+    flows = [FlowEvent(d1, Decimal(1000))]
+    prices = {d1: Decimal(100), d2: Decimal(100), d3: Decimal(110)}
+    series = shadow_value_series(dates, flows, prices)
+    assert series == [
+        (d1, Decimal(1000)),  # 10 units @ 100
+        (d2, Decimal(1000)),  # no move
+        (d3, Decimal(1100)),  # 10 units @ 110
+    ]
+
+
+def test_shadow_value_series_two_contributions_mirrors_own_flow_schedule():
+    d1, d2, d3 = date(2026, 1, 1), date(2026, 1, 2), date(2026, 1, 3)
+    dates = [d1, d2, d3]
+    flows = [FlowEvent(d1, Decimal(1000)), FlowEvent(d2, Decimal(500))]
+    prices = {d1: Decimal(100), d2: Decimal(100), d3: Decimal(110)}
+    series = shadow_value_series(dates, flows, prices)
+    assert series == [
+        (d1, Decimal(1000)),  # 10 units
+        (d2, Decimal(1500)),  # +5 units from the 500 contribution -> 15 units @ 100
+        (d3, Decimal(1650)),  # 15 units @ 110
+    ]
+
+
+def test_shadow_value_series_missing_price_reads_as_zero():
+    d1, d2 = date(2026, 1, 1), date(2026, 1, 2)
+    series = shadow_value_series(
+        [d1, d2], [FlowEvent(d1, Decimal(1000))], {d1: Decimal(100)}
+    )
+    assert series == [(d1, Decimal(1000)), (d2, Decimal(0))]
 
 
 def test_mwr_wraps_start_and_end_value_as_implicit_flows():

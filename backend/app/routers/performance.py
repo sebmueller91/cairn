@@ -8,13 +8,20 @@ from app.database import get_db
 from app.performance_query import (
     InvalidPeriodError,
     InvalidScopeError,
+    benchmark_price_series,
     flow_events,
     inception_date,
     parse_scope,
     period_start,
     value_series,
 )
-from app.performance_service import cumulative_index, daily_returns, mwr, twr
+from app.performance_service import (
+    cumulative_index,
+    daily_returns,
+    mwr,
+    shadow_value_series,
+    twr,
+)
 from app.schemas import PerformancePoint, PerformanceResponse
 
 router = APIRouter(prefix="/api/performance", tags=["performance"])
@@ -25,6 +32,7 @@ def get_performance(
     scope: str = "total",
     period: str = "1Y",
     method: str = "twr",
+    benchmark_instrument_id: int | None = Query(default=None),
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> PerformanceResponse:
@@ -63,6 +71,18 @@ def get_performance(
             for d, v in cumulative_index(returns)
         ]
         return_pct = float(twr(values, flows)) if returns else None
+
+        benchmark_curve = None
+        if benchmark_instrument_id is not None:
+            dates = [d for d, _ in values]
+            prices = benchmark_price_series(db, benchmark_instrument_id, dates)
+            shadow_values = shadow_value_series(dates, flows, prices)
+            shadow_returns = daily_returns(shadow_values, flows)
+            benchmark_curve = [
+                PerformancePoint(date=d, index_value=float(v))
+                for d, v in cumulative_index(shadow_returns)
+            ]
+
         return PerformanceResponse(
             scope=scope,
             period=period,
@@ -71,6 +91,7 @@ def get_performance(
             end_date=end,
             return_pct=return_pct,
             curve=curve,
+            benchmark_curve=benchmark_curve,
         )
 
     start_value = values[0][1] if values else None

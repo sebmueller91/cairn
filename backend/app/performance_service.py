@@ -105,6 +105,32 @@ def twr(values: list[tuple[date, Decimal]], flows: list[FlowEvent]) -> Decimal:
     return chain_link(daily_returns(values, flows))
 
 
+def shadow_value_series(
+    dates: list[date],
+    flows: list[FlowEvent],
+    benchmark_price: dict[date, Decimal],
+) -> list[tuple[date, Decimal]]:
+    """"What if every contribution had gone into this benchmark instead"
+    (spec 4.2): each flow buys (or sells) fictional benchmark units at
+    that day's price, mirroring the real portfolio's own flow schedule
+    exactly so the two are genuinely comparable. `benchmark_price` must
+    already be carry-forward resolved (one entry per date in `dates`,
+    or missing where truly unpriced). The result is a plain value
+    series — feed it through `daily_returns`/`cumulative_index` the same
+    way as the real portfolio's V(t) for a directly overlayable curve."""
+    flow_map = _flows_by_date(flows)
+    units = Decimal(0)
+    out: list[tuple[date, Decimal]] = []
+    for d in dates:
+        price = benchmark_price.get(d)
+        flow = flow_map.get(d)
+        if flow and price:
+            units += flow / price
+        value = units * price if price is not None else Decimal(0)
+        out.append((d, value))
+    return out
+
+
 def _xirr_npv(cashflows: list[tuple[date, Decimal]], rate: float, d0: date) -> float:
     return sum(
         float(amt) / (1.0 + rate) ** (float((d - d0).days) / float(_DAY_COUNT))

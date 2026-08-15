@@ -11,7 +11,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import DailySnapshot, Instrument, Txn, TransactionType, ValuationMode
+from app.models import DailySnapshot, FxRate, Instrument, PricePoint, Txn, TransactionType, ValuationMode
 from app.performance_service import FlowEvent
 from app.valuation_service import current_instrument_value
 
@@ -90,6 +90,51 @@ def inception_date(db: Session, scope: ScopeFilter) -> date | None:
         if earliest is None or d < earliest:
             earliest = d
     return earliest
+
+
+def benchmark_price_series(
+    db: Session, instrument_id: int, dates: list[date]
+) -> dict[date, Decimal]:
+    """EUR-converted, carry-forward-resolved price for a MARKET instrument
+    on each of `dates` (assumed sorted, dense) — the input the benchmark
+    overlay's shadow portfolio needs. A date before the instrument's
+    first known price is simply absent (nothing to carry forward yet)."""
+    if not dates:
+        return {}
+    instrument = db.get(Instrument, instrument_id)
+    if instrument is None or instrument.valuation_mode != ValuationMode.MARKET:
+        return {}
+
+    price_rows = (
+        db.query(PricePoint)
+        .filter(PricePoint.instrument_id == instrument_id, PricePoint.date <= dates[-1])
+        .order_by(PricePoint.date)
+        .all()
+    )
+    if instrument.currency == "EUR":
+        fx_rows: list[tuple[date, Decimal]] = []
+    else:
+        fx_rows = [
+            (r.date, r.eur_rate)
+            for r in db.query(FxRate)
+            .filter(FxRate.currency == instrument.currency, FxRate.date <= dates[-1])
+            .order_by(FxRate.date)
+            .all()
+        ]
+
+    result: dict[date, Decimal] = {}
+    price_idx, price_val = -1, None
+    fx_idx, fx_val = -1, (Decimal(1) if instrument.currency == "EUR" else None)
+    for d in dates:
+        while price_idx + 1 < len(price_rows) and price_rows[price_idx + 1].date <= d:
+            price_idx += 1
+            price_val = price_rows[price_idx].close
+        while fx_rows and fx_idx + 1 < len(fx_rows) and fx_rows[fx_idx + 1][0] <= d:
+            fx_idx += 1
+            fx_val = fx_rows[fx_idx][1]
+        if price_val is not None and fx_val is not None:
+            result[d] = price_val * fx_val
+    return result
 
 
 def _market_instrument_ids(db: Session) -> set[int]:
