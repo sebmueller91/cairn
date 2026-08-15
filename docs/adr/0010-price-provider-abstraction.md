@@ -38,3 +38,21 @@ what the spec already accepted — this is the extra small discipline of
 writing every adapter against the same protocol even when a source's native
 API doesn't map onto it cleanly (e.g. Destatis's non-UTF-8 quarterly CSV
 needs its own parsing but still returns the same `PricePoint` shape).
+
+## Addendum (2026-08-15) — Stooq broken, exactly as this ADR anticipated
+
+Live-tested against the deployed app on the Pi: Stooq's `/q/l/` latest-quote
+endpoint now returns a bare `404`, and `/q/d/l/` (history/backfill) serves a
+JavaScript proof-of-work bot challenge instead of CSV — confirmed with plain
+`curl`, with and without a browser `User-Agent`. Not a code bug; Stooq
+added anti-bot hardening since the spec was written. CoinGecko and
+Frankfurter were live-tested the same way and both work exactly as spec'd.
+
+Added a `YahooFinanceProvider` adapter (`query1.finance.yahoo.com/v8/finance/chart`,
+keyless, unofficial) per spec 5's own named fallback, live-verified against
+both a US ticker and a Xetra-listed ETF. It's now the one actually
+configured on instruments; the Stooq adapter stays registered (cheap to
+keep, no harm) in case the block ever lifts. Being unofficial, Yahoo can
+break the same way someday — this is exactly the scenario the fallback
+chain exists for, and swapping it again is a `price_source` row change,
+not a redesign.

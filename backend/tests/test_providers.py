@@ -10,6 +10,7 @@ import httpx
 from app.providers.coingecko import CoinGeckoProvider
 from app.providers.frankfurter import FrankfurterProvider
 from app.providers.stooq import StooqProvider
+from app.providers.yahoo import YahooFinanceProvider
 
 
 def _client_with(handler):
@@ -96,6 +97,62 @@ def test_frankfurter_fetch_latest():
     result = provider.fetch_latest("USD")
     assert result.date == date(2024, 1, 15)
     assert result.close == Decimal("0.92")
+
+
+def test_yahoo_fetch_latest_takes_last_non_null_close():
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "chart": {
+                    "result": [
+                        {
+                            "timestamp": [1704067200, 1704153600, 1704240000],
+                            "indicators": {
+                                "quote": [{"close": [90.5, None, 91.2]}]
+                            },
+                        }
+                    ]
+                }
+            },
+        )
+
+    provider = YahooFinanceProvider(client=_client_with(handler))
+    result = provider.fetch_latest("EUNL.DE")
+    assert result.date == date(2024, 1, 3)
+    assert result.close == Decimal("91.2")
+
+
+def test_yahoo_fetch_latest_returns_none_on_empty_result():
+    def handler(request):
+        return httpx.Response(200, json={"chart": {"result": None}})
+
+    provider = YahooFinanceProvider(client=_client_with(handler))
+    assert provider.fetch_latest("BOGUS") is None
+
+
+def test_yahoo_fetch_history_filters_range_and_skips_nulls():
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "chart": {
+                    "result": [
+                        {
+                            "timestamp": [1704067200, 1704153600, 1706745600],
+                            "indicators": {
+                                "quote": [{"close": [90.5, None, 95.0]}]
+                            },
+                        }
+                    ]
+                }
+            },
+        )
+
+    provider = YahooFinanceProvider(client=_client_with(handler))
+    result = provider.fetch_history("EUNL.DE", date(2024, 1, 1), date(2024, 1, 3))
+    assert len(result) == 1
+    assert result[0].close == Decimal("90.5")
 
 
 def test_frankfurter_fetch_history():
