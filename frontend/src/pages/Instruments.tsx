@@ -9,6 +9,8 @@ import {
   type ValuationMode,
 } from "../lib/api";
 import { Card } from "../components/Card";
+import { OfflineNotice } from "../components/OfflineNotice";
+import { useOnlineStatus } from "../lib/online";
 
 const ASSET_CLASSES: AssetClass[] = [
   "EQUITY",
@@ -32,6 +34,7 @@ const VALUATION_MODES: ValuationMode[] = [
 export function Instruments() {
   const { t } = useTranslation(["assets", "common", "errors"]);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
   const { data: instruments, isLoading } = useQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
@@ -172,12 +175,13 @@ export function Instruments() {
           </div>
           <button
             type="submit"
-            disabled={createInstrument.isPending}
+            disabled={createInstrument.isPending || !online}
             className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
           >
             {t("common:actions.create")}
           </button>
         </form>
+        {!online && <OfflineNotice />}
         {needsConfig && (
           <div className="mt-3">
             <label className="mb-1 block text-xs text-text-muted">

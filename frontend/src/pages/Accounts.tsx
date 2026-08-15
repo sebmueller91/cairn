@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, type Account, type AccountType } from "../lib/api";
 import { formatDate } from "../lib/format";
 import { Card } from "../components/Card";
+import { OfflineNotice } from "../components/OfflineNotice";
+import { useOnlineStatus } from "../lib/online";
 
 const ACCOUNT_TYPES: AccountType[] = [
   "BROKERAGE",
@@ -18,6 +20,7 @@ const ACCOUNT_TYPES: AccountType[] = [
 export function Accounts() {
   const { t, i18n } = useTranslation(["assets", "common", "errors"]);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
   const { data: accounts, isLoading } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
@@ -92,12 +95,13 @@ export function Accounts() {
           </div>
           <button
             type="submit"
-            disabled={createAccount.isPending}
+            disabled={createAccount.isPending || !online}
             className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
           >
             {t("common:actions.create")}
           </button>
         </form>
+        {!online && <OfflineNotice />}
         {error && (
           <p className="mt-2 text-sm text-negative" role="alert">
             {error}

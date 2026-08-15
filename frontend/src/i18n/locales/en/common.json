@@ -22,7 +22,9 @@
     "error": "Something went wrong",
     "empty": "No data yet",
     "asOf": "As of {{date}}",
-    "offline": "Offline"
+    "offline": "Offline",
+    "offlineWritesDisabled": "Offline — changes aren't possible until the connection is back.",
+    "stale": "Data is more than 24 hours old"
   },
   "fields": {
     "name": "Name",

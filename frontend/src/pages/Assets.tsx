@@ -12,6 +12,8 @@ import {
 } from "../lib/api";
 import { formatCurrency, formatNumber } from "../lib/format";
 import { Card } from "../components/Card";
+import { OfflineNotice } from "../components/OfflineNotice";
+import { useOnlineStatus } from "../lib/online";
 
 // spec 8.1 also wants a full amortization schedule chart and a fixed-
 // rate-period countdown here — deliberately deferred (current
@@ -21,6 +23,7 @@ import { Card } from "../components/Card";
 function PhysicalAssets() {
   const { t, i18n } = useTranslation(["assets", "common", "errors"]);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
 
   const { data: instruments } = useQuery({
     queryKey: ["instruments"],
@@ -159,12 +162,13 @@ function PhysicalAssets() {
         </div>
         <button
           type="submit"
-          disabled={createAnchor.isPending}
+          disabled={createAnchor.isPending || !online}
           className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
         >
           {t("common:actions.create")}
         </button>
       </form>
+      {!online && <OfflineNotice />}
       {error && (
         <p className="mt-2 text-sm text-negative" role="alert">
           {error}
@@ -211,6 +215,7 @@ function LoanRow({ loan, houseInstrumentId }: { loan: Loan; houseInstrumentId: n
 function Loans() {
   const { t } = useTranslation(["assets", "common", "errors"]);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
 
   const { data: loans } = useQuery({
     queryKey: ["loans"],
@@ -360,12 +365,13 @@ function Loans() {
         </div>
         <button
           type="submit"
-          disabled={createLoan.isPending}
+          disabled={createLoan.isPending || !online}
           className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
         >
           {t("common:actions.create")}
         </button>
       </form>
+      {!online && <OfflineNotice />}
       {error && (
         <p className="mt-2 text-sm text-negative" role="alert">
           {error}

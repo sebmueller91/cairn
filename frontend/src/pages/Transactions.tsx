@@ -11,6 +11,8 @@ import {
 } from "../lib/api";
 import { formatCurrency, formatDate, formatNumber } from "../lib/format";
 import { Card } from "../components/Card";
+import { OfflineNotice } from "../components/OfflineNotice";
+import { useOnlineStatus } from "../lib/online";
 
 const TRANSACTION_TYPES: TransactionType[] = [
   "BUY",
@@ -60,6 +62,7 @@ function newExternalId(): string {
 export function Transactions() {
   const { t, i18n } = useTranslation(["assets", "common", "errors"]);
   const queryClient = useQueryClient();
+  const online = useOnlineStatus();
 
   const { data: transactions, isLoading } = useQuery({
     queryKey: ["transactions"],
@@ -299,12 +302,13 @@ export function Transactions() {
           </div>
           <button
             type="submit"
-            disabled={createTransaction.isPending}
+            disabled={createTransaction.isPending || !online}
             className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
           >
             {t("common:actions.create")}
           </button>
         </form>
+        {!online && <OfflineNotice />}
         {error && (
           <p className="mt-2 text-sm text-negative" role="alert">
             {error}

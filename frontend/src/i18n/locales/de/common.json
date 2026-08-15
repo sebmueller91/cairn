@@ -22,7 +22,9 @@
     "error": "Ein Fehler ist aufgetreten",
     "empty": "Keine Daten vorhanden",
     "asOf": "Stand: {{date}}",
-    "offline": "Offline"
+    "offline": "Offline",
+    "offlineWritesDisabled": "Offline — Änderungen sind erst nach Wiederherstellung der Verbindung möglich.",
+    "stale": "Daten sind älter als 24 Stunden"
   },
   "fields": {
     "name": "Name",
