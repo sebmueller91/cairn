@@ -1,0 +1,17 @@
+{
+  "title": "Steuern",
+  "disclaimer": "Nur zur Orientierung, keine Steuerberatung. Pauschalannahmen (25% Kapitalertragsteuer + 5,5% Solidaritätszuschlag), keine Kirchensteuer, keine Verlustverrechnung über Depots hinweg.",
+  "year": "Jahr",
+  "allowance": "Sparerpauschbetrag (€)",
+  "realizedGains": "Realisierte Gewinne",
+  "investmentIncome": "Kapitalerträge",
+  "used": "Ausgeschöpft",
+  "remaining": "Verbleibend",
+  "unrealized": {
+    "title": "Unrealisierte Gewinne/Verluste",
+    "costBasis": "Anschaffungskosten",
+    "currentValue": "Aktueller Wert",
+    "unrealizedPl": "Unrealisiert",
+    "estimatedTax": "Geschätzte Steuer"
+  }
+}

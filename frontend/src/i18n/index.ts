@@ -8,6 +8,7 @@ import deSettings from "./locales/de/settings.json";
 import deErrors from "./locales/de/errors.json";
 import dePerformance from "./locales/de/performance.json";
 import deAllocation from "./locales/de/allocation.json";
+import deTax from "./locales/de/tax.json";
 import enCommon from "./locales/en/common.json";
 import enDashboard from "./locales/en/dashboard.json";
 import enAssets from "./locales/en/assets.json";
@@ -15,6 +16,7 @@ import enSettings from "./locales/en/settings.json";
 import enErrors from "./locales/en/errors.json";
 import enPerformance from "./locales/en/performance.json";
 import enAllocation from "./locales/en/allocation.json";
+import enTax from "./locales/en/tax.json";
 
 const STORAGE_KEY = "cairn-language";
 
@@ -37,6 +39,7 @@ i18n
         errors: deErrors,
         performance: dePerformance,
         allocation: deAllocation,
+        tax: deTax,
       },
       en: {
         common: enCommon,
@@ -46,12 +49,22 @@ i18n
         errors: enErrors,
         performance: enPerformance,
         allocation: enAllocation,
+        tax: enTax,
       },
     },
     lng: stored === "en" ? "en" : "de",
     fallbackLng: "de",
     defaultNS: "common",
-    ns: ["common", "dashboard", "assets", "settings", "errors", "performance", "allocation"],
+    ns: [
+      "common",
+      "dashboard",
+      "assets",
+      "settings",
+      "errors",
+      "performance",
+      "allocation",
+      "tax",
+    ],
     interpolation: { escapeValue: false },
   });
 

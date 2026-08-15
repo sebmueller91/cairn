@@ -5,6 +5,7 @@ import { Login } from "./pages/Login";
 import { Dashboard } from "./pages/Dashboard";
 import { Performance } from "./pages/Performance";
 import { Allocation } from "./pages/Allocation";
+import { Tax } from "./pages/Tax";
 import { Positions } from "./pages/Positions";
 import { Transactions } from "./pages/Transactions";
 import { Accounts } from "./pages/Accounts";
@@ -29,6 +30,7 @@ export function App() {
           <Route index element={<Dashboard />} />
           <Route path="performance" element={<Performance />} />
           <Route path="allocation" element={<Allocation />} />
+          <Route path="tax" element={<Tax />} />
           <Route path="positions" element={<Positions />} />
           <Route path="transactions" element={<Transactions />} />
           <Route path="accounts" element={<Accounts />} />

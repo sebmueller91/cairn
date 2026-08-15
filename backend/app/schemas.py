@@ -382,6 +382,31 @@ class DataQualityResponse(BaseModel):
     issues: list[DataQualityIssueRead]
 
 
+class SaverAllowanceUsage(BaseModel):
+    year: int
+    allowance_eur: DecimalStr
+    realized_gains_eur: DecimalStr
+    investment_income_eur: DecimalStr
+    total_eur: DecimalStr
+    remaining_eur: DecimalStr
+
+
+class UnrealizedTaxEstimateRead(BaseModel):
+    account_id: int
+    instrument_id: int
+    quantity: DecimalStr
+    cost_basis_eur: DecimalStr
+    current_value_eur: DecimalStr
+    unrealized_pl_eur: DecimalStr
+    estimated_tax_eur: DecimalStr
+
+
+class TaxOverviewResponse(BaseModel):
+    saver_allowance: SaverAllowanceUsage
+    unrealized: list[UnrealizedTaxEstimateRead]
+    vorabpauschale_reminder: str | None
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 

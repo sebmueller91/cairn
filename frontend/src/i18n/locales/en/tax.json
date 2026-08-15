@@ -1,0 +1,17 @@
+{
+  "title": "Tax",
+  "disclaimer": "For orientation only, not tax advice. Flat assumptions (25% capital gains tax + 5.5% solidarity surcharge), no church tax, no loss offsetting across accounts.",
+  "year": "Year",
+  "allowance": "Saver's allowance (€)",
+  "realizedGains": "Realized gains",
+  "investmentIncome": "Investment income",
+  "used": "Used",
+  "remaining": "Remaining",
+  "unrealized": {
+    "title": "Unrealized gains/losses",
+    "costBasis": "Cost basis",
+    "currentValue": "Current value",
+    "unrealizedPl": "Unrealized",
+    "estimatedTax": "Estimated tax"
+  }
+}

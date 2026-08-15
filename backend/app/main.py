@@ -22,6 +22,7 @@ from app.routers import (
     price_sources,
     prices,
     reconcile,
+    tax,
     timeseries,
     transactions,
     valuations,
@@ -68,3 +69,4 @@ app.include_router(loans.router)
 app.include_router(performance.router)
 app.include_router(attribution.router)
 app.include_router(allocation.router)
+app.include_router(tax.router)

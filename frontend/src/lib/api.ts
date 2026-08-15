@@ -281,3 +281,28 @@ export interface DataQualityIssue {
 export interface DataQualityResponse {
   issues: DataQualityIssue[];
 }
+
+export interface SaverAllowanceUsage {
+  year: number;
+  allowance_eur: string;
+  realized_gains_eur: string;
+  investment_income_eur: string;
+  total_eur: string;
+  remaining_eur: string;
+}
+
+export interface UnrealizedTaxEstimate {
+  account_id: number;
+  instrument_id: number;
+  quantity: string;
+  cost_basis_eur: string;
+  current_value_eur: string;
+  unrealized_pl_eur: string;
+  estimated_tax_eur: string;
+}
+
+export interface TaxOverviewResponse {
+  saver_allowance: SaverAllowanceUsage;
+  unrealized: UnrealizedTaxEstimate[];
+  vorabpauschale_reminder: string | null;
+}

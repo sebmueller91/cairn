@@ -35,6 +35,7 @@ const NAV_ITEMS = [
   { to: "/", key: "dashboard" },
   { to: "/performance", key: "performance" },
   { to: "/allocation", key: "allocation" },
+  { to: "/tax", key: "tax" },
   { to: "/positions", key: "positions" },
   { to: "/transactions", key: "transactions" },
   { to: "/accounts", key: "accounts" },
