@@ -24,5 +24,11 @@
       "missing_backup": "Noch kein erfolgreiches Backup",
       "stale_backup": "Backup ist veraltet"
     }
+  },
+  "milestone": {
+    "title": "Nächster Meilenstein",
+    "eta": "Voraussichtlich {{date}} (~{{months}} Monate)",
+    "unreachable": "Bei aktueller Sparrate und Annahme nicht absehbar.",
+    "assumptions": "Annahme: {{savings}}/Monat, {{returnPct}}% p.a."
   }
 }

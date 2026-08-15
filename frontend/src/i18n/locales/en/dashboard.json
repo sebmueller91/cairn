@@ -24,5 +24,11 @@
       "missing_backup": "No successful backup yet",
       "stale_backup": "Backup is stale"
     }
+  },
+  "milestone": {
+    "title": "Next milestone",
+    "eta": "Estimated {{date}} (~{{months}} months)",
+    "unreachable": "Not projectable at the current savings rate and assumption.",
+    "assumptions": "Assumes {{savings}}/month, {{returnPct}}%/yr"
   }
 }

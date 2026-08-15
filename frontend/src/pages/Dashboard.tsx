@@ -13,6 +13,7 @@ import { api, type NetWorthPoint } from "../lib/api";
 import { formatCurrency, formatDate } from "../lib/format";
 import { Card } from "../components/Card";
 import { DataQualityPanel } from "../components/DataQualityPanel";
+import { MilestoneCard } from "../components/MilestoneCard";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "ALL";
 
@@ -89,6 +90,7 @@ export function Dashboard() {
         </div>
       </Card>
 
+      <MilestoneCard />
       <DataQualityPanel />
 
       <Card>

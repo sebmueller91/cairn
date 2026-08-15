@@ -322,3 +322,13 @@ export interface LookThroughResponse {
   dimension: string;
   rows: LookThroughRow[];
 }
+
+export interface MilestoneResponse {
+  scope: string;
+  current_value_eur: string;
+  next_milestone_eur: string;
+  monthly_savings_eur: string;
+  assumed_annual_return_pct: string;
+  months_to_reach: number | null;
+  estimated_date: string | null;
+}

@@ -429,6 +429,16 @@ class LookThroughResponse(BaseModel):
     rows: list[LookThroughRowRead]
 
 
+class MilestoneResponse(BaseModel):
+    scope: str
+    current_value_eur: DecimalStr
+    next_milestone_eur: DecimalStr
+    monthly_savings_eur: DecimalStr
+    assumed_annual_return_pct: DecimalStr
+    months_to_reach: float | None
+    estimated_date: date_ | None
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 
