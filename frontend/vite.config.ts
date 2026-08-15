@@ -68,4 +68,15 @@ export default defineConfig({
       },
     },
   },
+  // Same proxy as `server`, for `vite preview` — verifying the production
+  // build (service worker, precache, IndexedDB persister) needs the real
+  // backend too, and only `preview` actually serves the built app + SW.
+  preview: {
+    proxy: {
+      '/api': {
+        target: process.env.CAIRN_API_URL || 'http://raspberrypi5:8000',
+        changeOrigin: true,
+      },
+    },
+  },
 })
