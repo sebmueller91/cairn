@@ -14,7 +14,7 @@ from decimal import Decimal
 from sqlalchemy.orm import Session
 
 from app.ledger import InsufficientHoldingError, TxnEvent, compute_positions, txn_to_event
-from app.models import Account, FxRate, Instrument, Txn, TransactionType
+from app.models import Account, FxRate, Instrument, PriceMode, PricePoint, Txn, TransactionType
 from app.schemas import UNSUPPORTED_TXN_TYPES, TransactionCreate
 
 _AMOUNT_ONLY_TYPES = {
@@ -55,15 +55,53 @@ def resolve_fx_rate(db: Session, payload: TransactionCreate) -> Decimal:
     return row.eur_rate
 
 
-def compute_amount_eur(payload: TransactionCreate, fx_rate: Decimal) -> Decimal:
+def resolve_price(db: Session, payload: TransactionCreate) -> Decimal | None:
+    """BUY/SELL only. An explicit price wins; otherwise, with
+    price_mode='auto', falls back to the closest price_point at or
+    before the txn date — spec 2.5: a purchase with an unknown price is
+    still bookable, and becomes exact once a document supplies it later
+    (just re-PATCH the price then; auto only ever fills a gap, it
+    doesn't paper over one permanently)."""
+    if payload.type not in (TransactionType.BUY, TransactionType.SELL):
+        return None
+    if payload.price is not None:
+        return payload.price
+    if payload.price_mode != PriceMode.AUTO or payload.instrument_id is None:
+        return None
+    row = (
+        db.query(PricePoint)
+        .filter(
+            PricePoint.instrument_id == payload.instrument_id,
+            PricePoint.date <= payload.date,
+        )
+        .order_by(PricePoint.date.desc())
+        .first()
+    )
+    if row is None:
+        raise TxnValidationError(
+            "no_price_available",
+            {"instrument_id": payload.instrument_id, "date": str(payload.date)},
+        )
+    return row.close
+
+
+def compute_amount_eur(
+    payload: TransactionCreate, fx_rate: Decimal, resolved_price: Decimal | None = None
+) -> Decimal:
     t = payload.type
     if t == TransactionType.BUY:
-        _require(payload, "quantity", "price")
-        gross = payload.quantity * payload.price * fx_rate
+        _require(payload, "quantity")
+        price = resolved_price if resolved_price is not None else payload.price
+        if price is None:
+            raise TxnValidationError("missing_field", {"field": "price"})
+        gross = payload.quantity * price * fx_rate
         return gross + payload.fees * fx_rate
     if t == TransactionType.SELL:
-        _require(payload, "quantity", "price")
-        gross = payload.quantity * payload.price * fx_rate
+        _require(payload, "quantity")
+        price = resolved_price if resolved_price is not None else payload.price
+        if price is None:
+            raise TxnValidationError("missing_field", {"field": "price"})
+        gross = payload.quantity * price * fx_rate
         return gross - payload.fees * fx_rate - payload.tax * fx_rate
     if t == TransactionType.OPENING_BALANCE:
         _require(payload, "quantity", "amount")
@@ -171,6 +209,7 @@ def build_txn(
     import_batch_id: int,
     amount_eur: Decimal,
     fx_rate_used: Decimal,
+    resolved_price: Decimal | None = None,
 ) -> Txn:
     return Txn(
         external_id=payload.external_id,
@@ -183,7 +222,10 @@ def build_txn(
         instrument_id=payload.instrument_id,
         counter_account_id=payload.counter_account_id,
         quantity=payload.quantity,
-        price=payload.price,
+        # Stored even when auto-resolved, so the position math and any
+        # display of this row has a real number — price_mode is what
+        # still marks it as not manually verified, not a null price.
+        price=resolved_price if resolved_price is not None else payload.price,
         price_mode=payload.price_mode,
         currency=payload.currency,
         fx_rate=fx_rate_used if payload.currency != "EUR" else None,

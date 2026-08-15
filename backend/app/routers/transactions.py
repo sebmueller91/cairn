@@ -21,6 +21,7 @@ from app.txn_service import (
     compute_amount_eur,
     payload_hash,
     resolve_fx_rate,
+    resolve_price,
     validate_references,
 )
 
@@ -71,7 +72,8 @@ def _process_row(db: Session, row: TransactionCreate, import_batch_id: int) -> R
     try:
         validate_references(db, row)
         fx_rate = resolve_fx_rate(db, row)
-        amount_eur = compute_amount_eur(row, fx_rate)
+        price = resolve_price(db, row)
+        amount_eur = compute_amount_eur(row, fx_rate, price)
         check_holdings(db, row)
     except TxnValidationError as e:
         return RowResult(
@@ -80,7 +82,7 @@ def _process_row(db: Session, row: TransactionCreate, import_batch_id: int) -> R
             error=ErrorDetail(code=e.code, params=e.params),
         )
 
-    txn = build_txn(row, import_batch_id, amount_eur, fx_rate)
+    txn = build_txn(row, import_batch_id, amount_eur, fx_rate, price)
     db.add(txn)
     db.flush()  # assigns txn.id, makes it visible to subsequent rows' checks
     audit.record(
@@ -150,7 +152,8 @@ def create_transaction(
     try:
         validate_references(db, body)
         fx_rate = resolve_fx_rate(db, body)
-        amount_eur = compute_amount_eur(body, fx_rate)
+        price = resolve_price(db, body)
+        amount_eur = compute_amount_eur(body, fx_rate, price)
         check_holdings(db, body)
     except TxnValidationError as e:
         raise HTTPException(
@@ -161,7 +164,7 @@ def create_transaction(
     import_batch = ImportBatch(label=None, source=body.source)
     db.add(import_batch)
     db.flush()
-    txn = build_txn(body, import_batch.id, amount_eur, fx_rate)
+    txn = build_txn(body, import_batch.id, amount_eur, fx_rate, price)
     db.add(txn)
     db.flush()
     audit.record(

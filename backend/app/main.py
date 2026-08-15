@@ -13,6 +13,7 @@ from app.routers import (
     positions,
     price_sources,
     prices,
+    reconcile,
     timeseries,
     transactions,
 )
@@ -48,3 +49,4 @@ app.include_router(positions.router)
 app.include_router(import_batches.router)
 app.include_router(admin.router)
 app.include_router(timeseries.router)
+app.include_router(reconcile.router)

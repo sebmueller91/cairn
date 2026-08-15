@@ -19,5 +19,6 @@
   "unknown_instrument": "Unbekanntes Instrument.",
   "sell_exceeds_holding": "Verkaufsmenge übersteigt den Bestand.",
   "unknown_price_provider": "Unbekannter Kursanbieter.",
+  "no_price_available": "Kein Kurs für {{date}} verfügbar — Preis manuell angeben oder zuerst Kurshistorie laden.",
   "generic": "Ein Fehler ist aufgetreten."
 }

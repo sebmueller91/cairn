@@ -302,6 +302,34 @@ class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 
 
+class ReconcileHoldingInput(BaseModel):
+    isin: str
+    quantity: DecimalStr
+
+
+class ReconcileRequest(BaseModel):
+    account: str
+    as_of: date_
+    holdings: list[ReconcileHoldingInput]
+
+
+class ReconcileDifference(BaseModel):
+    isin: str | None
+    instrument_id: int | None
+    instrument_name: str | None
+    reported_quantity: DecimalStr | None
+    computed_quantity: DecimalStr
+    delta: DecimalStr
+    matched: bool
+    note: str | None = None
+
+
+class ReconcileResponse(BaseModel):
+    account_id: int
+    as_of: date_
+    differences: list[ReconcileDifference]
+
+
 class ErrorDetail(BaseModel):
     code: str
     params: dict = {}

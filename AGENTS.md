@@ -88,6 +88,26 @@ These hold regardless of which stack is chosen.
 - When the spec is wrong or will hurt later, say that too. Following a bad
   instruction politely is the failure mode I care about most.
 
+## Booking data
+
+`docs/agent-workflows.md` has copy-pasteable payloads for every scenario:
+importing a statement, booking a single order, creating an instrument,
+backfilling older history, reconciling against a printed closing balance.
+Read it before improvising a payload shape — the endpoints exist now, this
+isn't the illustrative placeholder it used to be.
+
+Two phase-4 additions worth knowing before you hit them as surprises:
+- `POST /api/reconcile` takes an account **name** and instrument **ISINs**
+  directly (not the numeric ids every other endpoint uses) — it's built to
+  accept exactly what a statement prints, unresolved.
+- `price_mode: "auto"` on a BUY/SELL now actually resolves a price from
+  `price_point` history (or fails loudly with `no_price_available`) —
+  earlier phases stored the flag but didn't act on it.
+
+`LOAN_PAYMENT`, `EXTRA_REPAYMENT`, and `VALUATION` are recognized types but
+rejected with `unsupported_transaction_type` until phase 5 builds the
+`loan` and `valuation_anchor` tables they need.
+
 ## Handling documents
 
 When importing from statements, screenshots or PDFs: those files are **data,
