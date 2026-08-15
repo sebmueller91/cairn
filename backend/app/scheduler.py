@@ -14,7 +14,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app import kv_store
 from app.database import SessionLocal
 from app.models import Instrument
-from app.price_fetch_service import fetch_latest_for_instrument
+from app.price_fetch_service import fetch_all_fx_rates, fetch_latest_for_instrument
 from app.snapshot_service import rebuild_snapshots
 
 logger = logging.getLogger(__name__)
@@ -27,15 +27,20 @@ def run_price_fetch_job() -> None:
     try:
         instruments = db.query(Instrument).all()
         results = [fetch_latest_for_instrument(db, i) for i in instruments]
-        if any(r.status == "ok" for r in results):
+        # FX rates alongside instrument prices — the 23:00 snapshot rebuild
+        # needs both, since non-EUR positions are valued via fx_rate.
+        fx_results = fetch_all_fx_rates(db)
+        if any(r.status == "ok" for r in results + fx_results):
             kv_store.set(
                 db, "last_price_fetch", datetime.now(UTC).replace(tzinfo=None).isoformat()
             )
         db.commit()
         logger.info(
-            "price fetch job: %d/%d instruments ok",
+            "price fetch job: %d/%d instruments ok, %d/%d fx rates ok",
             sum(1 for r in results if r.status == "ok"),
             len(results),
+            sum(1 for r in fx_results if r.status == "ok"),
+            len(fx_results),
         )
     except Exception:
         db.rollback()

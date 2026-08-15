@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app import audit
@@ -11,6 +12,7 @@ from app.schemas import (
     ErrorDetail,
     RowResult,
     TransactionCreate,
+    TransactionDryRunResult,
     TransactionRead,
     TransactionUpdate,
 )
@@ -32,21 +34,30 @@ router = APIRouter(prefix="/api", tags=["transactions"])
 def list_transactions(
     account_id: int | None = None,
     instrument_id: int | None = None,
+    # spec 7.1 names these `from`/`to` (see docs/spec.md); `from` isn't a
+    # legal Python identifier so it comes in aliased, same pattern as
+    # app/routers/timeseries.py's get_networth_timeseries. date_from/date_to
+    # keep working too — nothing else in the codebase used them, but there's
+    # no reason to break a caller that might.
+    from_: str | None = Query(default=None, alias="from"),
+    to: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
     limit: int = 100,
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[TransactionRead]:
+    effective_from = from_ if from_ is not None else date_from
+    effective_to = to if to is not None else date_to
     query = db.query(Txn).filter(Txn.voided_at.is_(None))
     if account_id is not None:
         query = query.filter(Txn.account_id == account_id)
     if instrument_id is not None:
         query = query.filter(Txn.instrument_id == instrument_id)
-    if date_from is not None:
-        query = query.filter(Txn.date >= date_from)
-    if date_to is not None:
-        query = query.filter(Txn.date <= date_to)
+    if effective_from is not None:
+        query = query.filter(Txn.date >= effective_from)
+    if effective_to is not None:
+        query = query.filter(Txn.date <= effective_to)
     rows = query.order_by(Txn.date.desc(), Txn.id.desc()).limit(limit).all()
     return [TransactionRead.model_validate(r) for r in rows]
 
@@ -134,9 +145,16 @@ def bulk_transactions(
 )
 def create_transaction(
     body: TransactionCreate,
+    # Mirrors /transactions/bulk's dry_run: run the full validation
+    # pipeline, then roll back instead of committing. A query param rather
+    # than a body field — TransactionCreate is also embedded as each row of
+    # BulkTransactionsRequest.transactions, and a per-row dry_run there
+    # would be meaningless (the batch's own dry_run governs all rows), so
+    # it doesn't belong on that schema.
+    dry_run: bool = False,
     db: Session = Depends(get_db),
     _scope=Depends(require_write_scope),
-) -> TransactionRead:
+) -> TransactionRead | JSONResponse:
     existing = db.query(Txn).filter(Txn.external_id == body.external_id).first()
     if existing is not None:
         if existing.payload_hash == payload_hash(body):
@@ -166,7 +184,7 @@ def create_transaction(
     db.flush()
     txn = build_txn(body, import_batch.id, amount_eur, fx_rate, price)
     db.add(txn)
-    db.flush()
+    db.flush()  # assigns txn.id, needed for the audit record and the response
     audit.record(
         db,
         actor=body.source,
@@ -175,6 +193,25 @@ def create_transaction(
         entity_id=txn.id,
         payload_hash=txn.payload_hash,
     )
+
+    if dry_run:
+        # Capture the would-be transaction as plain data *before* rolling
+        # back — db.rollback() expires every object still attached to the
+        # session, so reading txn's attributes afterwards would silently
+        # re-query (or blow up, since none of this was ever committed).
+        result = TransactionDryRunResult(
+            outcome="would_create",
+            transaction=TransactionRead.model_validate(txn),
+        )
+        db.rollback()
+        # A Response instance bypasses response_model entirely (FastAPI
+        # sends it through as-is), so this never gets coerced into
+        # TransactionRead / status 201 — a dry run must be structurally
+        # impossible to mistake for a real booking.
+        return JSONResponse(
+            status_code=status.HTTP_200_OK, content=result.model_dump(mode="json")
+        )
+
     db.commit()
     db.refresh(txn)
     return TransactionRead.model_validate(txn)

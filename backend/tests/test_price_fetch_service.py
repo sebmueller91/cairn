@@ -6,8 +6,12 @@ from decimal import Decimal
 
 import pytest
 
-from app.models import AssetClass, Instrument, PriceSource, ValuationMode
-from app.price_fetch_service import backfill_for_instrument, fetch_latest_for_instrument
+from app.models import AssetClass, FxRate, Instrument, PriceSource, ValuationMode
+from app.price_fetch_service import (
+    backfill_for_instrument,
+    fetch_all_fx_rates,
+    fetch_latest_for_instrument,
+)
 from app.providers.base import FetchedPrice, ProviderError
 
 
@@ -128,3 +132,61 @@ def test_backfill_writes_history_and_skips_implausible_points(
     result = backfill_for_instrument(db_session, instrument, date(2024, 1, 1), date(2024, 1, 3))
     assert result.status == "ok"
     assert "2 points written" in result.detail
+
+
+def _make_instrument(db_session, isin, currency):
+    i = Instrument(
+        name="Test Instrument",
+        isin=isin,
+        asset_class=AssetClass.EQUITY,
+        valuation_mode=ValuationMode.MARKET,
+        currency=currency,
+        valuation_config_json="{}",
+        tags_json="[]",
+    )
+    db_session.add(i)
+    db_session.commit()
+    db_session.refresh(i)
+    return i
+
+
+def test_fetch_all_fx_rates_fetches_distinct_non_eur_currencies(db_session, monkeypatch):
+    # Two USD instruments and one EUR instrument -> only one USD fetch,
+    # no EUR fetch (spec: EUR is always 1:1, never an FX row).
+    _make_instrument(db_session, "XX0000000081", "USD")
+    _make_instrument(db_session, "XX0000000082", "USD")
+    _make_instrument(db_session, "XX0000000083", "EUR")
+
+    calls = []
+
+    class FakeProvider:
+        def fetch_latest(self, symbol):
+            calls.append(symbol)
+            return FetchedPrice(date=date(2024, 6, 1), close=Decimal("1.10"))
+
+    monkeypatch.setattr(
+        "app.price_fetch_service.get_provider", lambda name: FakeProvider()
+    )
+
+    results = fetch_all_fx_rates(db_session)
+    db_session.commit()
+
+    assert calls == ["USD"]
+    assert [r.status for r in results] == ["ok"]
+
+    rate = db_session.get(FxRate, ("USD", date(2024, 6, 1)))
+    assert rate is not None
+    assert rate.eur_rate == Decimal("1.10")
+
+
+def test_fetch_all_fx_rates_is_noop_for_eur_only_portfolio(db_session, monkeypatch):
+    _make_instrument(db_session, "XX0000000084", "EUR")
+
+    def _unexpected_provider(name):
+        raise AssertionError("no provider should be looked up for an EUR-only portfolio")
+
+    monkeypatch.setattr("app.price_fetch_service.get_provider", _unexpected_provider)
+
+    results = fetch_all_fx_rates(db_session)
+
+    assert results == []

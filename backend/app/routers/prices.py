@@ -7,7 +7,12 @@ from app import kv_store
 from app.auth import require_write_scope
 from app.database import get_db
 from app.models import Instrument
-from app.price_fetch_service import backfill_for_instrument, fetch_latest_for_instrument
+from app.price_fetch_service import (
+    backfill_for_instrument,
+    fetch_all_fx_rates,
+    fetch_fx_rate,
+    fetch_latest_for_instrument,
+)
 from app.schemas import (
     FetchResultRead,
     PriceBackfillRequest,
@@ -35,19 +40,27 @@ def refresh_prices(
                 },
             )
         instruments = [instrument]
+        # Single-instrument refresh: only that instrument's own currency
+        # needs a fresh FX rate (fetch_fx_rate is itself a no-op for EUR).
+        fx_results = [fetch_fx_rate(db, instrument.currency)] if instrument.currency != "EUR" else []
     else:
         instruments = db.query(Instrument).all()
+        fx_results = fetch_all_fx_rates(db)
 
     results = [fetch_latest_for_instrument(db, i) for i in instruments]
-    if any(r.status == "ok" for r in results):
+    all_results = results + fx_results
+    if any(r.status == "ok" for r in all_results):
         kv_store.set(
             db, "last_price_fetch", datetime.now(UTC).replace(tzinfo=None).isoformat()
         )
     db.commit()
     return PriceFetchResponse(
         results=[
+            # instrument_id=0 on fx_results entries is the FX sentinel
+            # (see fetch_fx_rate); FetchResultRead's shape is unchanged,
+            # detail carries the currency for those rows.
             FetchResultRead(instrument_id=r.instrument_id, status=r.status, detail=r.detail)
-            for r in results
+            for r in all_results
         ]
     )
 

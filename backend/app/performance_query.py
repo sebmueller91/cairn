@@ -66,6 +66,27 @@ def period_start(period: str, end: date, inception: date | None) -> date:
     raise InvalidPeriodError(period)
 
 
+def latest_snapshot_date(db: Session) -> date | None:
+    """Latest date the snapshot engine has actually materialized —
+    `scope_type="total"` rows are written for every day the nightly
+    `rebuild_snapshots` walk covered, regardless of scope_id, so their max
+    date is the trailing edge past which `value_series`/`_snapshot_value`
+    would silently read as Decimal(0) rather than reflect real data.
+    Callers that default (or clamp) their window's end to `date.today()`
+    must clamp against this instead: the nightly rebuild only catches up
+    hours after midnight, so for a window every morning `date.today()` is
+    stale-data's disguise, not a real day of loss. None if no snapshot has
+    ever been written (fresh DB — callers should still respond sanely,
+    never crash, in that case)."""
+    row = (
+        db.query(DailySnapshot.date)
+        .filter(DailySnapshot.scope_type == "total")
+        .order_by(DailySnapshot.date.desc())
+        .first()
+    )
+    return row[0] if row else None
+
+
 def inception_date(db: Session, scope: ScopeFilter) -> date | None:
     """Earliest day any MARKET position existed within scope — the
     "since inception" period start."""

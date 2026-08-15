@@ -45,9 +45,15 @@ async def _get(path: str, params: dict[str, Any] | None = None) -> Any:
         return resp.json()
 
 
-async def _post(path: str, body: dict[str, Any]) -> Any:
+async def _post(
+    path: str, body: dict[str, Any], params: dict[str, Any] | None = None
+) -> Any:
     async with _client() as client:
-        resp = await client.post(path, json={k: v for k, v in body.items() if v is not None})
+        resp = await client.post(
+            path,
+            json={k: v for k, v in body.items() if v is not None},
+            params={k: v for k, v in (params or {}).items() if v is not None},
+        )
         if not resp.is_success:
             raise RuntimeError(f"{resp.status_code}: {resp.text}")
         return resp.json()
@@ -93,6 +99,10 @@ async def list_transactions(
     limit: int = 50,
 ) -> list[dict]:
     """Booked transactions, most recent first. Dates are YYYY-MM-DD."""
+    # Param names here must match the router's query params exactly
+    # (spec 7.1: GET /api/transactions?from=&to=) — FastAPI silently drops
+    # unknown query params rather than erroring, so a mismatch here doesn't
+    # fail loudly, it just makes date filtering a silent no-op.
     return await _get(
         "/api/transactions",
         {"account_id": account_id, "from": from_date, "to": to_date, "limit": limit},
@@ -188,7 +198,12 @@ async def book_transaction(
     type is one of BUY, SELL, DIVIDEND, INTEREST, FEE, TAX, DEPOSIT,
     WITHDRAWAL, TRANSFER, SPLIT, OPENING_BALANCE, BALANCE_STATEMENT,
     LOAN_PAYMENT, EXTRA_REPAYMENT. Quantities/prices/amounts are decimal
-    strings, never floats. Set dry_run=true to validate without writing."""
+    strings, never floats. Set dry_run=true to run the full validation
+    pipeline without writing anything — the endpoint runs the same checks
+    (references, FX, price, holdings, external_id conflict) and rolls
+    back instead of committing; the response is {"dry_run": true,
+    "outcome": "would_create", "transaction": {...}}, never the plain
+    booked record a real write returns, so it can't be mistaken for one."""
     return await _post(
         "/api/transactions",
         {
@@ -205,8 +220,8 @@ async def book_transaction(
             "tax": tax,
             "counter_account_id": counter_account_id,
             "note": note,
-            "dry_run": dry_run,
         },
+        params={"dry_run": dry_run},
     )
 
 

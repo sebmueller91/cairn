@@ -156,19 +156,38 @@ def backfill_for_instrument(
 
 
 def fetch_fx_rate(db: Session, currency: str) -> FetchResult:
+    # instrument_id=0 is a sentinel: FX rows aren't tied to a single
+    # instrument. `detail` carries the currency so callers (and the
+    # /api/prices/refresh response, which reuses FetchResultRead as-is)
+    # can tell which currency a given FX result is about.
     if currency == "EUR":
         return FetchResult(0, "ok", detail="EUR is always 1:1")
     provider = get_provider("frankfurter")
     try:
         result = provider.fetch_latest(currency)
     except ProviderError as e:
-        return FetchResult(0, "all_sources_failed", detail=str(e))
+        return FetchResult(0, "all_sources_failed", detail=f"{currency}: {e}")
     if result is None:
-        return FetchResult(0, "all_sources_failed", detail="no data")
+        return FetchResult(0, "all_sources_failed", detail=f"{currency}: no data")
 
     existing = db.get(FxRate, (currency, result.date))
     if existing:
         existing.eur_rate = result.close
     else:
         db.add(FxRate(currency=currency, date=result.date, eur_rate=result.close))
-    return FetchResult(0, "ok")
+    return FetchResult(0, "ok", detail=currency)
+
+
+def fetch_all_fx_rates(db: Session) -> list[FetchResult]:
+    """Fetch one FX rate per distinct non-EUR currency in use across all
+    instruments. This is what actually populates `fx_rate` — without it,
+    fetch_fx_rate is defined but never invoked, and the snapshot/valuation
+    engines silently treat any non-EUR position as worth EUR 0 (fx_series
+    lookup misses -> `if fx is None: continue`).
+    """
+    currencies = {
+        currency
+        for (currency,) in db.query(Instrument.currency).distinct().all()
+        if currency != "EUR"
+    }
+    return [fetch_fx_rate(db, currency) for currency in sorted(currencies)]

@@ -11,6 +11,7 @@ from app.performance_query import (
     benchmark_price_series,
     flow_events,
     inception_date,
+    latest_snapshot_date,
     parse_scope,
     period_start,
     value_series,
@@ -49,7 +50,16 @@ def get_performance(
             detail={"code": "invalid_method", "params": {"method": method}},
         )
 
+    # The daily_snapshot table only extends through the last nightly
+    # rebuild — between midnight and that job's 23:00 run, date.today()
+    # names a day with no snapshot rows at all. Reading that as
+    # Decimal(0) (value_series' documented mid-series convention) would
+    # be wrong here: it's not a real zero, it's staleness. Clamp to
+    # whatever the engine has actually produced instead.
     end = date.today()
+    latest = latest_snapshot_date(db)
+    if latest is not None and latest < end:
+        end = latest
     inception = inception_date(db, scope_filter)
     try:
         start = period_start(period, end, inception)

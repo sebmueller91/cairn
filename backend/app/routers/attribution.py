@@ -7,6 +7,7 @@ from app.attribution_service import attribution_series
 from app.auth import get_scope
 from app.database import get_db
 from app.models import DailySnapshot
+from app.performance_query import latest_snapshot_date
 from app.schemas import AttributionPeriod, AttributionResponse
 
 router = APIRouter(prefix="/api/attribution", tags=["attribution"])
@@ -26,7 +27,17 @@ def get_attribution(
             detail={"code": "invalid_granularity", "params": {"granularity": granularity}},
         )
 
+    # Same trailing-edge staleness as GET /api/performance (see that
+    # router's comment): daily_snapshot only extends through the last
+    # nightly rebuild, so an end date past that — whether it's today's
+    # default or an explicitly requested `to` — would read as a
+    # Decimal(0) snapshot and dump the whole real portfolio value into
+    # the market_gains_losses residual as a phantom loss. Clamp to what
+    # actually exists; the honest end_date is reflected back below.
     end = to or date.today()
+    latest = latest_snapshot_date(db)
+    if latest is not None and latest < end:
+        end = latest
     start = from_
     if start is None:
         earliest = (

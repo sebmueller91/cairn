@@ -9,7 +9,7 @@ part of the design.
 Invented ISINs, quantities, and amounts only, per AGENTS.md.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 
@@ -273,3 +273,101 @@ def test_attribution_endpoint_rejects_bad_range(client, auth_headers):
     )
     assert resp.status_code == 400
     assert resp.json()["detail"]["code"] == "invalid_range"
+
+
+def test_attribution_endpoint_clamps_explicit_to_beyond_available_data(
+    client, auth_headers, db_session
+):
+    """When `to` is explicitly requested past the newest snapshot row,
+    the honest response clamps to what actually exists rather than
+    reading a missing end-of-window snapshot as a Decimal(0) portfolio
+    (which would previously dump the entire real end_value into the
+    market_gains_losses residual as a giant phantom loss)."""
+    _setup(client, auth_headers, db_session)
+
+    resp = client.get(
+        "/api/attribution",
+        params={"from": "2024-01-01", "to": "2099-12-31", "granularity": "year"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["periods"], "expected at least one period"
+    last_period = body["periods"][-1]
+    assert last_period["end_date"] != "2099-12-31"
+    assert Decimal(last_period["end_value"]) > 0
+    # Hand-derived sanity from _setup: real gross wealth stays in the
+    # hundreds-of-thousands range throughout, nowhere near a five/six
+    # figure negative residual.
+    assert Decimal(last_period["market_gains_losses"]) > Decimal("-1000.00")
+
+
+def test_attribution_endpoint_clamps_default_end_when_today_has_no_snapshot_yet(
+    client, auth_headers, db_session, monkeypatch
+):
+    """Same staleness bug as performance's (see test_performance_query.py),
+    reproduced for attribution's default `to = date.today()` path: the
+    daily_snapshot table only extends through the last rebuild (here,
+    real "today"), but a caller hitting the endpoint moments after
+    midnight and before the nightly job sees date.today() one day ahead
+    of that."""
+    import app.routers.attribution as attr_router
+    from app.models import DailySnapshot
+
+    _setup(client, auth_headers, db_session)
+
+    real_latest = (
+        db_session.query(DailySnapshot.date)
+        .filter(DailySnapshot.scope_type == "total", DailySnapshot.scope_id == "gross")
+        .order_by(DailySnapshot.date.desc())
+        .first()[0]
+    )
+    fake_today = real_latest + timedelta(days=1)
+
+    class FakeDate(date):
+        @classmethod
+        def today(cls):
+            return fake_today
+
+    monkeypatch.setattr(attr_router, "date", FakeDate)
+
+    resp = client.get(
+        "/api/attribution",
+        params={"from": "2024-01-01", "granularity": "month"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["periods"], "expected at least one period"
+    last_period = body["periods"][-1]
+    assert last_period["end_date"] == real_latest.isoformat()
+    assert Decimal(last_period["market_gains_losses"]) > Decimal("-1000.00")
+
+
+def test_attribution_endpoint_sane_when_no_snapshots_exist_at_all(client, auth_headers):
+    """No transactions booked, no rebuild ever run: the endpoint must
+    still respond (never crash). With an explicit range it still
+    partitions into periods (per month_end_boundaries), but every bucket
+    reads as flat zero rather than fabricating a phantom loss."""
+    resp = client.get(
+        "/api/attribution",
+        params={"from": "2024-01-01", "to": "2024-06-01", "granularity": "month"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["periods"]
+    for period in body["periods"]:
+        assert Decimal(period["start_value"]) == 0
+        assert Decimal(period["end_value"]) == 0
+        assert Decimal(period["market_gains_losses"]) == 0
+
+    # With no `from` given either, start falls back to `end` itself, so
+    # there's nothing to partition into periods at all.
+    resp_no_from = client.get(
+        "/api/attribution",
+        params={"granularity": "month"},
+        headers=auth_headers,
+    )
+    assert resp_no_from.status_code == 200
+    assert resp_no_from.json()["periods"] == []

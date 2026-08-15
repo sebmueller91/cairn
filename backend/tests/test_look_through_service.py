@@ -154,6 +154,21 @@ def test_composition_endpoint_round_trip(client, auth_headers):
     assert resp.json()[0]["category"] == "Asia"
 
 
+def test_composition_endpoint_404s_for_missing_instrument(client, auth_headers):
+    """Bug: SQLite FK enforcement is ON, so writing composition for a
+    nonexistent instrument used to raise IntegrityError at commit and
+    surface as a raw 500 instead of a proper 404."""
+    resp = client.put(
+        "/api/instruments/999999/composition",
+        json={"dimension": "region", "breakdown": {"Asia": "100"}},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == {
+        "code": "instrument_not_found", "params": {"id": 999999},
+    }
+
+
 def test_composition_endpoint_requires_write_scope(client, readonly_headers, auth_headers):
     instrument = client.post(
         "/api/instruments",

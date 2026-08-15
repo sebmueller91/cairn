@@ -199,6 +199,16 @@ class TransactionUpdate(BaseModel):
     provisional: bool | None = None
 
 
+class TransactionDryRunResult(BaseModel):
+    """Response for POST /api/transactions?dry_run=true. Deliberately not
+    a bare TransactionRead — same envelope shape as a /bulk row (`dry_run`
+    + `outcome`) so a client can never mistake this for a real booking."""
+
+    dry_run: bool = True
+    outcome: str  # would_create
+    transaction: TransactionRead
+
+
 class BulkTransactionsRequest(BaseModel):
     dry_run: bool = True
     import_batch_label: str | None = None

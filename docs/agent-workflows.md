@@ -83,11 +83,20 @@ point.
 ## 2. Book a single order
 
 Screenshot in, one transaction out via `POST /api/transactions` (same
-payload shape as one row above, no batch wrapper). No `dry_run` on this
-endpoint — for a single transaction, read the response back and delete it
-(`DELETE /api/transactions/{id}`) if it's wrong, rather than pre-flighting.
-For anything you're not fully sure about, use `/bulk` with one row instead
-so you get the dry run.
+payload shape as one row above, no batch wrapper). `?dry_run=true` runs
+the same validation pipeline as a real write (references, FX, price,
+holdings, external_id conflict) and rolls back instead of committing —
+the response is `{"dry_run": true, "outcome": "would_create",
+"transaction": {...}}` at `200`, never the bare booked record a real
+write returns at `201`, so the two can't be confused. A real write with
+the same payload afterwards is unaffected by the earlier dry run — it
+still gets a fresh `external_id`, nothing was persisted.
+
+For a booking you're fully confident in, skip the dry run: read the
+`201` response back and delete it (`DELETE /api/transactions/{id}`) if
+it turns out wrong. For anything you're not fully sure about, either
+`?dry_run=true` first or use `/bulk` with one row for the same dry-run
+semantics with a batch label.
 
 ---
 

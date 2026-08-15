@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
 from app.look_through_service import compute_look_through
-from app.models import EtfComposition
+from app.models import EtfComposition, Instrument
 from app.schemas import (
     EtfCompositionRow,
     EtfCompositionSet,
@@ -25,6 +25,11 @@ def set_composition(
     """Replaces the full breakdown for one (instrument, dimension) pair —
     "entered by hand from the factsheet" (spec 4.4) means pasting in the
     whole thing at once, not editing rows one at a time."""
+    if db.get(Instrument, instrument_id) is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "instrument_not_found", "params": {"id": instrument_id}},
+        )
     db.query(EtfComposition).filter(
         EtfComposition.instrument_id == instrument_id,
         EtfComposition.dimension == body.dimension,

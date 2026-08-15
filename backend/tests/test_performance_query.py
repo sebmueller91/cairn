@@ -9,7 +9,7 @@ correct, plus one end-to-end sanity pass through the router.
 Invented ISINs and quantities only, per AGENTS.md.
 """
 
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
@@ -235,3 +235,91 @@ def test_performance_endpoint_rejects_invalid_scope(client, auth_headers):
 def test_performance_endpoint_requires_auth(client):
     resp = client.get("/api/performance")
     assert resp.status_code == 401
+
+
+def test_performance_endpoint_clamps_end_when_today_has_no_snapshot_yet(
+    client, auth_headers, db_session, monkeypatch
+):
+    """Reproduces the "midnight to nightly-rebuild" staleness bug: the
+    daily_snapshot table only extends through the last night's rebuild
+    (here: real "today", since the test's own rebuild-snapshots call just
+    ran), but the endpoint defaults its window's end to whatever
+    date.today() returns *right now*. Simulate the gap by making the
+    router believe "today" is one calendar day past the newest snapshot
+    row that actually exists — exactly the state the app is in for a few
+    hours every morning before the 23:00 job catches up. Pre-fix, this
+    should show a phantom ~-100% TWR (the extra day's V(t) zero-fills)
+    and an MWR end_value of zero; post-fix, both should clamp to the
+    real latest snapshot date instead."""
+    import app.routers.performance as perf_router
+    from app.models import DailySnapshot
+
+    _setup_scenario(client, auth_headers, db_session)
+
+    real_latest = (
+        db_session.query(DailySnapshot.date)
+        .filter(DailySnapshot.scope_type == "total")
+        .order_by(DailySnapshot.date.desc())
+        .first()[0]
+    )
+    fake_today = real_latest + timedelta(days=1)
+
+    class FakeDate(date):
+        @classmethod
+        def today(cls):
+            return fake_today
+
+    monkeypatch.setattr(perf_router, "date", FakeDate)
+
+    resp_twr = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "inception", "method": "twr"},
+        headers=auth_headers,
+    )
+    assert resp_twr.status_code == 200
+    body_twr = resp_twr.json()
+    # The clamp must be visible in the response, not just internally applied.
+    assert body_twr["end_date"] == real_latest.isoformat()
+    assert body_twr["return_pct"] is not None
+    # Sanity-derived from _setup_scenario: real return is a small positive
+    # figure (see test_performance_endpoint_twr_end_to_end). The bug
+    # produces something close to -1.0 (-100%); anything above -0.5 rules
+    # that phantom out.
+    assert body_twr["return_pct"] > -0.5
+    assert all(
+        point["date"] != fake_today.isoformat() for point in body_twr["curve"]
+    )
+
+    resp_mwr = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "inception", "method": "mwr"},
+        headers=auth_headers,
+    )
+    assert resp_mwr.status_code == 200
+    body_mwr = resp_mwr.json()
+    assert body_mwr["end_date"] == real_latest.isoformat()
+    assert body_mwr["return_pct"] is not None
+    assert body_mwr["return_pct"] > -0.9
+
+
+def test_performance_endpoint_sane_when_no_snapshots_exist_at_all(client, auth_headers):
+    """No transactions booked, no rebuild ever run: the endpoint must
+    still respond (never crash), with an empty/None result rather than
+    fabricating anything."""
+    resp = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "1Y", "method": "twr"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["return_pct"] is None
+    assert body["curve"] == []
+
+    resp_mwr = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "1Y", "method": "mwr"},
+        headers=auth_headers,
+    )
+    assert resp_mwr.status_code == 200
+    assert resp_mwr.json()["return_pct"] is None

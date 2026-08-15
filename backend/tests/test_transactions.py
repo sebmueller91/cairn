@@ -175,6 +175,114 @@ def test_import_batch_rollback_via_transaction_delete(client, auth_headers):
     assert missing.json() == []
 
 
+def test_single_post_dry_run_writes_nothing(client, auth_headers):
+    """Bug: POST /api/transactions accepted a `dry_run` field/param that
+    the endpoint silently ignored (Pydantic v2 drops unknown fields by
+    default), so a validate-only request actually booked the transaction.
+    dry_run must (a) leave the txn table completely unchanged and (b)
+    return a response that cannot be mistaken for a real booking."""
+    account_id = _create_account(client, auth_headers)
+    instrument_id = _create_instrument(client, auth_headers)
+    payload = {
+        "external_id": "t-buy-dry-run",
+        "date": "2024-01-10",
+        "type": "BUY",
+        "account_id": account_id,
+        "instrument_id": instrument_id,
+        "quantity": "10",
+        "price": "100.00",
+        "currency": "EUR",
+        "fees": "1.50",
+    }
+
+    dry = client.post(
+        "/api/transactions", params={"dry_run": "true"}, json=payload, headers=auth_headers
+    )
+    assert dry.status_code == 200  # never the 201 a real create returns
+    body = dry.json()
+    assert body["dry_run"] is True
+    assert body["outcome"] == "would_create"
+    assert body["transaction"]["amount_eur"] == "1001.50"
+
+    # Nothing persisted: not visible via list...
+    listed = client.get(
+        "/api/transactions", params={"account_id": account_id}, headers=auth_headers
+    )
+    assert listed.json() == []
+
+    # ...and a real POST with the same external_id afterwards is a fresh
+    # create, not a duplicate/conflict — proving the dry run wrote nothing.
+    real = client.post("/api/transactions", json=payload, headers=auth_headers)
+    assert real.status_code == 201  # bare TransactionRead, not the dry-run envelope
+    assert real.json()["amount_eur"] == "1001.50"
+
+    listed_after = client.get(
+        "/api/transactions", params={"account_id": account_id}, headers=auth_headers
+    )
+    assert len(listed_after.json()) == 1
+
+
+def test_single_post_dry_run_still_validates(client, auth_headers):
+    account_id = _create_account(client, auth_headers)
+    instrument_id = _create_instrument(client, auth_headers)
+
+    resp = client.post(
+        "/api/transactions",
+        params={"dry_run": "true"},
+        json={
+            "external_id": "t-sell-dry-run-oversell",
+            "date": "2024-01-10",
+            "type": "SELL",
+            "account_id": account_id,
+            "instrument_id": instrument_id,
+            "quantity": "5",
+            "price": "100.00",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+    assert resp.status_code == 422
+    assert resp.json()["detail"]["code"] == "sell_exceeds_holding"
+
+    listed = client.get(
+        "/api/transactions", params={"account_id": account_id}, headers=auth_headers
+    )
+    assert listed.json() == []
+
+
+def test_list_transactions_filters_by_from_to(client, auth_headers):
+    """Bug: the router only accepted date_from/date_to while both spec 7.1
+    and the MCP server send from/to — FastAPI drops unknown query params,
+    so date filtering silently did nothing over the wire."""
+    account_id = _create_account(client, auth_headers)
+    instrument_id = _create_instrument(client, auth_headers)
+    for i, d in enumerate(["2024-01-05", "2024-02-05", "2024-03-05"]):
+        r = client.post(
+            "/api/transactions",
+            json={
+                "external_id": f"t-from-to-{i}",
+                "date": d,
+                "type": "BUY",
+                "account_id": account_id,
+                "instrument_id": instrument_id,
+                "quantity": "1",
+                "price": "10.00",
+                "currency": "EUR",
+            },
+            headers=auth_headers,
+        )
+        assert r.status_code == 201
+
+    resp = client.get(
+        "/api/transactions",
+        params={"account_id": account_id, "from": "2024-01-15", "to": "2024-02-15"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    dates = [row["date"] for row in resp.json()]
+    assert dates == ["2024-02-05"]
+
+
 def test_full_golden_dataset_scenario(client, auth_headers):
     """purchase, partial sale, split, dividend, FX purchase, in-kind
     transfer — spec ch. 10's list, minus the provisional-opening-balance/
