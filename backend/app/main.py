@@ -17,6 +17,7 @@ from app.routers import (
     import_batches,
     instruments,
     loans,
+    look_through,
     performance,
     positions,
     price_sources,
@@ -70,3 +71,4 @@ app.include_router(performance.router)
 app.include_router(attribution.router)
 app.include_router(allocation.router)
 app.include_router(tax.router)
+app.include_router(look_through.router)

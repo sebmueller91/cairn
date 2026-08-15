@@ -18,6 +18,16 @@
     "new": "Neues Instrument",
     "isin": "ISIN",
     "ticker": "Ticker",
+    "compositionInvalid": "Ungültiges Format — eine Zeile pro Kategorie, z. B. \"Nordamerika: 60\"",
+    "composition": {
+      "title": "ETF-Zusammensetzung",
+      "description": "Region-/Branchenaufteilung von Hand aus dem Factsheet — für den Look-Through in der Allokationsansicht.",
+      "dimension": "Dimension",
+      "region": "Region",
+      "sector": "Branche",
+      "breakdown": "Aufteilung (eine Zeile pro Kategorie: \"Kategorie: Gewicht\")",
+      "saved": "Gespeichert."
+    },
     "assetClasses": {
       "EQUITY": "Aktie",
       "BOND": "Anleihe",

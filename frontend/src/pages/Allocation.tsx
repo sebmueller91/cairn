@@ -1,7 +1,13 @@
 import { useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError, type AllocationResponse, type AssetClass } from "../lib/api";
+import {
+  api,
+  ApiError,
+  type AllocationResponse,
+  type AssetClass,
+  type LookThroughResponse,
+} from "../lib/api";
 import { formatCurrency, formatPercent } from "../lib/format";
 import { Card } from "../components/Card";
 import { OfflineNotice } from "../components/OfflineNotice";
@@ -31,6 +37,16 @@ export function Allocation() {
   const [draftTargets, setDraftTargets] = useState<Record<string, string>>({});
   const [contribution, setContribution] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [lookThroughDimension, setLookThroughDimension] = useState<"region" | "sector">(
+    "region",
+  );
+
+  const { data: lookThrough } = useQuery({
+    queryKey: ["look-through", lookThroughDimension],
+    queryFn: () =>
+      api.get<LookThroughResponse>(`/api/look-through?dimension=${lookThroughDimension}`),
+  });
+  const lookThroughTotal = lookThrough?.rows.reduce((sum, r) => sum + Number(r.value_eur), 0) ?? 0;
 
   const effectiveTargets = { ...(targets ?? {}), ...draftTargets };
 
@@ -204,6 +220,55 @@ export function Allocation() {
               )}
             </ul>
           </>
+        )}
+      </Card>
+
+      <Card className="p-0">
+        <div className="flex items-center justify-between p-5 pb-0">
+          <h2 className="font-medium">{t("lookThrough.title")}</h2>
+          <div className="flex gap-1 rounded-md border border-border p-1">
+            {(["region", "sector"] as const).map((d) => (
+              <button
+                key={d}
+                onClick={() => setLookThroughDimension(d)}
+                className={`rounded px-2 py-1 text-xs font-medium ${
+                  d === lookThroughDimension
+                    ? "bg-accent text-accent-fg"
+                    : "text-text-muted hover:text-text"
+                }`}
+              >
+                {t(`lookThrough.dimensions.${d}`)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <p className="px-5 pt-3 text-xs text-text-muted">{t("lookThrough.description")}</p>
+        {!lookThrough?.rows.length ? (
+          <p className="p-5 text-text-muted">{t("common:status.empty")}</p>
+        ) : (
+          <table className="mt-3 w-full text-sm">
+            <thead>
+              <tr className="border-b border-border text-left text-text-muted">
+                <th className="px-5 py-2 font-medium">{t(`lookThrough.dimensions.${lookThroughDimension}`)}</th>
+                <th className="px-5 py-2 text-right font-medium">{t("drift.current")}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lookThrough.rows.map((row) => (
+                <tr key={row.category} className="border-b border-border last:border-0">
+                  <td className="px-5 py-2">{row.category}</td>
+                  <td className="tnum px-5 py-2 text-right">
+                    {formatCurrency(row.value_eur, i18n.language)}
+                    {lookThroughTotal > 0 && (
+                      <span className="ml-1 text-text-muted">
+                        ({formatPercent(Number(row.value_eur) / lookThroughTotal, i18n.language)})
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         )}
       </Card>
     </div>

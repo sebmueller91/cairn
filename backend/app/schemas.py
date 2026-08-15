@@ -407,6 +407,28 @@ class TaxOverviewResponse(BaseModel):
     vorabpauschale_reminder: str | None
 
 
+class EtfCompositionSet(BaseModel):
+    dimension: str
+    # category -> weight percentage, e.g. {"North America": "60", "Europe": "40"}
+    breakdown: dict[str, DecimalStr]
+
+
+class EtfCompositionRow(BaseModel):
+    dimension: str
+    category: str
+    weight_pct: DecimalStr
+
+
+class LookThroughRowRead(BaseModel):
+    category: str
+    value_eur: DecimalStr
+
+
+class LookThroughResponse(BaseModel):
+    dimension: str
+    rows: list[LookThroughRowRead]
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 

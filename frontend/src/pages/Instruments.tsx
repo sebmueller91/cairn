@@ -239,6 +239,143 @@ export function Instruments() {
           </table>
         )}
       </Card>
+
+      <EtfCompositionEditor instruments={instruments ?? []} />
     </div>
+  );
+}
+
+function EtfCompositionEditor({ instruments }: { instruments: Instrument[] }) {
+  const { t } = useTranslation(["assets", "common", "errors"]);
+  const online = useOnlineStatus();
+  const marketInstruments = instruments.filter((i) => i.valuation_mode === "MARKET");
+
+  const [instrumentId, setInstrumentId] = useState("");
+  const [dimension, setDimension] = useState<"region" | "sector">("region");
+  const [breakdownText, setBreakdownText] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  // "Category: Weight" one per line — the shape a factsheet's own table
+  // pastes into most directly, rather than a JSON object.
+  function parseBreakdown(text: string): Record<string, string> | null {
+    const breakdown: Record<string, string> = {};
+    for (const line of text.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const idx = trimmed.lastIndexOf(":");
+      if (idx === -1) return null;
+      const category = trimmed.slice(0, idx).trim();
+      const weight = trimmed.slice(idx + 1).trim();
+      if (!category || Number.isNaN(Number(weight))) return null;
+      breakdown[category] = weight;
+    }
+    return Object.keys(breakdown).length ? breakdown : null;
+  }
+
+  const saveComposition = useMutation({
+    mutationFn: () => {
+      const breakdown = parseBreakdown(breakdownText);
+      if (!breakdown) throw new Error("invalid_breakdown");
+      return api.put(`/api/instruments/${instrumentId}/composition`, { dimension, breakdown });
+    },
+    onSuccess: () => {
+      setSuccess(true);
+      setError(null);
+    },
+    onError: (err) => {
+      setSuccess(false);
+      setError(
+        err instanceof ApiError
+          ? t(`errors:${err.code}`)
+          : err instanceof Error && err.message === "invalid_breakdown"
+            ? t("assets:instruments.compositionInvalid")
+            : t("errors:generic"),
+      );
+    },
+  });
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setError(null);
+    setSuccess(false);
+    saveComposition.mutate();
+  }
+
+  return (
+    <Card>
+      <h2 className="mb-1 font-medium">{t("assets:instruments.composition.title")}</h2>
+      <p className="mb-3 text-xs text-text-muted">
+        {t("assets:instruments.composition.description")}
+      </p>
+      <form onSubmit={handleSubmit} className="space-y-3">
+        <div className="flex flex-wrap items-end gap-3">
+          <div>
+            <label className="mb-1 block text-xs text-text-muted">
+              {t("assets:positions.instrument")}
+            </label>
+            <select
+              value={instrumentId}
+              onChange={(e) => setInstrumentId(e.target.value)}
+              required
+              className="rounded-md border border-border bg-bg px-3 py-1.5 text-sm"
+            >
+              <option value="" disabled>
+                —
+              </option>
+              {marketInstruments.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-text-muted">
+              {t("assets:instruments.composition.dimension")}
+            </label>
+            <select
+              value={dimension}
+              onChange={(e) => setDimension(e.target.value as "region" | "sector")}
+              className="rounded-md border border-border bg-bg px-3 py-1.5 text-sm"
+            >
+              <option value="region">{t("assets:instruments.composition.region")}</option>
+              <option value="sector">{t("assets:instruments.composition.sector")}</option>
+            </select>
+          </div>
+        </div>
+        <div>
+          <label className="mb-1 block text-xs text-text-muted">
+            {t("assets:instruments.composition.breakdown")}
+          </label>
+          <textarea
+            value={breakdownText}
+            onChange={(e) => setBreakdownText(e.target.value)}
+            placeholder={"North America: 60\nEurope: 40"}
+            rows={4}
+            required
+            className="w-full max-w-md rounded-md border border-border bg-bg px-3 py-1.5 font-mono text-xs"
+          />
+        </div>
+        <button
+          type="submit"
+          disabled={saveComposition.isPending || !online}
+          className="rounded-md bg-accent px-4 py-1.5 text-sm font-medium text-accent-fg disabled:opacity-50"
+        >
+          {t("common:actions.save")}
+        </button>
+      </form>
+      {!online && <OfflineNotice />}
+      {success && (
+        <p className="mt-2 text-sm text-positive" role="status">
+          {t("assets:instruments.composition.saved")}
+        </p>
+      )}
+      {error && (
+        <p className="mt-2 text-sm text-negative" role="alert">
+          {error}
+        </p>
+      )}
+    </Card>
   );
 }

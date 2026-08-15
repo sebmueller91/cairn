@@ -363,3 +363,20 @@ class CpiIndexPoint(Base):
 
     date: Mapped[date] = mapped_column(Date, primary_key=True)
     index_value: Mapped[Quantity] = mapped_column(Quantity, nullable=False)
+
+
+class EtfComposition(Base):
+    """ETF look-through (spec 4.4): "a region/sector breakdown maintained
+    per ETF (entered by hand from the factsheet; it rarely changes)."
+    dimension is typically 'region' or 'sector'; category is a factsheet
+    label ('North America', 'Technology', ...). weight_pct rows for one
+    (instrument_id, dimension) pair are expected to sum to ~100 but this
+    isn't enforced at the schema level — a factsheet's own rounding
+    already doesn't always hit exactly 100."""
+
+    __tablename__ = "etf_composition"
+
+    instrument_id: Mapped[int] = mapped_column(ForeignKey("instrument.id"), primary_key=True)
+    dimension: Mapped[str] = mapped_column(String, primary_key=True)
+    category: Mapped[str] = mapped_column(String, primary_key=True)
+    weight_pct: Mapped[Quantity] = mapped_column(Quantity, nullable=False)

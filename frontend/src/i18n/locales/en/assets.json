@@ -18,6 +18,16 @@
     "new": "New instrument",
     "isin": "ISIN",
     "ticker": "Ticker",
+    "compositionInvalid": "Invalid format — one line per category, e.g. \"North America: 60\"",
+    "composition": {
+      "title": "ETF composition",
+      "description": "Region/sector breakdown entered by hand from the factsheet — feeds the look-through in the Allocation view.",
+      "dimension": "Dimension",
+      "region": "Region",
+      "sector": "Sector",
+      "breakdown": "Breakdown (one line per category: \"Category: Weight\")",
+      "saved": "Saved."
+    },
     "assetClasses": {
       "EQUITY": "Equity",
       "BOND": "Bond",

@@ -18,5 +18,13 @@
     "onTarget": "Already on target.",
     "buy": "buy {{amount}}",
     "sell": "sell {{amount}}"
+  },
+  "lookThrough": {
+    "title": "Look-through",
+    "description": "Instruments without a saved breakdown count under their own region/sector (set on the instrument itself).",
+    "dimensions": {
+      "region": "Region",
+      "sector": "Sector"
+    }
   }
 }

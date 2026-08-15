@@ -306,3 +306,19 @@ export interface TaxOverviewResponse {
   unrealized: UnrealizedTaxEstimate[];
   vorabpauschale_reminder: string | null;
 }
+
+export interface EtfCompositionRow {
+  dimension: string;
+  category: string;
+  weight_pct: string;
+}
+
+export interface LookThroughRow {
+  category: string;
+  value_eur: string;
+}
+
+export interface LookThroughResponse {
+  dimension: string;
+  rows: LookThroughRow[];
+}

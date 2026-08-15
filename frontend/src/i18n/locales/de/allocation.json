@@ -18,5 +18,13 @@
     "onTarget": "Bereits im Zielbereich.",
     "buy": "kaufen {{amount}}",
     "sell": "verkaufen {{amount}}"
+  },
+  "lookThrough": {
+    "title": "Look-Through",
+    "description": "Wertpapiere ohne hinterlegte Zusammensetzung zählen mit ihrer eigenen Region/Branche (in den Instrumenten gepflegt).",
+    "dimensions": {
+      "region": "Region",
+      "sector": "Branche"
+    }
   }
 }
