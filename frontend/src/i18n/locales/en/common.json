@@ -1,0 +1,37 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "positions": "Positions",
+    "transactions": "Transactions",
+    "accounts": "Accounts",
+    "instruments": "Instruments",
+    "settings": "Settings"
+  },
+  "actions": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "delete": "Delete",
+    "edit": "Edit",
+    "logout": "Log out",
+    "login": "Log in"
+  },
+  "status": {
+    "loading": "Loading…",
+    "error": "Something went wrong",
+    "empty": "No data yet",
+    "asOf": "As of {{date}}",
+    "offline": "Offline"
+  },
+  "fields": {
+    "name": "Name",
+    "type": "Type",
+    "currency": "Currency",
+    "date": "Date",
+    "quantity": "Quantity",
+    "price": "Price",
+    "amount": "Amount",
+    "fees": "Fees",
+    "note": "Note"
+  }
+}

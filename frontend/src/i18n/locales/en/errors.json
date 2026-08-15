@@ -1,0 +1,23 @@
+{
+  "unauthorized": "Sign-in required.",
+  "invalid_token": "Invalid token.",
+  "read_only_token": "This token is read-only.",
+  "account_not_found": "Account not found.",
+  "instrument_not_found": "Instrument not found.",
+  "transaction_not_found": "Transaction not found.",
+  "import_batch_not_found": "Import batch not found.",
+  "price_source_not_found": "Price source not found.",
+  "account_has_transactions": "This account still has transactions and can't be deleted.",
+  "instrument_has_transactions": "This instrument still has transactions and can't be deleted.",
+  "external_id_conflict": "A transaction with this ID already exists with different values.",
+  "missing_field": "Missing required field: {{field}}.",
+  "fx_rate_required": "An FX rate for {{currency}} on {{date}} is required.",
+  "unsupported_transaction_type": "This transaction type isn't supported yet.",
+  "future_date": "Date is in the future.",
+  "unknown_account": "Unknown account.",
+  "date_before_account_opened": "Date is before the account was opened.",
+  "unknown_instrument": "Unknown instrument.",
+  "sell_exceeds_holding": "Sell quantity exceeds the holding.",
+  "unknown_price_provider": "Unknown price provider.",
+  "generic": "Something went wrong."
+}

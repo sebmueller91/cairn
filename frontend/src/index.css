@@ -1,0 +1,77 @@
+@import "tailwindcss";
+
+/* Design tokens: Tailwind utilities (bg-bg, text-text, border-border, ...)
+   read these CSS custom properties, which the runtime theme toggle below
+   actually mutates. Keeping the indirection is what makes light/dark/
+   system work without a build-time Tailwind "dark:" variant per class. */
+@theme {
+  --color-bg: var(--bg);
+  --color-bg-subtle: var(--bg-subtle);
+  --color-bg-card: var(--bg-card);
+  --color-border: var(--border);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Light palette (default). A dark-first design would swap which block is
+   bare :root, but the token *names* stay identical either way. */
+:root {
+  --bg: #ffffff;
+  --bg-subtle: #f7f7f8;
+  --bg-card: #ffffff;
+  --border: #e5e5e7;
+  --text: #18181b;
+  --text-muted: #6b7280;
+  --accent: #2563eb;
+  --accent-fg: #ffffff;
+  --positive: #15803d;
+  --negative: #b91c1c;
+}
+
+/* System preference, only when the user hasn't explicitly overridden it. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0b;
+    --bg-subtle: #18181b;
+    --bg-card: #141416;
+    --border: #2a2a2e;
+    --text: #fafafa;
+    --text-muted: #a1a1aa;
+    --accent: #60a5fa;
+    --accent-fg: #0a0a0b;
+    --positive: #34d399;
+    --negative: #f87171;
+  }
+}
+
+/* Explicit user choice always wins, in both directions. */
+:root[data-theme="dark"] {
+  --bg: #0a0a0b;
+  --bg-subtle: #18181b;
+  --bg-card: #141416;
+  --border: #2a2a2e;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --accent: #60a5fa;
+  --accent-fg: #0a0a0b;
+  --positive: #34d399;
+  --negative: #f87171;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+}
+
+/* The one detail that makes a financial UI read as professional (spec 8.2):
+   numbers that stack in a table or change over time must not jitter. */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}

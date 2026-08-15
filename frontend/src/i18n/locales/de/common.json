@@ -1,0 +1,37 @@
+{
+  "nav": {
+    "dashboard": "Übersicht",
+    "positions": "Positionen",
+    "transactions": "Transaktionen",
+    "accounts": "Konten",
+    "instruments": "Instrumente",
+    "settings": "Einstellungen"
+  },
+  "actions": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "create": "Anlegen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "logout": "Abmelden",
+    "login": "Anmelden"
+  },
+  "status": {
+    "loading": "Lädt…",
+    "error": "Ein Fehler ist aufgetreten",
+    "empty": "Keine Daten vorhanden",
+    "asOf": "Stand: {{date}}",
+    "offline": "Offline"
+  },
+  "fields": {
+    "name": "Name",
+    "type": "Typ",
+    "currency": "Währung",
+    "date": "Datum",
+    "quantity": "Menge",
+    "price": "Preis",
+    "amount": "Betrag",
+    "fees": "Gebühren",
+    "note": "Notiz"
+  }
+}

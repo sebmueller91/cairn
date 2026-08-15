@@ -1,0 +1,16 @@
+{
+  "title": "Einstellungen",
+  "language": "Sprache",
+  "theme": "Design",
+  "themes": {
+    "light": "Hell",
+    "dark": "Dunkel",
+    "system": "System"
+  },
+  "languages": {
+    "de": "Deutsch",
+    "en": "Englisch"
+  },
+  "apiToken": "API-Token",
+  "loggedInAs": "Angemeldet"
+}

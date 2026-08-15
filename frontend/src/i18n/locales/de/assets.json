@@ -1,0 +1,69 @@
+{
+  "accounts": {
+    "title": "Konten",
+    "new": "Neues Konto",
+    "institution": "Institut",
+    "types": {
+      "BROKERAGE": "Depot",
+      "CRYPTO_WALLET": "Krypto-Wallet",
+      "PHYSICAL_STORAGE": "Tresor",
+      "REAL_ESTATE": "Immobilie",
+      "VEHICLE": "Fahrzeug",
+      "LOAN": "Kredit",
+      "CASH": "Girokonto"
+    }
+  },
+  "instruments": {
+    "title": "Instrumente",
+    "new": "Neues Instrument",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "assetClasses": {
+      "EQUITY": "Aktie",
+      "BOND": "Anleihe",
+      "COMMODITY": "Rohstoff",
+      "CRYPTO": "Krypto",
+      "REAL_ESTATE": "Immobilie",
+      "VEHICLE": "Fahrzeug",
+      "CASH": "Bargeld",
+      "LIABILITY": "Verbindlichkeit"
+    },
+    "valuationModes": {
+      "MARKET": "Marktpreis",
+      "ANCHORED": "Indexbasiert",
+      "MODELED": "Modell",
+      "AMORTIZING_LIABILITY": "Tilgungsplan",
+      "NOMINAL": "Nominalwert"
+    }
+  },
+  "positions": {
+    "title": "Positionen",
+    "instrument": "Instrument",
+    "account": "Konto",
+    "costBasis": "Kostenbasis",
+    "value": "Wert",
+    "unrealizedPl": "Unrealisierter G/V",
+    "groupBy": "Gruppieren nach",
+    "groupByAccount": "Konto",
+    "groupByInstrument": "Instrument"
+  },
+  "transactions": {
+    "title": "Transaktionen",
+    "new": "Neue Transaktion",
+    "type": "Typ",
+    "types": {
+      "BUY": "Kauf",
+      "SELL": "Verkauf",
+      "DIVIDEND": "Dividende",
+      "INTEREST": "Zinsen",
+      "FEE": "Gebühr",
+      "TAX": "Steuer",
+      "DEPOSIT": "Einzahlung",
+      "WITHDRAWAL": "Auszahlung",
+      "TRANSFER": "Übertrag",
+      "SPLIT": "Split",
+      "OPENING_BALANCE": "Eröffnungsbestand",
+      "BALANCE_STATEMENT": "Kontostand"
+    }
+  }
+}

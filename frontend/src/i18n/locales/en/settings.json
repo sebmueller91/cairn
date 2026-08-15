@@ -1,0 +1,16 @@
+{
+  "title": "Settings",
+  "language": "Language",
+  "theme": "Theme",
+  "themes": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "languages": {
+    "de": "German",
+    "en": "English"
+  },
+  "apiToken": "API token",
+  "loggedInAs": "Signed in"
+}

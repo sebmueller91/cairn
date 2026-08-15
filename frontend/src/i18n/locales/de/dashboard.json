@@ -1,0 +1,15 @@
+{
+  "title": "Übersicht",
+  "netWorth": "Nettovermögen",
+  "wealthCurve": "Vermögensentwicklung",
+  "periods": {
+    "1M": "1M",
+    "3M": "3M",
+    "YTD": "YTD",
+    "1Y": "1J",
+    "3Y": "3J",
+    "5Y": "5J",
+    "ALL": "Gesamt"
+  },
+  "noData": "Noch keine Daten — lege ein Konto und ein Instrument an und buche eine Transaktion."
+}

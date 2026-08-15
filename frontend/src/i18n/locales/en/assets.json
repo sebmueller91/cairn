@@ -1,0 +1,69 @@
+{
+  "accounts": {
+    "title": "Accounts",
+    "new": "New account",
+    "institution": "Institution",
+    "types": {
+      "BROKERAGE": "Brokerage",
+      "CRYPTO_WALLET": "Crypto wallet",
+      "PHYSICAL_STORAGE": "Physical storage",
+      "REAL_ESTATE": "Real estate",
+      "VEHICLE": "Vehicle",
+      "LOAN": "Loan",
+      "CASH": "Cash"
+    }
+  },
+  "instruments": {
+    "title": "Instruments",
+    "new": "New instrument",
+    "isin": "ISIN",
+    "ticker": "Ticker",
+    "assetClasses": {
+      "EQUITY": "Equity",
+      "BOND": "Bond",
+      "COMMODITY": "Commodity",
+      "CRYPTO": "Crypto",
+      "REAL_ESTATE": "Real estate",
+      "VEHICLE": "Vehicle",
+      "CASH": "Cash",
+      "LIABILITY": "Liability"
+    },
+    "valuationModes": {
+      "MARKET": "Market price",
+      "ANCHORED": "Index-tracked",
+      "MODELED": "Modeled",
+      "AMORTIZING_LIABILITY": "Amortization schedule",
+      "NOMINAL": "Nominal"
+    }
+  },
+  "positions": {
+    "title": "Positions",
+    "instrument": "Instrument",
+    "account": "Account",
+    "costBasis": "Cost basis",
+    "value": "Value",
+    "unrealizedPl": "Unrealized P/L",
+    "groupBy": "Group by",
+    "groupByAccount": "Account",
+    "groupByInstrument": "Instrument"
+  },
+  "transactions": {
+    "title": "Transactions",
+    "new": "New transaction",
+    "type": "Type",
+    "types": {
+      "BUY": "Buy",
+      "SELL": "Sell",
+      "DIVIDEND": "Dividend",
+      "INTEREST": "Interest",
+      "FEE": "Fee",
+      "TAX": "Tax",
+      "DEPOSIT": "Deposit",
+      "WITHDRAWAL": "Withdrawal",
+      "TRANSFER": "Transfer",
+      "SPLIT": "Split",
+      "OPENING_BALANCE": "Opening balance",
+      "BALANCE_STATEMENT": "Balance statement"
+    }
+  }
+}

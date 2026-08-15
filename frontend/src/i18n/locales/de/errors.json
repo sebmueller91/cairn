@@ -1,0 +1,23 @@
+{
+  "unauthorized": "Anmeldung erforderlich.",
+  "invalid_token": "Ungültiges Token.",
+  "read_only_token": "Dieses Token erlaubt nur Lesezugriff.",
+  "account_not_found": "Konto nicht gefunden.",
+  "instrument_not_found": "Instrument nicht gefunden.",
+  "transaction_not_found": "Transaktion nicht gefunden.",
+  "import_batch_not_found": "Import-Batch nicht gefunden.",
+  "price_source_not_found": "Kursquelle nicht gefunden.",
+  "account_has_transactions": "Konto hat noch Transaktionen und kann nicht gelöscht werden.",
+  "instrument_has_transactions": "Instrument hat noch Transaktionen und kann nicht gelöscht werden.",
+  "external_id_conflict": "Eine Transaktion mit dieser ID existiert bereits mit anderen Werten.",
+  "missing_field": "Pflichtfeld fehlt: {{field}}.",
+  "fx_rate_required": "Wechselkurs für {{currency}} am {{date}} erforderlich.",
+  "unsupported_transaction_type": "Dieser Transaktionstyp wird noch nicht unterstützt.",
+  "future_date": "Datum liegt in der Zukunft.",
+  "unknown_account": "Unbekanntes Konto.",
+  "date_before_account_opened": "Datum liegt vor Kontoeröffnung.",
+  "unknown_instrument": "Unbekanntes Instrument.",
+  "sell_exceeds_holding": "Verkaufsmenge übersteigt den Bestand.",
+  "unknown_price_provider": "Unbekannter Kursanbieter.",
+  "generic": "Ein Fehler ist aufgetreten."
+}
