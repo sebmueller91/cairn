@@ -439,6 +439,18 @@ class HouseIndexPointRead(BaseModel):
     index_value: DecimalStr
 
 
+class CpiIndexPointCreate(BaseModel):
+    date: date_
+    index_value: DecimalStr
+
+
+class CpiIndexPointRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    date: date_
+    index_value: DecimalStr
+
+
 class LoanCreate(BaseModel):
     account_id: int
     principal: DecimalStr

@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope
 from app.database import get_db
-from app.models import DailySnapshot
+from app.models import CpiIndexPoint, DailySnapshot
+from app.real_wealth_service import deflate_series
 from app.schemas import NetWorthPoint
 
 router = APIRouter(prefix="/api/timeseries", tags=["timeseries"])
@@ -30,6 +31,11 @@ def get_networth_timeseries(
     # is 60% of total wealth, an equity share of 18% of total wealth
     # isn't actionable"), not an arbitrary choice.
     scope: str = "investable",
+    # spec 4.6: the same curve, additionally adjusted for inflation —
+    # "what would this be worth in today's money." A query param on the
+    # existing endpoint rather than a new one, so period/granularity/scope
+    # all keep working exactly the same way.
+    real: bool = False,
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[NetWorthPoint]:
@@ -53,4 +59,12 @@ def get_networth_timeseries(
             last_per_period[_period_key(row.date, granularity)] = row
         selected = sorted(last_per_period.values(), key=lambda r: r.date)
 
-    return [NetWorthPoint(date=r.date, value_eur=r.value_eur) for r in selected]
+    values = [(r.date, r.value_eur) for r in selected]
+    if real:
+        cpi_points = [
+            (p.date, p.index_value)
+            for p in db.query(CpiIndexPoint).order_by(CpiIndexPoint.date).all()
+        ]
+        values = deflate_series(values, cpi_points)
+
+    return [NetWorthPoint(date=d, value_eur=v) for d, v in values]

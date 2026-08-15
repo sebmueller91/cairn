@@ -349,3 +349,17 @@ class HousePriceIndexPoint(Base):
     series: Mapped[str] = mapped_column(String, primary_key=True)
     date: Mapped[date] = mapped_column(Date, primary_key=True)
     index_value: Mapped[Quantity] = mapped_column(Quantity, nullable=False)
+
+
+class CpiIndexPoint(Base):
+    """German CPI (spec 4.6, "annual maintenance is enough") for the
+    wealth curve's real-vs-nominal view. Same manual-entry story as
+    HousePriceIndexPoint: Destatis GENESIS needs a one-off registration
+    this app can't complete on its own, so this table is filled by hand
+    until that exists — a real fetch job would read from the same table
+    without touching anything downstream."""
+
+    __tablename__ = "cpi_index_point"
+
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    index_value: Mapped[Quantity] = mapped_column(Quantity, nullable=False)

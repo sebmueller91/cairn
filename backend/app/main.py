@@ -9,6 +9,7 @@ from app.routers import (
     allocation,
     attribution,
     auth,
+    cpi,
     health,
     house_index,
     import_batches,
@@ -58,6 +59,7 @@ app.include_router(timeseries.router)
 app.include_router(reconcile.router)
 app.include_router(valuations.router)
 app.include_router(house_index.router)
+app.include_router(cpi.router)
 app.include_router(loans.router)
 app.include_router(performance.router)
 app.include_router(attribution.router)
