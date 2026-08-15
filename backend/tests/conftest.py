@@ -11,7 +11,7 @@ os.environ["API_TOKEN_READONLY"] = "test-readonly-token"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app.database import Base, engine  # noqa: E402
+from app.database import Base, SessionLocal, engine  # noqa: E402
 from app.main import app  # noqa: E402
 
 Base.metadata.create_all(engine)
@@ -29,6 +29,17 @@ def _clean_tables():
 def _cleanup_db_file():
     yield
     os.remove(_path)
+
+
+@pytest.fixture
+def db_session():
+    """A raw session for tests that exercise a service function directly,
+    without going through HTTP."""
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        session.close()
 
 
 @pytest.fixture

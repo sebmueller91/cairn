@@ -166,6 +166,51 @@ class PricePoint(Base):
     fetched_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class PriceSource(Base):
+    """Ordered fallback chain per instrument (ADR 0010). Swapping a broken
+    provider is a row change here, never a deploy."""
+
+    __tablename__ = "price_source"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    instrument_id: Mapped[int] = mapped_column(
+        ForeignKey("instrument.id"), nullable=False
+    )
+    provider: Mapped[str] = mapped_column(String, nullable=False)
+    provider_symbol: Mapped[str] = mapped_column(String, nullable=False)
+    priority: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    last_fetch_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class DailySnapshot(Base):
+    """Cache only — always fully reconstructible from txn/price_point/
+    fx_rate via a rebuild (ADR 0003). Never a second source of truth."""
+
+    __tablename__ = "daily_snapshot"
+
+    date: Mapped[date] = mapped_column(Date, primary_key=True)
+    scope_type: Mapped[str] = mapped_column(String, primary_key=True)
+    scope_id: Mapped[str] = mapped_column(String, primary_key=True)
+    quantity: Mapped[Quantity | None] = mapped_column(Quantity, nullable=True)
+    value_eur: Mapped[Money] = mapped_column(Money, nullable=False)
+    cost_basis_eur: Mapped[Money | None] = mapped_column(Money, nullable=True)
+
+
+class SnapshotWatermark(Base):
+    """Per-account dirty-from date driving incremental rebuilds (ADR 0003).
+    A bug here only ever degrades to "slower," never "wrong" — the full
+    rebuild endpoint ignores this table entirely."""
+
+    __tablename__ = "snapshot_watermark"
+
+    account_id: Mapped[int] = mapped_column(
+        ForeignKey("account.id"), primary_key=True
+    )
+    dirty_from_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+
 class FxRate(Base):
     """1 unit of `currency` = `eur_rate` EUR. Simplified from the spec's
     base/quote pair sketch since the app only ever converts to EUR

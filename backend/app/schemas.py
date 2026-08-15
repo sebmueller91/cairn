@@ -245,6 +245,52 @@ class SupersedeResponse(BaseModel):
     reports: list[SupersedeDeltaReport]
 
 
+class PriceSourceCreate(BaseModel):
+    provider: str
+    provider_symbol: str = Field(min_length=1)
+    priority: int = 0
+    enabled: bool = True
+
+
+class PriceSourceUpdate(BaseModel):
+    provider_symbol: str | None = None
+    priority: int | None = None
+    enabled: bool | None = None
+
+
+class PriceSourceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    instrument_id: int
+    provider: str
+    provider_symbol: str
+    priority: int
+    enabled: bool
+    last_fetch_at: datetime | None
+    last_error: str | None
+
+
+class PriceRefreshRequest(BaseModel):
+    instrument_id: int | None = None  # None = every instrument with a price source
+
+
+class PriceBackfillRequest(BaseModel):
+    instrument_id: int
+    start: date_ | None = None  # None = as far back as the provider has
+    end: date_ | None = None  # None = today
+
+
+class FetchResultRead(BaseModel):
+    instrument_id: int
+    status: str
+    detail: str | None = None
+
+
+class PriceFetchResponse(BaseModel):
+    results: list[FetchResultRead]
+
+
 class ErrorDetail(BaseModel):
     code: str
     params: dict = {}
