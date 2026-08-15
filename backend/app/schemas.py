@@ -325,6 +325,24 @@ class PerformanceResponse(BaseModel):
     benchmark_curve: list[PerformancePoint] | None = None
 
 
+class AttributionPeriod(BaseModel):
+    start_date: date_
+    end_date: date_
+    start_value: DecimalStr
+    end_value: DecimalStr
+    deposits_withdrawals: DecimalStr
+    income: DecimalStr
+    costs: DecimalStr
+    valuation_adjustments: DecimalStr
+    fx_effect: DecimalStr
+    market_gains_losses: DecimalStr
+
+
+class AttributionResponse(BaseModel):
+    granularity: str
+    periods: list[AttributionPeriod]
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 
