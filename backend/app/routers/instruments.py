@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.models import Instrument, Txn
+from app.models import Instrument, PriceSource, Txn
 from app.schemas import InstrumentCreate, InstrumentRead, InstrumentUpdate
 
 router = APIRouter(prefix="/api/instruments", tags=["instruments"])
@@ -124,5 +124,9 @@ def delete_instrument(
                 "params": {"instrument_id": instrument_id},
             },
         )
+    # price_source rows are just provider config, not ledger history — no
+    # reason to block on them like transactions; cascade-delete instead of
+    # leaving a dangling FK (which is what crashed here originally).
+    db.query(PriceSource).filter(PriceSource.instrument_id == instrument_id).delete()
     db.delete(instrument)
     db.commit()
