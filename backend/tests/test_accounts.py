@@ -70,6 +70,18 @@ def test_session_cookie_rejects_invalid_token(client):
     assert login.status_code == 401
 
 
+def test_auth_me_reflects_cookie_state(client):
+    assert client.get("/api/auth/me").status_code == 401
+
+    client.post("/api/auth/session", json={"token": "test-token"})
+    me = client.get("/api/auth/me")
+    assert me.status_code == 200
+    assert me.json()["scope"] == "full"
+
+    client.post("/api/auth/logout")
+    assert client.get("/api/auth/me").status_code == 401
+
+
 def test_delete_rejects_account_with_transactions(client, auth_headers):
     account = client.post(
         "/api/accounts", json=SAMPLE_ACCOUNT, headers=auth_headers

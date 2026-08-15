@@ -222,6 +222,8 @@ class PositionRead(BaseModel):
     quantity: DecimalStr
     cost_basis_eur: DecimalStr
     realized_pl_eur: DecimalStr
+    value_eur: DecimalStr | None = None
+    unrealized_pl_eur: DecimalStr | None = None
 
 
 class SupersedeRequest(BaseModel):
