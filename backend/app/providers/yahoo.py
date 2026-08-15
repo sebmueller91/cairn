@@ -1,9 +1,8 @@
 from datetime import UTC, date, datetime, timedelta
-from decimal import Decimal
 
 import httpx
 
-from app.providers.base import FetchedPrice, ProviderError
+from app.providers.base import FetchedPrice, ProviderError, price_from_json_float
 
 
 class YahooFinanceProvider:
@@ -44,7 +43,8 @@ class YahooFinanceProvider:
             if close is None:
                 continue
             return FetchedPrice(
-                date=datetime.fromtimestamp(ts, tz=UTC).date(), close=Decimal(str(close))
+                date=datetime.fromtimestamp(ts, tz=UTC).date(),
+                close=price_from_json_float(close),
             )
         return None
 
@@ -67,5 +67,5 @@ class YahooFinanceProvider:
                 continue
             day = datetime.fromtimestamp(ts, tz=UTC).date()
             if start <= day <= end:
-                results.append(FetchedPrice(date=day, close=Decimal(str(close))))
+                results.append(FetchedPrice(date=day, close=price_from_json_float(close)))
         return results

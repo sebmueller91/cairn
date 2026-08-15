@@ -1,9 +1,8 @@
 from datetime import date, datetime
-from decimal import Decimal
 
 import httpx
 
-from app.providers.base import FetchedPrice, ProviderError
+from app.providers.base import FetchedPrice, ProviderError, price_from_json_float
 
 
 class FrankfurterProvider:
@@ -37,7 +36,7 @@ class FrankfurterProvider:
             return None
         return FetchedPrice(
             date=datetime.strptime(data["date"], "%Y-%m-%d").date(),
-            close=Decimal(str(rate)),
+            close=price_from_json_float(rate),
         )
 
     def fetch_history(self, symbol: str, start: date, end: date) -> list[FetchedPrice]:
@@ -56,7 +55,7 @@ class FrankfurterProvider:
             results.append(
                 FetchedPrice(
                     date=datetime.strptime(day_str, "%Y-%m-%d").date(),
-                    close=Decimal(str(rates["EUR"])),
+                    close=price_from_json_float(rates["EUR"]),
                 )
             )
         return sorted(results, key=lambda p: p.date)

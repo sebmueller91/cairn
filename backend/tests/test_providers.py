@@ -123,6 +123,36 @@ def test_yahoo_fetch_latest_takes_last_non_null_close():
     assert result.close == Decimal("91.2")
 
 
+def test_yahoo_absorbs_float_noise_from_json(monkeypatch):
+    """Real bug found live: Yahoo's JSON returned 129.39500427246094 for a
+    price that should read 129.395 — Quantity's 8dp check correctly
+    rejected it before the fix. Rounding to 6dp in the adapter absorbs
+    the noise while staying far more precise than any real quote needs."""
+
+    def handler(request):
+        return httpx.Response(
+            200,
+            json={
+                "chart": {
+                    "result": [
+                        {
+                            "timestamp": [1704067200],
+                            "indicators": {"quote": [{"close": [129.39500427246094]}]},
+                        }
+                    ]
+                }
+            },
+        )
+
+    provider = YahooFinanceProvider(client=_client_with(handler))
+    result = provider.fetch_latest("EUNL.DE")
+    # Rounded to 6dp, not fully clean back to 129.395 — but well under
+    # Quantity's 8dp limit and immaterial for a price (ADR-level choice:
+    # consistent precision across providers beats chasing an unknowable
+    # "true" precision from noisy source data).
+    assert result.close == Decimal("129.395004")
+
+
 def test_yahoo_fetch_latest_returns_none_on_empty_result():
     def handler(request):
         return httpx.Response(200, json={"chart": {"result": None}})

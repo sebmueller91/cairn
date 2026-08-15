@@ -3,7 +3,7 @@ from decimal import Decimal
 
 import httpx
 
-from app.providers.base import FetchedPrice, ProviderError
+from app.providers.base import FetchedPrice, ProviderError, price_from_json_float
 
 
 class CoinGeckoProvider:
@@ -32,7 +32,9 @@ class CoinGeckoProvider:
         entry = data.get(symbol)
         if not entry or "eur" not in entry:
             return None
-        return FetchedPrice(date=datetime.now(UTC).date(), close=Decimal(str(entry["eur"])))
+        return FetchedPrice(
+            date=datetime.now(UTC).date(), close=price_from_json_float(entry["eur"])
+        )
 
     def fetch_history(self, symbol: str, start: date, end: date) -> list[FetchedPrice]:
         url = f"{self.BASE_URL}/coins/{symbol}/market_chart"
@@ -52,5 +54,5 @@ class CoinGeckoProvider:
         for timestamp_ms, price in data.get("prices", []):
             day = datetime.fromtimestamp(timestamp_ms / 1000, tz=UTC).date()
             if start <= day <= end:
-                by_day[day] = Decimal(str(price))
+                by_day[day] = price_from_json_float(price)
         return [FetchedPrice(date=d, close=c) for d, c in sorted(by_day.items())]

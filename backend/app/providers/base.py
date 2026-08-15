@@ -35,3 +35,14 @@ class PriceProvider(Protocol):
 class ProviderError(Exception):
     """Raised on a request/parse failure — distinct from fetch_latest
     returning None, which just means 'no data,' not 'something broke.'"""
+
+
+def price_from_json_float(value: float) -> Decimal:
+    """JSON-sourced prices (Yahoo, CoinGecko) come back as raw floats and
+    sometimes carry binary floating-point noise (129.395 arriving as
+    129.39500427246094) — found live when Quantity's 8-decimal-place
+    check correctly rejected one. `Decimal(str(value))` alone isn't
+    enough since Python's float repr faithfully reproduces that noise;
+    rounding to 6dp first absorbs it while staying far more precise than
+    any real price quote needs."""
+    return Decimal(str(round(value, 6)))
