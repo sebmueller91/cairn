@@ -1,11 +1,35 @@
+import { useCallback, useSyncExternalStore } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "../lib/auth";
-import { api, type Health } from "../lib/api";
+import { useOnlineStatus } from "../lib/online";
 import { formatDateTime } from "../lib/format";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+
+const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
+
+// Rolls up the oldest dataUpdatedAt across every currently-mounted query,
+// not just one endpoint — the status bar should reflect the actual data
+// on screen, which may be a mix of ages once IndexedDB-cached pages are
+// visited offline.
+function useOldestDataUpdatedAt(): number | null {
+  const queryClient = useQueryClient();
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => queryClient.getQueryCache().subscribe(onStoreChange),
+    [queryClient],
+  );
+  const getSnapshot = useCallback(() => {
+    const mounted = queryClient
+      .getQueryCache()
+      .getAll()
+      .filter((q) => q.getObserversCount() > 0 && q.state.dataUpdatedAt > 0);
+    if (!mounted.length) return null;
+    return Math.min(...mounted.map((q) => q.state.dataUpdatedAt));
+  }, [queryClient]);
+  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
 
 const NAV_ITEMS = [
   { to: "/", key: "dashboard" },
@@ -28,17 +52,23 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
 
 function FreshnessIndicator() {
   const { t, i18n } = useTranslation("common");
-  const { data } = useQuery({
-    queryKey: ["health"],
-    queryFn: () => api.get<Health>("/api/health"),
-    refetchInterval: 60_000,
-  });
+  const online = useOnlineStatus();
+  const oldest = useOldestDataUpdatedAt();
 
-  if (!data) return null;
-  const asOf = data.last_snapshot ?? data.last_price_fetch;
+  if (oldest == null) return null;
+  const isStale = Date.now() - oldest > STALE_AFTER_MS;
+  const asOf = t("status.asOf", { date: formatDateTime(new Date(oldest), i18n.language) });
+
   return (
-    <span className="tnum text-xs text-text-muted">
-      {asOf ? t("status.asOf", { date: formatDateTime(asOf, i18n.language) }) : t("status.empty")}
+    <span
+      className={[
+        "tnum rounded px-1.5 py-0.5 text-xs",
+        isStale ? "bg-warning/10 text-warning" : "text-text-muted",
+      ].join(" ")}
+      title={isStale ? t("status.stale") : undefined}
+    >
+      {asOf}
+      {!online && ` · ${t("status.offline")}`}
     </span>
   );
 }

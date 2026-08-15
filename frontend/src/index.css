@@ -15,6 +15,7 @@
   --color-accent-fg: var(--accent-fg);
   --color-positive: var(--positive);
   --color-negative: var(--negative);
+  --color-warning: var(--warning);
   --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
     "Helvetica Neue", Arial, sans-serif;
 }
@@ -32,6 +33,7 @@
   --accent-fg: #ffffff;
   --positive: #15803d;
   --negative: #b91c1c;
+  --warning: #b45309;
 }
 
 /* System preference, only when the user hasn't explicitly overridden it. */
@@ -47,6 +49,7 @@
     --accent-fg: #0a0a0b;
     --positive: #34d399;
     --negative: #f87171;
+    --warning: #fbbf24;
   }
 }
 
@@ -62,6 +65,7 @@
   --accent-fg: #0a0a0b;
   --positive: #34d399;
   --negative: #f87171;
+  --warning: #fbbf24;
 }
 
 body {
