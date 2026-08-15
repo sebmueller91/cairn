@@ -12,8 +12,12 @@ from collections import deque
 from dataclasses import dataclass, field
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from app.models import TransactionType
+
+if TYPE_CHECKING:
+    from app.models import Txn
 
 
 class InsufficientHoldingError(ValueError):
@@ -65,6 +69,24 @@ class Position:
     cost_basis_eur: Decimal = Decimal(0)
     realized_pl_eur: Decimal = Decimal(0)
     lots: list[Lot] = field(default_factory=list)
+
+
+def txn_to_event(txn: "Txn") -> TxnEvent:
+    """Shared conversion used everywhere a stored transaction needs to
+    become ledger input — the fetch/write/supersede/snapshot code paths
+    all replay history through this same module and should agree on
+    exactly what a Txn row means as an event."""
+    return TxnEvent(
+        order=txn.id,
+        type=txn.type,
+        date=txn.date,
+        account_id=txn.account_id,
+        instrument_id=txn.instrument_id,
+        counter_account_id=txn.counter_account_id,
+        quantity=txn.quantity,
+        amount_eur=txn.amount_eur,
+        split_ratio=txn.split_ratio,
+    )
 
 
 _QUANTITY_BEARING_TYPES = {

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app import kv_store
 from app.database import get_db
 
 router = APIRouter(tags=["health"])
@@ -18,10 +19,9 @@ def health(db: Session = Depends(get_db)) -> dict:
     return {
         "status": "ok" if database_reachable else "degraded",
         "database": "reachable" if database_reachable else "unreachable",
-        # Populated once the relevant subsystems exist:
-        # last successful price fetch (phase 2), last snapshot (phase 2),
-        # last backup (host cron, ADR 0009/0012).
-        "last_price_fetch": None,
-        "last_snapshot": None,
+        "last_price_fetch": kv_store.get(db, "last_price_fetch"),
+        "last_snapshot": kv_store.get(db, "last_snapshot"),
+        # Populated by host cron writing to this same table once the
+        # backup script exists (ADR 0009/0012) — not an app-level job.
         "last_backup": None,
     }

@@ -8,6 +8,7 @@ os.close(_fd)
 os.environ["DATABASE_PATH"] = _path
 os.environ["API_TOKEN"] = "test-token"
 os.environ["API_TOKEN_READONLY"] = "test-readonly-token"
+os.environ["ENABLE_SCHEDULER"] = "false"
 
 from fastapi.testclient import TestClient  # noqa: E402
 

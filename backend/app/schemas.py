@@ -291,6 +291,15 @@ class PriceFetchResponse(BaseModel):
     results: list[FetchResultRead]
 
 
+class NetWorthPoint(BaseModel):
+    date: date_
+    value_eur: DecimalStr
+
+
+class RebuildSnapshotsResponse(BaseModel):
+    days_written: int
+
+
 class ErrorDetail(BaseModel):
     code: str
     params: dict = {}

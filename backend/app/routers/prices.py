@@ -1,8 +1,9 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app import kv_store
 from app.auth import require_write_scope
 from app.database import get_db
 from app.models import Instrument
@@ -38,6 +39,10 @@ def refresh_prices(
         instruments = db.query(Instrument).all()
 
     results = [fetch_latest_for_instrument(db, i) for i in instruments]
+    if any(r.status == "ok" for r in results):
+        kv_store.set(
+            db, "last_price_fetch", datetime.now(UTC).replace(tzinfo=None).isoformat()
+        )
     db.commit()
     return PriceFetchResponse(
         results=[

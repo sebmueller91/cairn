@@ -1,7 +1,11 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
+from app.config import get_settings
 from app.routers import (
     accounts,
+    admin,
     auth,
     health,
     import_batches,
@@ -9,13 +13,28 @@ from app.routers import (
     positions,
     price_sources,
     prices,
+    timeseries,
     transactions,
 )
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    scheduler = None
+    if get_settings().enable_scheduler:
+        from app.scheduler import create_scheduler
+
+        scheduler = create_scheduler()
+        scheduler.start()
+    yield
+    if scheduler is not None:
+        scheduler.shutdown(wait=False)
+
 
 app = FastAPI(
     title="Cairn API",
     description="Self-hosted net worth and portfolio tracker.",
     version="0.1.0",
+    lifespan=lifespan,
 )
 
 app.include_router(health.router)
@@ -27,3 +46,5 @@ app.include_router(prices.router)
 app.include_router(transactions.router)
 app.include_router(positions.router)
 app.include_router(import_batches.router)
+app.include_router(admin.router)
+app.include_router(timeseries.router)

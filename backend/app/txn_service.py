@@ -13,7 +13,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.ledger import InsufficientHoldingError, TxnEvent, compute_positions
+from app.ledger import InsufficientHoldingError, TxnEvent, compute_positions, txn_to_event
 from app.models import Account, FxRate, Instrument, Txn, TransactionType
 from app.schemas import UNSUPPORTED_TXN_TYPES, TransactionCreate
 
@@ -113,20 +113,6 @@ def validate_references(db: Session, payload: TransactionCreate) -> None:
             )
 
 
-def _to_event(txn: Txn) -> TxnEvent:
-    return TxnEvent(
-        order=txn.id,
-        type=txn.type,
-        date=txn.date,
-        account_id=txn.account_id,
-        instrument_id=txn.instrument_id,
-        counter_account_id=txn.counter_account_id,
-        quantity=txn.quantity,
-        amount_eur=txn.amount_eur,
-        split_ratio=txn.split_ratio,
-    )
-
-
 def check_holdings(db: Session, payload: TransactionCreate) -> None:
     """Replays existing history plus this candidate transaction to catch
     an oversell before it's written — cheap at this data volume, and the
@@ -143,7 +129,7 @@ def check_holdings(db: Session, payload: TransactionCreate) -> None:
         )
         .all()
     )
-    events = [_to_event(t) for t in existing]
+    events = [txn_to_event(t) for t in existing]
     max_id = max((t.id for t in existing), default=0)
     events.append(
         TxnEvent(

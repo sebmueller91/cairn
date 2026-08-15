@@ -47,3 +47,6 @@ def test_refresh_uses_provider_and_writes_price_point(client, auth_headers, monk
     )
     assert resp.status_code == 200
     assert resp.json()["results"][0]["status"] == "ok"
+
+    health = client.get("/api/health").json()
+    assert health["last_price_fetch"] is not None

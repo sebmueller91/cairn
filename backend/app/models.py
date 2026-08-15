@@ -100,6 +100,13 @@ class Account(Base):
     )
 
 
+class Setting(Base):
+    __tablename__ = "setting"
+
+    key: Mapped[str] = mapped_column(String, primary_key=True)
+    value_json: Mapped[str] = mapped_column(Text, nullable=False)
+
+
 class AuditLog(Base):
     __tablename__ = "audit_log"
 

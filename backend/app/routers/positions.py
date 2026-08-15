@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import get_scope
 from app.database import get_db
-from app.ledger import TxnEvent, compute_positions
+from app.ledger import TxnEvent, compute_positions, txn_to_event
 from app.models import Txn
 from app.schemas import PositionRead
 
@@ -19,20 +19,7 @@ def _load_events(db: Session, account_id: int | None) -> list[TxnEvent]:
         query = query.filter(
             (Txn.account_id == account_id) | (Txn.counter_account_id == account_id)
         )
-    return [
-        TxnEvent(
-            order=t.id,
-            type=t.type,
-            date=t.date,
-            account_id=t.account_id,
-            instrument_id=t.instrument_id,
-            counter_account_id=t.counter_account_id,
-            quantity=t.quantity,
-            amount_eur=t.amount_eur,
-            split_ratio=t.split_ratio,
-        )
-        for t in query.all()
-    ]
+    return [txn_to_event(t) for t in query.all()]
 
 
 @router.get("", response_model=list[PositionRead])

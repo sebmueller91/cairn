@@ -14,7 +14,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.ledger import TxnEvent, compute_positions
+from app.ledger import compute_positions, txn_to_event
 from app.models import ImportBatch, Txn, TransactionType, TxnSource
 
 DEFAULT_QUANTITY_TOLERANCE = Decimal("0.00000001")
@@ -32,20 +32,6 @@ class DeltaReport:
     recomputed_cost_basis_eur: Decimal
     matched: bool
     residual_txn_id: int | None = None
-
-
-def _to_event(txn: Txn) -> TxnEvent:
-    return TxnEvent(
-        order=txn.id,
-        type=txn.type,
-        date=txn.date,
-        account_id=txn.account_id,
-        instrument_id=txn.instrument_id,
-        counter_account_id=txn.counter_account_id,
-        quantity=txn.quantity,
-        amount_eur=txn.amount_eur,
-        split_ratio=txn.split_ratio,
-    )
 
 
 def run_supersede(
@@ -84,7 +70,7 @@ def run_supersede(
                 )
                 .all()
             )
-            positions = compute_positions([_to_event(t) for t in history])
+            positions = compute_positions([txn_to_event(t) for t in history])
             pos = positions.get((account_id, instrument_id))
             recomputed_qty = pos.quantity if pos else Decimal(0)
             recomputed_cost = pos.cost_basis_eur if pos else Decimal(0)

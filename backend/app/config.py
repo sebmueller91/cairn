@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     database_path: str = "/data/cairn.db"
     api_token: str = "dev-token"
     api_token_readonly: str | None = None
+    enable_scheduler: bool = True
 
 
 @lru_cache
