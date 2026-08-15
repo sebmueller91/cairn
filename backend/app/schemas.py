@@ -369,6 +369,19 @@ class AllocationResponse(BaseModel):
     rebalance_purchases_only: list[RebalanceProposalRead] | None = None
 
 
+class DataQualityIssueRead(BaseModel):
+    kind: str
+    instrument_id: int
+    instrument_name: str
+    account_id: int
+    detail: str
+    age_days: int | None = None
+
+
+class DataQualityResponse(BaseModel):
+    issues: list[DataQualityIssueRead]
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 
