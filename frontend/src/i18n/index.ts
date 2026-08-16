@@ -2,24 +2,20 @@ import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 
 import deCommon from "./locales/de/common.json";
-import deDashboard from "./locales/de/dashboard.json";
 import deAssets from "./locales/de/assets.json";
 import deSettings from "./locales/de/settings.json";
 import deErrors from "./locales/de/errors.json";
 import dePerformance from "./locales/de/performance.json";
-import deAllocation from "./locales/de/allocation.json";
 import deTax from "./locales/de/tax.json";
 import deOverview from "./locales/de/overview.json";
 import deWealth from "./locales/de/wealth.json";
 import dePortfolio from "./locales/de/portfolio.json";
 import deData from "./locales/de/data.json";
 import enCommon from "./locales/en/common.json";
-import enDashboard from "./locales/en/dashboard.json";
 import enAssets from "./locales/en/assets.json";
 import enSettings from "./locales/en/settings.json";
 import enErrors from "./locales/en/errors.json";
 import enPerformance from "./locales/en/performance.json";
-import enAllocation from "./locales/en/allocation.json";
 import enTax from "./locales/en/tax.json";
 import enOverview from "./locales/en/overview.json";
 import enWealth from "./locales/en/wealth.json";
@@ -41,12 +37,10 @@ i18n
     resources: {
       de: {
         common: deCommon,
-        dashboard: deDashboard,
         assets: deAssets,
         settings: deSettings,
         errors: deErrors,
         performance: dePerformance,
-        allocation: deAllocation,
         tax: deTax,
         overview: deOverview,
         wealth: deWealth,
@@ -55,12 +49,10 @@ i18n
       },
       en: {
         common: enCommon,
-        dashboard: enDashboard,
         assets: enAssets,
         settings: enSettings,
         errors: enErrors,
         performance: enPerformance,
-        allocation: enAllocation,
         tax: enTax,
         overview: enOverview,
         wealth: enWealth,
@@ -73,12 +65,10 @@ i18n
     defaultNS: "common",
     ns: [
       "common",
-      "dashboard",
       "assets",
       "settings",
       "errors",
       "performance",
-      "allocation",
       "tax",
       "overview",
       "wealth",

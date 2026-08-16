@@ -176,18 +176,6 @@ export interface NetWorthPoint {
   value_eur: string;
 }
 
-export interface ValuationAnchor {
-  id: number;
-  instrument_id: number;
-  date: string;
-  value_eur: string;
-  method: string;
-  confidence: string | null;
-  source: string | null;
-  note: string | null;
-  created_at: string;
-}
-
 export interface Loan {
   id: number;
   account_id: number;
@@ -305,12 +293,6 @@ export interface TaxOverviewResponse {
   saver_allowance: SaverAllowanceUsage;
   unrealized: UnrealizedTaxEstimate[];
   vorabpauschale_reminder: string | null;
-}
-
-export interface EtfCompositionRow {
-  dimension: string;
-  category: string;
-  weight_pct: string;
 }
 
 export interface LookThroughRow {

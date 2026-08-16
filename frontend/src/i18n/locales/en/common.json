@@ -1,26 +1,13 @@
 {
   "nav": {
-    "dashboard": "Dashboard",
     "overview": "Overview",
     "wealth": "Wealth",
     "portfolio": "Portfolio",
     "performance": "Performance",
     "data": "Data",
-    "allocation": "Allocation",
-    "tax": "Tax",
-    "positions": "Positions",
-    "transactions": "Transactions",
-    "accounts": "Accounts",
-    "instruments": "Instruments",
-    "assets": "Assets",
     "settings": "Settings"
   },
   "actions": {
-    "save": "Save",
-    "cancel": "Cancel",
-    "create": "Create",
-    "delete": "Delete",
-    "edit": "Edit",
     "logout": "Log out",
     "login": "Log in",
     "updateCash": "Update cash balance"
@@ -39,7 +26,6 @@
     "reset": "Show all"
   },
   "status": {
-    "loading": "Loading…",
     "error": "Something went wrong",
     "empty": "No data yet",
     "asOf": "As of {{date}}",
@@ -49,13 +35,7 @@
   },
   "fields": {
     "name": "Name",
-    "type": "Type",
-    "currency": "Currency",
     "date": "Date",
-    "quantity": "Quantity",
-    "price": "Price",
-    "amount": "Amount",
-    "fees": "Fees",
-    "note": "Note"
+    "quantity": "Quantity"
   }
 }

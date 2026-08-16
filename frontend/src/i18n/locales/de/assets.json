@@ -1,8 +1,5 @@
 {
   "accounts": {
-    "title": "Konten",
-    "new": "Neues Konto",
-    "institution": "Institut",
     "types": {
       "BROKERAGE": "Depot",
       "CRYPTO_WALLET": "Krypto-Wallet",
@@ -13,80 +10,7 @@
       "CASH": "Girokonto"
     }
   },
-  "instruments": {
-    "title": "Instrumente",
-    "new": "Neues Instrument",
-    "isin": "ISIN",
-    "ticker": "Ticker",
-    "compositionInvalid": "Ungültiges Format — eine Zeile pro Kategorie, z. B. \"Nordamerika: 60\"",
-    "composition": {
-      "title": "ETF-Zusammensetzung",
-      "description": "Region-/Branchenaufteilung von Hand aus dem Factsheet — für den Look-Through in der Allokationsansicht.",
-      "dimension": "Dimension",
-      "region": "Region",
-      "sector": "Branche",
-      "breakdown": "Aufteilung (eine Zeile pro Kategorie: \"Kategorie: Gewicht\")",
-      "saved": "Gespeichert."
-    },
-    "assetClasses": {
-      "EQUITY": "Aktie",
-      "BOND": "Anleihe",
-      "COMMODITY": "Rohstoff",
-      "CRYPTO": "Krypto",
-      "REAL_ESTATE": "Immobilie",
-      "VEHICLE": "Fahrzeug",
-      "CASH": "Bargeld",
-      "LIABILITY": "Verbindlichkeit"
-    },
-    "valuationModes": {
-      "MARKET": "Marktpreis",
-      "ANCHORED": "Indexbasiert",
-      "MODELED": "Modell",
-      "AMORTIZING_LIABILITY": "Tilgungsplan",
-      "NOMINAL": "Nominalwert"
-    },
-    "valuationConfig": "Bewertungskonfiguration (JSON)",
-    "optional": "optional",
-    "invalidConfigJson": "Ungültiges JSON in der Bewertungskonfiguration."
-  },
-  "positions": {
-    "title": "Positionen",
-    "instrument": "Instrument",
-    "account": "Konto",
-    "costBasis": "Kostenbasis",
-    "value": "Wert",
-    "unrealizedPl": "Unrealisierter G/V",
-    "groupBy": "Gruppieren nach",
-    "groupByAccount": "Konto",
-    "groupByInstrument": "Instrument"
-  },
-  "physical": {
-    "pageTitle": "Sachwerte",
-    "title": "Immobilie & Fahrzeug",
-    "newAnchor": "Neuer Bewertungsanker",
-    "method": "Methode",
-    "methods": {
-      "purchase": "Kauf",
-      "appraisal": "Gutachten",
-      "trade_in": "Inzahlungnahme",
-      "other": "Sonstige"
-    },
-    "noLinkedHouse": "—"
-  },
-  "loans": {
-    "title": "Kredite",
-    "new": "Neuer Kredit",
-    "id": "ID",
-    "principal": "Kreditsumme",
-    "rate": "Zinssatz",
-    "balance": "Restschuld",
-    "ltv": "Beleihung (LTV)",
-    "monthlyPayment": "Monatsrate"
-  },
   "transactions": {
-    "title": "Transaktionen",
-    "new": "Neue Transaktion",
-    "type": "Typ",
     "types": {
       "BUY": "Kauf",
       "SELL": "Verkauf",

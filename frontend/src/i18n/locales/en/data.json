@@ -19,7 +19,6 @@
     "empty": "No transactions yet."
   },
   "positions": {
-    "groupBy": "Group by",
     "groupByAccount": "Account",
     "groupByInstrument": "Instrument",
     "name": "Name",

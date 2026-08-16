@@ -19,7 +19,6 @@
     "empty": "Noch keine Buchungen."
   },
   "positions": {
-    "groupBy": "Gruppieren nach",
     "groupByAccount": "Konto",
     "groupByInstrument": "Instrument",
     "name": "Name",

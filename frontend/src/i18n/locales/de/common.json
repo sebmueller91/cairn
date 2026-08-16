@@ -1,26 +1,13 @@
 {
   "nav": {
-    "dashboard": "Übersicht",
     "overview": "Überblick",
     "wealth": "Vermögen",
     "portfolio": "Portfolio",
     "performance": "Performance",
     "data": "Daten",
-    "allocation": "Allokation",
-    "tax": "Steuern",
-    "positions": "Positionen",
-    "transactions": "Transaktionen",
-    "accounts": "Konten",
-    "instruments": "Instrumente",
-    "assets": "Sachwerte",
     "settings": "Einstellungen"
   },
   "actions": {
-    "save": "Speichern",
-    "cancel": "Abbrechen",
-    "create": "Anlegen",
-    "delete": "Löschen",
-    "edit": "Bearbeiten",
     "logout": "Abmelden",
     "login": "Anmelden",
     "updateCash": "Kontostand aktualisieren"
@@ -39,7 +26,6 @@
     "reset": "Alle anzeigen"
   },
   "status": {
-    "loading": "Lädt…",
     "error": "Ein Fehler ist aufgetreten",
     "empty": "Keine Daten vorhanden",
     "asOf": "Stand: {{date}}",
@@ -49,13 +35,7 @@
   },
   "fields": {
     "name": "Name",
-    "type": "Typ",
-    "currency": "Währung",
     "date": "Datum",
-    "quantity": "Menge",
-    "price": "Preis",
-    "amount": "Betrag",
-    "fees": "Gebühren",
-    "note": "Notiz"
+    "quantity": "Menge"
   }
 }

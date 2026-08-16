@@ -15,7 +15,7 @@ const idbStorage = {
 // wrong to render — e.g. a renamed field a cached response still has the
 // old name for. Not tied to app version generally; only breaking changes
 // need it (ADR 0005).
-const CACHE_BUSTER = "1";
+const CACHE_BUSTER = "2";
 
 export const persister = createAsyncStoragePersister({
   storage: idbStorage,

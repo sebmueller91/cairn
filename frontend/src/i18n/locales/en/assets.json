@@ -1,8 +1,5 @@
 {
   "accounts": {
-    "title": "Accounts",
-    "new": "New account",
-    "institution": "Institution",
     "types": {
       "BROKERAGE": "Brokerage",
       "CRYPTO_WALLET": "Crypto wallet",
@@ -13,80 +10,7 @@
       "CASH": "Cash"
     }
   },
-  "instruments": {
-    "title": "Instruments",
-    "new": "New instrument",
-    "isin": "ISIN",
-    "ticker": "Ticker",
-    "compositionInvalid": "Invalid format — one line per category, e.g. \"North America: 60\"",
-    "composition": {
-      "title": "ETF composition",
-      "description": "Region/sector breakdown entered by hand from the factsheet — feeds the look-through in the Allocation view.",
-      "dimension": "Dimension",
-      "region": "Region",
-      "sector": "Sector",
-      "breakdown": "Breakdown (one line per category: \"Category: Weight\")",
-      "saved": "Saved."
-    },
-    "assetClasses": {
-      "EQUITY": "Equity",
-      "BOND": "Bond",
-      "COMMODITY": "Commodity",
-      "CRYPTO": "Crypto",
-      "REAL_ESTATE": "Real estate",
-      "VEHICLE": "Vehicle",
-      "CASH": "Cash",
-      "LIABILITY": "Liability"
-    },
-    "valuationModes": {
-      "MARKET": "Market price",
-      "ANCHORED": "Index-tracked",
-      "MODELED": "Modeled",
-      "AMORTIZING_LIABILITY": "Amortization schedule",
-      "NOMINAL": "Nominal"
-    },
-    "valuationConfig": "Valuation config (JSON)",
-    "optional": "optional",
-    "invalidConfigJson": "Invalid JSON in the valuation config."
-  },
-  "positions": {
-    "title": "Positions",
-    "instrument": "Instrument",
-    "account": "Account",
-    "costBasis": "Cost basis",
-    "value": "Value",
-    "unrealizedPl": "Unrealized P/L",
-    "groupBy": "Group by",
-    "groupByAccount": "Account",
-    "groupByInstrument": "Instrument"
-  },
-  "physical": {
-    "pageTitle": "Physical assets",
-    "title": "House & car",
-    "newAnchor": "New valuation anchor",
-    "method": "Method",
-    "methods": {
-      "purchase": "Purchase",
-      "appraisal": "Appraisal",
-      "trade_in": "Trade-in",
-      "other": "Other"
-    },
-    "noLinkedHouse": "—"
-  },
-  "loans": {
-    "title": "Loans",
-    "new": "New loan",
-    "id": "ID",
-    "principal": "Principal",
-    "rate": "Rate",
-    "balance": "Balance",
-    "ltv": "LTV",
-    "monthlyPayment": "Monthly payment"
-  },
   "transactions": {
-    "title": "Transactions",
-    "new": "New transaction",
-    "type": "Type",
     "types": {
       "BUY": "Buy",
       "SELL": "Sell",
