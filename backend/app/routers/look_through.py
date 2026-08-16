@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -76,10 +78,13 @@ def get_composition(
 @router.get("/look-through", response_model=LookThroughResponse)
 def get_look_through(
     dimension: str = "region",
+    # Historical breakdown as of a past date, same convention as
+    # look_through_service.compute_look_through's own default of today.
+    as_of: date | None = None,
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> LookThroughResponse:
-    rows = compute_look_through(db, dimension)
+    rows = compute_look_through(db, dimension, as_of=as_of)
     return LookThroughResponse(
         dimension=dimension,
         rows=[LookThroughRowRead(category=r.category, value_eur=r.value_eur) for r in rows],

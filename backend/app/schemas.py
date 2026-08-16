@@ -310,6 +310,14 @@ class NetWorthPoint(BaseModel):
     value_eur: DecimalStr
 
 
+class AllocationTimeseriesPoint(BaseModel):
+    # asset-class name (or CASH/LIABILITY) -> EUR value on this date.
+    # Missing keys mean "no rows for that class that day" — the frontend
+    # treats an absent key as 0, never a fabricated zero entry here.
+    date: date_
+    values: dict[str, DecimalStr]
+
+
 class PerformancePoint(BaseModel):
     date: date_
     index_value: float

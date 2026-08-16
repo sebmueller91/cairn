@@ -234,3 +234,80 @@ def test_look_through_endpoint_end_to_end(client, auth_headers, db_session):
 def test_look_through_endpoint_requires_auth(client):
     resp = client.get("/api/look-through")
     assert resp.status_code == 401
+
+
+def test_look_through_endpoint_as_of_passthrough(client, auth_headers, db_session):
+    """The endpoint must forward `as_of` to compute_look_through so a
+    historical query reflects the price/holdings as of that date, not
+    today's — omitting the param keeps today's behavior unchanged."""
+    from app.models import PricePoint
+
+    account = client.post(
+        "/api/accounts",
+        json={"name": "Portfolio A", "type": "BROKERAGE", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()["id"]
+    instrument = client.post(
+        "/api/instruments",
+        json={
+            "name": "World ETF", "isin": "XX0000001206",
+            "asset_class": "EQUITY", "valuation_mode": "MARKET", "currency": "EUR",
+            "region": "North America",
+        },
+        headers=auth_headers,
+    ).json()["id"]
+    # Two price points: an older one and a newer one, so as_of picks a
+    # different value depending on which date is requested.
+    db_session.add_all(
+        [
+            PricePoint(
+                instrument_id=instrument, date=date(2024, 1, 1), close=Decimal("100.00"),
+                currency="EUR", provider="test", quality="ok",
+            ),
+            PricePoint(
+                instrument_id=instrument, date=date(2024, 6, 1), close=Decimal("200.00"),
+                currency="EUR", provider="test", quality="ok",
+            ),
+        ]
+    )
+    db_session.commit()
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": "lt-asof-buy", "date": "2024-01-01", "type": "BUY",
+            "account_id": account, "instrument_id": instrument,
+            "quantity": "10", "price": "100.00", "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+
+    historical = client.get(
+        "/api/look-through",
+        params={"dimension": "region", "as_of": "2024-02-01"},
+        headers=auth_headers,
+    )
+    assert historical.status_code == 200
+    assert historical.json()["rows"] == [
+        {"category": "North America", "value_eur": "1000.00"}
+    ]
+
+    later = client.get(
+        "/api/look-through",
+        params={"dimension": "region", "as_of": "2024-07-01"},
+        headers=auth_headers,
+    )
+    assert later.status_code == 200
+    assert later.json()["rows"] == [
+        {"category": "North America", "value_eur": "2000.00"}
+    ]
+
+    # Omitting as_of keeps today's behavior — with no PricePoint after
+    # 2024-06-01, compute_look_through's default (today) still finds the
+    # latest (200.00) price, same as the explicit "later" case above.
+    default = client.get(
+        "/api/look-through", params={"dimension": "region"}, headers=auth_headers
+    )
+    assert default.status_code == 200
+    assert default.json()["rows"] == [
+        {"category": "North America", "value_eur": "2000.00"}
+    ]
