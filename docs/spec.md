@@ -385,14 +385,17 @@ separation of "did I get richer because I saved, or because the market ran?".
 - **ETF look-through:** optional, a region/sector breakdown maintained per ETF
   (entered by hand from the factsheet; it rarely changes). This reveals that a
   single share you hold directly also sits inside three of your ETFs.
-- **Volatility and max drawdown** of the investable portfolio, drawdown chart
 - **Currency exposure** including the FX contribution to return
 
-### 4.5 Cash flow and saving behaviour
-- Net inflows per month (savings rate), 12-month rolling average
-- Passive income per year (dividends, interest), dividend calendar and forecast
-- Running costs: TER estimate (TER × volume), custody fees, loan interest —
-  as "what does my wealth cost me per year"
+### 4.5 Cash flow and saving behaviour — dropped
+Savings rate, dividend calendar and a running-cost view were specified here and
+deliberately dropped: attribution (4.3) already separates contributions from
+income from costs per period, which answers the same questions without a second
+set of numbers to reconcile. Volatility and max drawdown went the same way — for
+a portfolio checked every few months, a drawdown chart is decoration.
+
+The heading stays so the section numbers below keep matching the citations in
+the code.
 
 ### 4.6 Further worthwhile metrics
 - **Real vs. nominal:** the wealth curve additionally adjusted for inflation
@@ -775,12 +778,13 @@ In the repository:
   book a single order · create new instruments · calibrate the car value · book
   a mortgage overpayment
 - `docs/data-model.md` — ERD and field semantics
-- A CLI script `scripts/cairn` as a thin wrapper around the API, for when the
-  agent prefers a shell to HTTP
 
-**Optional extension:** a small MCP server in front of the API. Bookings then
-become native tool calls with schema validation at the tool level. Worth doing
-after phase 3 — the REST API is the foundation.
+**The MCP server is the agent's entry point** (`mcp_server/`, see its README):
+a thin translation layer that turns the same endpoints into native tool calls
+with schema validation, `dry_run` included. It runs locally over stdio and talks
+to the Pi over the LAN like any other client. A `scripts/cairn` shell wrapper was
+specified here originally and deliberately dropped — it would have been a third
+way to do what the API and the MCP tools already do, with its own drift.
 
 ### 7.6 Authentication
 A static bearer token in `.env`, checked on all `/api` routes; the UI obtains it
@@ -799,37 +803,61 @@ management overhead. A separate read-only token for experiments is possible.
 > How you achieve them is yours.
 
 ### 8.1 Page structure
-| Page | Contents |
+
+The UI is **read-mostly by construction**. Data arrives through the agent API
+every few months (7.), so the interface optimises for looking and understanding,
+not for entering. Exactly one write survives in the UI — the cash-balance
+statement — because it is the one figure worth correcting on the spot.
+
+Five sections, which is also what a mobile tab bar holds:
+
+| Section | Contents |
 |---|---|
-| **Dashboard** | net worth headline, Δ today/month/year, wealth curve (switchable net/gross/investable), allocation donut, top movements, data freshness indicator |
-| **Performance** | time series with period selector, stacked areas by asset class, benchmark overlay, attribution waterfall, drawdown |
-| **Allocation** | donut + treemap + history, dimension and perspective switches, target allocation with drift and rebalancing proposal |
-| **Positions** | table: instrument, account(s), quantity, cost basis, price, value, unrealised P/L absolute and %, share of portfolio; groupable by instrument or account |
-| **Physical assets** | house, car, mortgage: value history, anchor history, amortisation schedule, LTV, fixed-rate countdown |
-| **Cash flow** | savings rate, dividends, costs, monthly balance |
-| **Transactions** | filterable list, detail view, audit provenance, import batches |
-| **Settings** | language, theme, display options (hide amounts, property at acquisition cost), instruments & price sources, target allocation, car model parameters, loan parameters, token, jobs |
+| **Overview** (`/`) | net worth headline with Δ and sparkline, asset-mix donut, next-milestone arc, this-month attribution summary, freshness strip (price fetch · snapshot · backup · data-quality issues), cash-balance action |
+| **Wealth** (`/wealth`) | net-worth curve (nominal/real, period selector), asset-class mix over time, time-travel replay, milestone journey — all scoped by the asset-class filter |
+| **Portfolio** (`/portfolio`) | asset-class distribution, instrument distribution with unrealised P/L, region and sector look-through, target vs. actual drift, physical assets and loans |
+| **Performance** (`/performance`) | tabs: returns (TWR/MWR, benchmark overlay) · attribution (per-period composition + cumulative waterfall) · tax |
+| **Data** (`/data`) | read-only tables: ledger · positions · accounts · instruments. Verification surface for what the agent booked, never a form |
+
+Settings (language, theme, export) sits behind a header icon rather than in the
+primary navigation.
+
+**The asset-class filter** is the one piece of global state worth naming: a chip
+row that includes or excludes each asset class, shared across Wealth and
+Portfolio and persisted. It exists because a house dominates a net-worth chart
+so completely that everything else becomes a flat line — the question "how are
+my equities and crypto doing, ignoring the property" needs an answer, and it
+changes the milestone dates too.
 
 ### 8.2 Visual direction
-Sober and professional, closer to a financial terminal than a fintech app:
-generous whitespace, little chrome, data dominates.
+Personal rather than institutional — this is one person's wealth, not a trading
+desk. Dark is the primary theme (light remains available and functional):
+near-black with a blue cast, translucent panels, soft glow on the elements that
+matter, gradient-filled charts. Playful is allowed; cluttered is not. Data still
+dominates.
 
-- **Layout:** 8 px grid, cards with subtle borders rather than heavy shadows,
-  max width ~1400 px
-- **Typography:** Inter or Geist for text; **tabular figures**
+- **Layout:** cards on an ambient background, max width ~1150 px, generous
+  spacing; one radial gradient behind the whole app rather than per-page
+  decoration
+- **Typography:** Inter Variable, self-hosted; **tabular figures**
   (`font-variant-numeric: tabular-nums`) everywhere numbers stack — the single
-  detail that makes a financial UI read as professional
-- **Colour:** neutral greys as the base, **one** accent colour, green/red
-  reserved strictly for sign — and muted, not traffic-light — plus ▲/▼ so
-  meaning does not rest on colour alone
-- **Charts:** thin lines, no 3D, no gradient excess; restrained axes; tooltips
-  with exact values and dates; period switcher as a segmented control
-- **Dark mode** from the start, via CSS variables
+  detail that makes a financial UI read as trustworthy. Hero figures large and
+  tight-tracked
+- **Colour:** one accent (cyan), a fixed eight-colour categorical palette keyed
+  to asset class so a chart, a legend dot and a table marker can never drift
+  apart; green/red reserved strictly for sign — plus ▲/▼ so meaning does not
+  rest on colour alone
+- **Charts:** gradient area fills, thin strokes, no 3D; restrained axes; glass
+  tooltips with exact values and dates; period switcher as a segmented control.
+  Debt renders below the zero line rather than as a positive slice
+- **Motion:** CSS and two small rAF hooks, no animation library. Numbers count
+  up, arcs sweep, the replay scrubs. All of it yields to
+  `prefers-reduced-motion`, and none of it is load-bearing for meaning
 - **Number format:** locale-aware (see 8.3), thousands separators; large amounts
   compacted on mobile
-- **Mobile:** single-column dashboard, touch-friendly charts, tables as cards;
-  PWA icon, splash screen, `display: standalone`, theme colour
-- **Privacy:** a "hide amounts" toggle (blurred), useful on a train
+- **Mobile:** first-class, not an afterthought — bottom tab bar, single column,
+  touch-friendly charts, tables scroll inside their card; PWA icon, splash
+  screen, `display: standalone`, theme colour
 
 ### 8.3 Internationalisation and theme
 
