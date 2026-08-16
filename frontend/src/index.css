@@ -1,9 +1,17 @@
 @import "tailwindcss";
+/* Self-hosted variable Inter — no external font CDN, this app runs on a
+   home LAN with no internet guarantee. Fontsource ships one @font-face per
+   unicode subset, so a de/en session only ever downloads the latin file. */
+@import "@fontsource-variable/inter";
 
 /* Design tokens: Tailwind utilities (bg-bg, text-text, border-border, ...)
    read these CSS custom properties, which the runtime theme toggle below
    actually mutates. Keeping the indirection is what makes light/dark/
-   system work without a build-time Tailwind "dark:" variant per class. */
+   system work without a build-time Tailwind "dark:" variant per class.
+
+   Tokens that do NOT change between themes (radii, blur strength) are
+   declared directly in @theme instead — one definition, still a real CSS
+   var, and it also mints the matching utility (rounded-card, blur-glass). */
 @theme {
   --color-bg: var(--bg);
   --color-bg-subtle: var(--bg-subtle);
@@ -16,66 +24,250 @@
   --color-positive: var(--positive);
   --color-negative: var(--negative);
   --color-warning: var(--warning);
-  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto,
-    "Helvetica Neue", Arial, sans-serif;
+
+  /* Categorical palette, one colour per asset class (spec 4.x). Kept as a
+     token so a chart, a legend chip and a table dot cannot drift apart. */
+  --color-chart-equity: var(--chart-equity);
+  --color-chart-bond: var(--chart-bond);
+  --color-chart-commodity: var(--chart-commodity);
+  --color-chart-crypto: var(--chart-crypto);
+  --color-chart-real-estate: var(--chart-real-estate);
+  --color-chart-vehicle: var(--chart-vehicle);
+  --color-chart-cash: var(--chart-cash);
+  --color-chart-liability: var(--chart-liability);
+
+  /* Attribution components (deposits / income / costs / valuation / fx /
+     market). Deliberately a different hue family from the asset palette so
+     a waterfall never reads as an allocation chart. */
+  --color-attr-deposits: var(--attr-deposits);
+  --color-attr-income: var(--attr-income);
+  --color-attr-costs: var(--attr-costs);
+  --color-attr-valuation: var(--attr-valuation);
+  --color-attr-fx: var(--attr-fx);
+  --color-attr-market: var(--attr-market);
+
+  /* shadow-glow-accent / shadow-glow-positive / shadow-glow-negative */
+  --shadow-glow-accent: var(--glow-accent);
+  --shadow-glow-positive: var(--glow-positive);
+  --shadow-glow-negative: var(--glow-negative);
+
+  /* Theme-invariant. rounded-card / blur-glass / backdrop-blur-glass. */
+  --radius-card: 16px;
+  --blur-glass: 16px;
+
+  /* animate-shimmer, used by the Skeleton primitive. */
+  --animate-shimmer: shimmer 1.6s ease-in-out infinite;
+  /* animate-sheet-up, used by Modal's mobile bottom-sheet layout. */
+  --animate-sheet-up: sheet-up 220ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  --font-sans: "Inter Variable", -apple-system, BlinkMacSystemFont, "Segoe UI",
+    Inter, Roboto, "Helvetica Neue", Arial, sans-serif;
 }
 
-/* Light palette (default). A dark-first design would swap which block is
-   bare :root, but the token *names* stay identical either way. */
+/* Dark palette is the default (spec 8.3 target: "mission control"). Light
+   survives below as a functional secondary; the token *names* are identical
+   in both, so nothing downstream branches on the theme. */
 :root {
+  --bg: #05070d;
+  --bg-subtle: #0b101c;
+  --bg-card: rgba(255, 255, 255, 0.04);
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #e8ecf4;
+  --text-muted: #8b93a7;
+  --accent: #22d3ee;
+  --accent-fg: #041019;
+  --positive: #34d399;
+  --negative: #fb7185;
+  --warning: #fbbf24;
+
+  --glow-accent: 0 0 24px rgba(34, 211, 238, 0.3);
+  --glow-positive: 0 0 24px rgba(52, 211, 153, 0.3);
+  --glow-negative: 0 0 24px rgba(251, 113, 133, 0.3);
+
+  /* The single tint behind the whole app; see the body rule below. */
+  --ambient-glow: rgba(34, 211, 238, 0.06);
+  /* Highlight that sweeps across a loading Skeleton. */
+  --skeleton-sheen: rgba(255, 255, 255, 0.08);
+
+  --chart-equity: #38bdf8;
+  --chart-bond: #a78bfa;
+  --chart-commodity: #facc15;
+  --chart-crypto: #fb923c;
+  --chart-real-estate: #34d399;
+  --chart-vehicle: #64748b;
+  --chart-cash: #e2e8f0;
+  --chart-liability: #fb7185;
+
+  --attr-deposits: #2dd4bf;
+  --attr-income: #a3e635;
+  --attr-costs: #f472b6;
+  --attr-valuation: #818cf8;
+  --attr-fx: #d946ef;
+  --attr-market: #22d3ee;
+}
+
+/* Light overrides. Surfaces go solid (glass on white is mud), glows go
+   away entirely, and every chart hue drops a step so it still carries
+   against a white background. */
+
+/* System preference, only when the user hasn't explicitly overridden it. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #ffffff;
+    --bg-subtle: #f7f7f8;
+    --bg-card: #ffffff;
+    --border: #e5e5e7;
+    --text: #18181b;
+    --text-muted: #6b7280;
+    --accent: #0e7490;
+    --accent-fg: #ffffff;
+    --positive: #15803d;
+    --negative: #b91c1c;
+    --warning: #b45309;
+
+    --glow-accent: 0 0 0 transparent;
+    --glow-positive: 0 0 0 transparent;
+    --glow-negative: 0 0 0 transparent;
+    --ambient-glow: transparent;
+    --skeleton-sheen: rgba(0, 0, 0, 0.05);
+
+    --chart-equity: #0284c7;
+    --chart-bond: #7c3aed;
+    --chart-commodity: #ca8a04;
+    --chart-crypto: #ea580c;
+    --chart-real-estate: #059669;
+    --chart-vehicle: #475569;
+    --chart-cash: #64748b;
+    --chart-liability: #e11d48;
+
+    --attr-deposits: #0d9488;
+    --attr-income: #65a30d;
+    --attr-costs: #db2777;
+    --attr-valuation: #4f46e5;
+    --attr-fx: #a21caf;
+    --attr-market: #0891b2;
+  }
+}
+
+/* Explicit user choice always wins, in both directions. */
+:root[data-theme="light"] {
   --bg: #ffffff;
   --bg-subtle: #f7f7f8;
   --bg-card: #ffffff;
   --border: #e5e5e7;
   --text: #18181b;
   --text-muted: #6b7280;
-  --accent: #2563eb;
+  --accent: #0e7490;
   --accent-fg: #ffffff;
   --positive: #15803d;
   --negative: #b91c1c;
   --warning: #b45309;
+
+  --glow-accent: 0 0 0 transparent;
+  --glow-positive: 0 0 0 transparent;
+  --glow-negative: 0 0 0 transparent;
+  --ambient-glow: transparent;
+  --skeleton-sheen: rgba(0, 0, 0, 0.05);
+
+  --chart-equity: #0284c7;
+  --chart-bond: #7c3aed;
+  --chart-commodity: #ca8a04;
+  --chart-crypto: #ea580c;
+  --chart-real-estate: #059669;
+  --chart-vehicle: #475569;
+  --chart-cash: #64748b;
+  --chart-liability: #e11d48;
+
+  --attr-deposits: #0d9488;
+  --attr-income: #65a30d;
+  --attr-costs: #db2777;
+  --attr-valuation: #4f46e5;
+  --attr-fx: #a21caf;
+  --attr-market: #0891b2;
 }
 
-/* System preference, only when the user hasn't explicitly overridden it. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0a0a0b;
-    --bg-subtle: #18181b;
-    --bg-card: #141416;
-    --border: #2a2a2e;
-    --text: #fafafa;
-    --text-muted: #a1a1aa;
-    --accent: #60a5fa;
-    --accent-fg: #0a0a0b;
-    --positive: #34d399;
-    --negative: #f87171;
-    --warning: #fbbf24;
-  }
-}
-
-/* Explicit user choice always wins, in both directions. */
-:root[data-theme="dark"] {
-  --bg: #0a0a0b;
-  --bg-subtle: #18181b;
-  --bg-card: #141416;
-  --border: #2a2a2e;
-  --text: #fafafa;
-  --text-muted: #a1a1aa;
-  --accent: #60a5fa;
-  --accent-fg: #0a0a0b;
-  --positive: #34d399;
-  --negative: #f87171;
-  --warning: #fbbf24;
-}
-
+/* The app's only ambient background. Pages never paint their own — glass
+   panels are translucent, so a second background layer anywhere below them
+   would show through and break the depth illusion. --ambient-glow is
+   `transparent` in light, which collapses this to a plain var(--bg). */
 body {
-  background-color: var(--bg);
+  min-height: 100dvh;
+  background: radial-gradient(
+      1000px circle at 15% -10%,
+      var(--ambient-glow),
+      transparent 60%
+    ),
+    var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
 }
 
 /* The one detail that makes a financial UI read as professional (spec 8.2):
-   numbers that stack in a table or change over time must not jitter. */
+   numbers that stack in a table or change over time must not jitter.
+   Inter Variable ships the `tnum` feature, which is what this maps to. */
 .tnum {
   font-variant-numeric: tabular-nums;
+}
+
+/* Chip rows and other scroll-on-overflow strips: the content itself is the
+   affordance (a half-cut chip), a scrollbar would just add chrome. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Loading placeholder sheen (Skeleton). The global reduced-motion block
+   below stops it after one pass, leaving a plain flat block. */
+@keyframes shimmer {
+  0% {
+    background-position: -150% 0;
+  }
+  100% {
+    background-position: 250% 0;
+  }
+}
+
+/* Bottom sheet entrance (Modal, below md). */
+@keyframes sheet-up {
+  from {
+    transform: translateY(12%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Sparingly: draws the eye to a single live/hero element. */
+@keyframes glow-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: var(--glow-accent);
+  }
+  50% {
+    opacity: 0.82;
+    box-shadow: 0 0 8px rgba(34, 211, 238, 0.12);
+  }
+}
+
+.glow-pulse {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+/* Motion is decoration here, never information. Kill all of it globally
+   rather than per-component, so a new component cannot forget. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

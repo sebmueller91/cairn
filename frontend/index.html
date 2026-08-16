@@ -5,19 +5,26 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#ffffff" />
+    <meta name="theme-color" content="#05070d" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- "black", not "black-translucent": translucent would pull content up
+         under the status bar and every existing page would need safe-area
+         padding it does not have yet. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Cairn" />
     <title>Cairn</title>
     <script>
       // Applied before React loads so the light surface never flashes on
-      // a dark-themed cold start (spec 8.3). Mirrors the same "explicit
-      // choice beats system preference" rule the CSS tokens use.
+      // a dark-themed cold start (spec 8.3). Must stay in lockstep with
+      // src/lib/theme.ts: dark is the default, "system" is the only value
+      // that leaves data-theme off and lets the media queries decide.
       (function () {
         var stored = localStorage.getItem("cairn-theme");
-        if (stored === "light" || stored === "dark") {
-          document.documentElement.setAttribute("data-theme", stored);
+        if (stored !== "system") {
+          var theme = stored === "light" ? "light" : "dark";
+          document.documentElement.setAttribute("data-theme", theme);
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#05070d");
         }
       })();
     </script>

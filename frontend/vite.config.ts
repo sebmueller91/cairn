@@ -18,8 +18,8 @@ export default defineConfig({
         name: 'Cairn',
         short_name: 'Cairn',
         description: 'Self-hosted net worth and portfolio tracker.',
-        theme_color: '#2563eb',
-        background_color: '#ffffff',
+        theme_color: '#05070d',
+        background_color: '#05070d',
         display: 'standalone',
         start_url: '/',
         icons: [
@@ -37,7 +37,11 @@ export default defineConfig({
         // App shell: everything Vite builds is precached automatically
         // (effectively CacheFirst — served from cache, never re-fetched
         // until a new deploy changes the precache manifest).
-        globPatterns: ['**/*.{js,css,html,svg,png,ico}'],
+        // woff2 included so an offline cold start still gets Inter — the
+        // browser only ever *fetches* the latin subset, but precache pulls
+        // whatever the glob matches, which is why fontsource's per-subset
+        // files (~218 kB total) are an acceptable one-time cost on a LAN.
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,woff2}'],
         runtimeCaching: [
           {
             // GET only — Workbox's urlPattern+handler matching applies to
