@@ -1,8 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { Construction } from "lucide-react";
 import { PageHeader } from "../components/ui/PageHeader";
-import { EmptyState } from "../components/ui/EmptyState";
 import { AssetClassChips } from "../components/AssetClassChips";
+import { ClassDistributionCard } from "../components/portfolio/ClassDistributionCard";
+import { InstrumentDistributionCard } from "../components/portfolio/InstrumentDistributionCard";
+import { LookThroughCard } from "../components/portfolio/LookThroughCard";
+import { TargetVsActualCard } from "../components/portfolio/TargetVsActualCard";
+import { RealAssetsLoansCard } from "../components/portfolio/RealAssetsLoansCard";
 
 export function Portfolio() {
   const { t } = useTranslation("portfolio");
@@ -12,11 +15,16 @@ export function Portfolio() {
       <PageHeader title={t("title")}>
         <AssetClassChips />
       </PageHeader>
-      <EmptyState
-        icon={<Construction className="size-8" aria-hidden />}
-        title={t("building_title")}
-        hint={t("building_hint")}
-      />
+      <p className="-mt-3 text-xs text-text-muted">{t("filterNote")}</p>
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <ClassDistributionCard />
+        <InstrumentDistributionCard />
+      </div>
+
+      <LookThroughCard />
+      <TargetVsActualCard />
+      <RealAssetsLoansCard />
     </div>
   );
 }

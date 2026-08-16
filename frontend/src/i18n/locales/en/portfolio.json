@@ -1,5 +1,33 @@
 {
   "title": "Portfolio",
-  "building_title": "Under construction",
-  "building_hint": "This view is being rebuilt and will be back shortly."
+  "filterNote": "The class and instrument sections respect the filter above; look-through, targets and real assets always show the full portfolio.",
+  "classDistribution": {
+    "title": "Class distribution today",
+    "netLabel": "Net (selected)",
+    "liabilityHint": "Debt reduces net worth — it can't be drawn as a donut slice, so it's listed separately."
+  },
+  "instrumentDistribution": {
+    "title": "Instrument distribution",
+    "other": "Other",
+    "instrumentsLabel": "Instruments",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show less"
+  },
+  "lookThrough": {
+    "title": "Look-through",
+    "region": "Region",
+    "sector": "Sector",
+    "caption": "Covers priced market instruments only (ETFs, stocks, crypto).",
+    "emptyHint": "Add a factsheet breakdown for this instrument to see it here."
+  },
+  "targetVsActual": {
+    "title": "Target vs. actual"
+  },
+  "realAssetsLoans": {
+    "title": "Real assets & loans",
+    "realAssets": "Real assets",
+    "loans": "Loans",
+    "noLtv": "—",
+    "unnamedLoan": "Loan #{{id}}"
+  }
 }

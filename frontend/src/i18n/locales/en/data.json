@@ -1,5 +1,60 @@
 {
   "title": "Data",
-  "building_title": "Under construction",
-  "building_hint": "This view is being rebuilt and will be back shortly."
+  "tabs": {
+    "ledger": "Ledger",
+    "positions": "Positions",
+    "accounts": "Accounts",
+    "instruments": "Instruments"
+  },
+  "search": "Search…",
+  "loadMore": "Load more",
+  "allAccounts": "All accounts",
+  "allTypes": "All types",
+  "ledger": {
+    "date": "Date",
+    "type": "Type",
+    "accountInstrument": "Account / instrument",
+    "amount": "Amount",
+    "note": "Note",
+    "empty": "No transactions yet."
+  },
+  "positions": {
+    "groupBy": "Group by",
+    "groupByAccount": "Account",
+    "groupByInstrument": "Instrument",
+    "name": "Name",
+    "quantity": "Quantity",
+    "costBasis": "Cost basis",
+    "value": "Value",
+    "unrealizedPl": "Unrealized P/L",
+    "realizedPl": "Realized P/L",
+    "empty": "No positions yet."
+  },
+  "accounts": {
+    "name": "Name",
+    "type": "Type",
+    "currency": "Currency",
+    "institution": "Institution",
+    "updateBalance": "Update balance",
+    "empty": "No accounts yet."
+  },
+  "instruments": {
+    "name": "Name",
+    "assetClass": "Asset class",
+    "identifier": "Ticker / ISIN",
+    "currency": "Currency",
+    "region": "Region",
+    "sector": "Sector",
+    "empty": "No instruments yet."
+  },
+  "cashModal": {
+    "account": "Cash account",
+    "noAccounts": "No cash accounts yet",
+    "noAccountsHint": "Create an account of type Cash first, then update its balance here.",
+    "balance": "Balance",
+    "date": "Date",
+    "submit": "Update balance",
+    "cancel": "Cancel",
+    "success": "Balance updated."
+  }
 }

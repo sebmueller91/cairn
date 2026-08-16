@@ -1,5 +1,45 @@
 {
   "title": "Overview",
-  "building_title": "Under construction",
-  "building_hint": "This view is being rebuilt and will be back shortly."
+  "hero": {
+    "label": "Net worth"
+  },
+  "classMix": {
+    "title": "Asset mix",
+    "liabilities": "debt"
+  },
+  "milestone": {
+    "title": "Next milestone",
+    "caption": "About {{months}} months away",
+    "unreachable": "Not projectable at the current savings rate and assumption."
+  },
+  "thisMonth": {
+    "title": "This month",
+    "marketGains": "Market gains/losses",
+    "deposits": "Deposits",
+    "income": "Income"
+  },
+  "freshness": {
+    "prices": "Prices",
+    "snapshot": "Snapshot",
+    "backup": "Backup",
+    "dataQuality": "Data quality",
+    "issuesNone": "No issues",
+    "issuesCount_one": "{{count}} issue",
+    "issuesCount_other": "{{count}} issues",
+    "expand": "Show details",
+    "collapse": "Hide details",
+    "kinds": {
+      "stale_price": "Price is stale",
+      "missing_price": "No price data",
+      "stale_valuation": "Valuation is stale",
+      "missing_valuation": "No valuation data",
+      "no_cost_basis": "No cost basis recorded",
+      "missing_backup": "No successful backup yet",
+      "stale_backup": "Backup is stale"
+    }
+  },
+  "empty": {
+    "title": "No data yet",
+    "hint": "Once an account exists and has a first valuation, this page fills in automatically via the agent."
+  }
 }

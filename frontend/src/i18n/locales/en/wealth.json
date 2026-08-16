@@ -1,5 +1,45 @@
 {
   "title": "Wealth",
-  "building_title": "Under construction",
-  "building_hint": "This view is being rebuilt and will be back shortly."
+  "period": {
+    "1M": "1M",
+    "3M": "3M",
+    "6M": "6M",
+    "1Y": "1Y",
+    "MAX": "Max"
+  },
+  "mode": {
+    "nominal": "Nominal",
+    "real": "Real",
+    "realDisabled": "Only available with every asset class selected (inflation adjustment is based on total net worth)"
+  },
+  "curve": {
+    "title": "Trajectory",
+    "labelNet": "Net worth",
+    "labelSelection": "Selected asset classes",
+    "labelReal": "Net worth, inflation-adjusted",
+    "window": "Change over {{period}}"
+  },
+  "mix": {
+    "title": "Class mix over time",
+    "hint": "Debt sits below the zero line"
+  },
+  "replay": {
+    "title": "Time travel",
+    "hint": "Press play or drag the slider",
+    "play": "Play",
+    "pause": "Pause",
+    "scrub": "Pick a point in time"
+  },
+  "milestones": {
+    "title": "Milestones",
+    "reached": "Reached {{date}}",
+    "projected": "Projected {{date}}",
+    "later": "After that",
+    "noProjection": "No projection yet",
+    "estimateNote": "≈ linear estimate from the last twelve months' trend, not a performance forecast."
+  },
+  "empty": {
+    "title": "No history yet",
+    "hint": "Once the first daily snapshots exist, your wealth curve appears here."
+  }
 }

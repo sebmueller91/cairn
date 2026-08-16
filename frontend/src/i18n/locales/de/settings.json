@@ -1,5 +1,9 @@
 {
   "title": "Einstellungen",
+  "sections": {
+    "appearance": "Darstellung",
+    "session": "Sitzung"
+  },
   "language": "Sprache",
   "theme": "Design",
   "themes": {
@@ -13,6 +17,8 @@
   },
   "apiToken": "API-Token",
   "loggedInAs": "Angemeldet",
+  "scopeFull": "Voller Zugriff",
+  "scopeReadOnly": "Nur Lesezugriff",
   "export": {
     "title": "Datenexport",
     "description": "Alle Konten, Instrumente, Transaktionen, Bewertungsanker und Kreditparameter als CSV und JSON — unabhängig von Schema und Anwendung.",

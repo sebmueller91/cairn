@@ -1,5 +1,45 @@
 {
   "title": "Vermögen",
-  "building_title": "Wird gebaut",
-  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da."
+  "period": {
+    "1M": "1M",
+    "3M": "3M",
+    "6M": "6M",
+    "1Y": "1J",
+    "MAX": "Max"
+  },
+  "mode": {
+    "nominal": "Nominal",
+    "real": "Real",
+    "realDisabled": "Nur mit allen Anlageklassen verfügbar (Inflationsbereinigung basiert auf dem Gesamtvermögen)"
+  },
+  "curve": {
+    "title": "Verlauf",
+    "labelNet": "Nettovermögen",
+    "labelSelection": "Ausgewählte Anlageklassen",
+    "labelReal": "Nettovermögen, inflationsbereinigt",
+    "window": "Veränderung über {{period}}"
+  },
+  "mix": {
+    "title": "Klassenmix im Zeitverlauf",
+    "hint": "Schulden liegen unter der Nulllinie"
+  },
+  "replay": {
+    "title": "Zeitreise",
+    "hint": "Abspielen oder am Regler ziehen",
+    "play": "Abspielen",
+    "pause": "Pausieren",
+    "scrub": "Zeitpunkt wählen"
+  },
+  "milestones": {
+    "title": "Meilensteine",
+    "reached": "Erreicht {{date}}",
+    "projected": "Voraussichtlich {{date}}",
+    "later": "Danach",
+    "noProjection": "Noch keine Prognose",
+    "estimateNote": "≈ lineare Schätzung aus dem Trend der letzten zwölf Monate, keine Wertentwicklungsprognose."
+  },
+  "empty": {
+    "title": "Noch keine Historie",
+    "hint": "Sobald die ersten Tages-Snapshots vorliegen, entsteht hier der Vermögensverlauf."
+  }
 }

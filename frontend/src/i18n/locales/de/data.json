@@ -1,5 +1,60 @@
 {
   "title": "Daten",
-  "building_title": "Wird gebaut",
-  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da."
+  "tabs": {
+    "ledger": "Buchungen",
+    "positions": "Positionen",
+    "accounts": "Konten",
+    "instruments": "Instrumente"
+  },
+  "search": "Suchen…",
+  "loadMore": "Mehr laden",
+  "allAccounts": "Alle Konten",
+  "allTypes": "Alle Typen",
+  "ledger": {
+    "date": "Datum",
+    "type": "Typ",
+    "accountInstrument": "Konto / Instrument",
+    "amount": "Betrag",
+    "note": "Notiz",
+    "empty": "Noch keine Buchungen."
+  },
+  "positions": {
+    "groupBy": "Gruppieren nach",
+    "groupByAccount": "Konto",
+    "groupByInstrument": "Instrument",
+    "name": "Name",
+    "quantity": "Menge",
+    "costBasis": "Einstandswert",
+    "value": "Wert",
+    "unrealizedPl": "Unrealisierter G/V",
+    "realizedPl": "Realisierter G/V",
+    "empty": "Noch keine Positionen."
+  },
+  "accounts": {
+    "name": "Name",
+    "type": "Typ",
+    "currency": "Währung",
+    "institution": "Institut",
+    "updateBalance": "Kontostand aktualisieren",
+    "empty": "Noch keine Konten."
+  },
+  "instruments": {
+    "name": "Name",
+    "assetClass": "Anlageklasse",
+    "identifier": "Ticker / ISIN",
+    "currency": "Währung",
+    "region": "Region",
+    "sector": "Sektor",
+    "empty": "Noch keine Instrumente."
+  },
+  "cashModal": {
+    "account": "Girokonto",
+    "noAccounts": "Noch keine Girokonten",
+    "noAccountsHint": "Lege zuerst ein Konto vom Typ „Girokonto“ an, um hier den Kontostand zu aktualisieren.",
+    "balance": "Kontostand",
+    "date": "Datum",
+    "submit": "Kontostand aktualisieren",
+    "cancel": "Abbrechen",
+    "success": "Kontostand aktualisiert."
+  }
 }

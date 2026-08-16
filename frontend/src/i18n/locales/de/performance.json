@@ -1,7 +1,10 @@
 {
   "title": "Performance",
-  "building_title": "Wird gebaut",
-  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da.",
+  "tabs": {
+    "returns": "Rendite",
+    "attribution": "Attribution",
+    "tax": "Steuern"
+  },
   "periods": {
     "1M": "1M",
     "3M": "3M",
@@ -27,6 +30,12 @@
     "granularity": {
       "month": "Monat",
       "year": "Jahr"
+    },
+    "composition": {
+      "title": "Monatliche Zusammensetzung"
+    },
+    "waterfall": {
+      "title": "Kumulierte Aufschlüsselung"
     },
     "buckets": {
       "deposits_withdrawals": "Ein-/Auszahlungen",

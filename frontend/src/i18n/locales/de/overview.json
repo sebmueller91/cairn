@@ -1,5 +1,45 @@
 {
   "title": "Überblick",
-  "building_title": "Wird gebaut",
-  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da."
+  "hero": {
+    "label": "Nettovermögen"
+  },
+  "classMix": {
+    "title": "Anlageklassen",
+    "liabilities": "Schulden"
+  },
+  "milestone": {
+    "title": "Nächster Meilenstein",
+    "caption": "In etwa {{months}} Monaten",
+    "unreachable": "Bei aktueller Sparrate und Annahme nicht absehbar."
+  },
+  "thisMonth": {
+    "title": "Dieser Monat",
+    "marketGains": "Marktgewinne/-verluste",
+    "deposits": "Einzahlungen",
+    "income": "Erträge"
+  },
+  "freshness": {
+    "prices": "Kurse",
+    "snapshot": "Schnappschuss",
+    "backup": "Backup",
+    "dataQuality": "Datenqualität",
+    "issuesNone": "Keine Probleme",
+    "issuesCount_one": "{{count}} Problem",
+    "issuesCount_other": "{{count}} Probleme",
+    "expand": "Details anzeigen",
+    "collapse": "Details ausblenden",
+    "kinds": {
+      "stale_price": "Preis ist veraltet",
+      "missing_price": "Kein Preis vorhanden",
+      "stale_valuation": "Bewertung ist veraltet",
+      "missing_valuation": "Keine Bewertung vorhanden",
+      "no_cost_basis": "Keine Anschaffungskosten erfasst",
+      "missing_backup": "Noch kein erfolgreiches Backup",
+      "stale_backup": "Backup ist veraltet"
+    }
+  },
+  "empty": {
+    "title": "Noch keine Daten",
+    "hint": "Sobald ein Konto angelegt und eine erste Bewertung erfasst ist, füllt sich diese Seite automatisch über den Agenten."
+  }
 }

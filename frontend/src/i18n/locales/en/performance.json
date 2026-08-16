@@ -1,7 +1,10 @@
 {
   "title": "Performance",
-  "building_title": "Under construction",
-  "building_hint": "This view is being rebuilt and will be back shortly.",
+  "tabs": {
+    "returns": "Returns",
+    "attribution": "Attribution",
+    "tax": "Tax"
+  },
   "periods": {
     "1M": "1M",
     "3M": "3M",
@@ -27,6 +30,12 @@
     "granularity": {
       "month": "Month",
       "year": "Year"
+    },
+    "composition": {
+      "title": "Monthly composition"
+    },
+    "waterfall": {
+      "title": "Cumulative breakdown"
     },
     "buckets": {
       "deposits_withdrawals": "Deposits/withdrawals",

@@ -1,5 +1,33 @@
 {
   "title": "Portfolio",
-  "building_title": "Wird gebaut",
-  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da."
+  "filterNote": "Die Klassen- und Instrumentenansicht berücksichtigen den Filter oben; Look-through, Zielallokation und Sachwerte zeigen immer das gesamte Portfolio.",
+  "classDistribution": {
+    "title": "Klassenverteilung heute",
+    "netLabel": "Netto (Auswahl)",
+    "liabilityHint": "Schulden mindern das Nettovermögen — sie lassen sich nicht als Donut-Segment darstellen und werden deshalb separat aufgeführt."
+  },
+  "instrumentDistribution": {
+    "title": "Instrumentenverteilung",
+    "other": "Sonstige",
+    "instrumentsLabel": "Instrumente",
+    "showAll": "Alle {{count}} anzeigen",
+    "showLess": "Weniger anzeigen"
+  },
+  "lookThrough": {
+    "title": "Look-through",
+    "region": "Region",
+    "sector": "Branche",
+    "caption": "Nur börsenbewertete Positionen (ETFs, Aktien, Krypto).",
+    "emptyHint": "Für dieses Instrument eine Factsheet-Aufschlüsselung hinterlegen, um es hier zu sehen."
+  },
+  "targetVsActual": {
+    "title": "Ziel vs. Ist"
+  },
+  "realAssetsLoans": {
+    "title": "Sachwerte & Kredite",
+    "realAssets": "Sachwerte",
+    "loans": "Kredite",
+    "noLtv": "—",
+    "unnamedLoan": "Kredit #{{id}}"
+  }
 }

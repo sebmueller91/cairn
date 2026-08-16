@@ -1,5 +1,9 @@
 {
   "title": "Settings",
+  "sections": {
+    "appearance": "Appearance",
+    "session": "Session"
+  },
   "language": "Language",
   "theme": "Theme",
   "themes": {
@@ -13,6 +17,8 @@
   },
   "apiToken": "API token",
   "loggedInAs": "Signed in",
+  "scopeFull": "Full access",
+  "scopeReadOnly": "Read-only",
   "export": {
     "title": "Data export",
     "description": "All accounts, instruments, transactions, valuation anchors, and loan parameters as CSV and JSON — independent of schema and application.",
