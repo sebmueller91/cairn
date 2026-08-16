@@ -295,6 +295,13 @@ class PriceBackfillRequest(BaseModel):
     end: date_ | None = None  # None = today
 
 
+class FxBackfillRequest(BaseModel):
+    start: date_
+    end: date_ | None = None  # None = today
+    # None = every non-EUR currency currently in use by some instrument.
+    currency: str | None = Field(default=None, min_length=3, max_length=3)
+
+
 class FetchResultRead(BaseModel):
     instrument_id: int
     status: str

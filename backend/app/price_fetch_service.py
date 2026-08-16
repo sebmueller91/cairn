@@ -178,6 +178,45 @@ def fetch_fx_rate(db: Session, currency: str) -> FetchResult:
     return FetchResult(0, "ok", detail=currency)
 
 
+def backfill_fx_rate(db: Session, currency: str, start: date, end: date) -> FetchResult:
+    """History counterpart to fetch_fx_rate. Without this, a non-EUR
+    instrument values correctly today and as EUR 0 for every date before
+    the first nightly FX fetch — silently, because the valuation path
+    skips a position whose FX lookup misses rather than failing loudly.
+    Same instrument_id=0 sentinel and `detail`-carries-the-currency
+    convention as fetch_fx_rate.
+    """
+    if currency == "EUR":
+        return FetchResult(0, "ok", detail="EUR is always 1:1")
+    provider = get_provider("frankfurter")
+    try:
+        results = provider.fetch_history(currency, start, end)
+    except ProviderError as e:
+        return FetchResult(0, "all_sources_failed", detail=f"{currency}: {e}")
+    if not results:
+        return FetchResult(0, "all_sources_failed", detail=f"{currency}: no data")
+
+    written = 0
+    for result in results:
+        existing = db.get(FxRate, (currency, result.date))
+        if existing:
+            existing.eur_rate = result.close
+        else:
+            db.add(FxRate(currency=currency, date=result.date, eur_rate=result.close))
+            written += 1
+    return FetchResult(0, "ok", detail=f"{currency}: {written} rates written")
+
+
+def backfill_all_fx_rates(db: Session, start: date, end: date) -> list[FetchResult]:
+    """Every non-EUR currency in use, mirroring fetch_all_fx_rates."""
+    currencies = {
+        currency
+        for (currency,) in db.query(Instrument.currency).distinct().all()
+        if currency != "EUR"
+    }
+    return [backfill_fx_rate(db, currency, start, end) for currency in sorted(currencies)]
+
+
 def fetch_all_fx_rates(db: Session) -> list[FetchResult]:
     """Fetch one FX rate per distinct non-EUR currency in use across all
     instruments. This is what actually populates `fx_rate` — without it,

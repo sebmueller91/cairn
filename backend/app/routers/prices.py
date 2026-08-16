@@ -8,6 +8,8 @@ from app.auth import require_write_scope
 from app.database import get_db
 from app.models import Instrument
 from app.price_fetch_service import (
+    backfill_all_fx_rates,
+    backfill_fx_rate,
     backfill_for_instrument,
     fetch_all_fx_rates,
     fetch_fx_rate,
@@ -15,6 +17,7 @@ from app.price_fetch_service import (
 )
 from app.schemas import (
     FetchResultRead,
+    FxBackfillRequest,
     PriceBackfillRequest,
     PriceFetchResponse,
     PriceRefreshRequest,
@@ -83,4 +86,28 @@ def backfill_prices(
     db.commit()
     return PriceFetchResponse(
         results=[FetchResultRead(instrument_id=result.instrument_id, status=result.status, detail=result.detail)]
+    )
+
+
+@router.post("/fx-backfill", response_model=PriceFetchResponse)
+def backfill_fx(
+    body: FxBackfillRequest,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> PriceFetchResponse:
+    """Backfill ECB rates over a date range. Needed whenever historical
+    snapshots are rebuilt across a period the nightly FX job never covered:
+    a non-EUR position with no fx_rate row for a date is valued at EUR 0
+    there, without any error surfacing."""
+    end = body.end or date.today()
+    if body.currency:
+        results = [backfill_fx_rate(db, body.currency, body.start, end)]
+    else:
+        results = backfill_all_fx_rates(db, body.start, end)
+    db.commit()
+    return PriceFetchResponse(
+        results=[
+            FetchResultRead(instrument_id=r.instrument_id, status=r.status, detail=r.detail)
+            for r in results
+        ]
     )
