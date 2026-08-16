@@ -98,6 +98,29 @@ _QUANTITY_BEARING_TYPES = {
 }
 
 
+def _adjust_cost_basis(queue: "deque[Lot]", amount_eur: Decimal) -> None:
+    """Spreads a cost-only correction across the lots currently held.
+
+    Proportional to each lot's cost so the split is stable under later
+    FIFO consumption; by quantity when the lots carry no cost at all
+    (a fully written-down holding), and dropped entirely when there is
+    nothing on hand — there is no position left for the correction to
+    attach to, and inventing a lot with no shares would corrupt FIFO.
+    """
+    if not queue or amount_eur == 0:
+        return
+    total_cost = sum((lot.quantity * lot.unit_cost_eur for lot in queue), Decimal(0))
+    total_qty = sum((lot.quantity for lot in queue), Decimal(0))
+    for lot in queue:
+        if total_cost != 0:
+            share = (lot.quantity * lot.unit_cost_eur) / total_cost
+        elif total_qty != 0:
+            share = lot.quantity / total_qty
+        else:
+            return
+        lot.unit_cost_eur += (amount_eur * share) / lot.quantity
+
+
 def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]:
     """Replays events in (date, order) sequence and returns the resulting
     position per (account_id, instrument_id). Only events that actually
@@ -154,6 +177,15 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
         if event.type in (TransactionType.BUY, TransactionType.OPENING_BALANCE):
             assert event.instrument_id is not None and event.quantity is not None
             queue = _queue(event.account_id, event.instrument_id)
+            if event.quantity == 0:
+                # A zero-quantity entry is a pure cost-basis correction, not
+                # a lot: supersede emits exactly this when a backfill explains
+                # every share but not the full cost basis. There is no unit
+                # cost to divide out, so spread the amount over the lots on
+                # hand instead — proportionally to their cost where there is
+                # any, otherwise by quantity.
+                _adjust_cost_basis(queue, event.amount_eur)
+                continue
             queue.append(
                 Lot(
                     quantity=event.quantity,
