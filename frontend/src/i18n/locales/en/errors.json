@@ -24,5 +24,6 @@
   "sell_exceeds_holding": "Sell quantity exceeds the holding.",
   "unknown_price_provider": "Unknown price provider.",
   "no_price_available": "No price available for {{date}} — enter a price manually or backfill price history first.",
-  "generic": "Something went wrong."
+  "generic": "Something went wrong.",
+  "invalid_amount": "That amount isn't a valid number."
 }

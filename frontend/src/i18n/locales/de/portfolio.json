@@ -21,7 +21,8 @@
     "emptyHint": "Für dieses Instrument eine Factsheet-Aufschlüsselung hinterlegen, um es hier zu sehen."
   },
   "targetVsActual": {
-    "title": "Ziel vs. Ist"
+    "title": "Ziel vs. Ist",
+    "scopeNote": "Nur handelbare Positionen — Immobilien, Fahrzeuge und Kredite zählen hier nicht mit."
   },
   "realAssetsLoans": {
     "title": "Sachwerte & Kredite",

@@ -17,6 +17,7 @@ import {
 import type { AttributionPeriod } from "../../lib/api";
 import { ChartTooltip } from "../charts/ChartTooltip";
 import {
+  shouldAnimateCharts,
   ATTRIBUTION_COLORS,
   CHART_MARGINS,
   axisProps,
@@ -89,6 +90,7 @@ export function MonthlyCompositionChart({
           />
           {SERIES.map((key) => (
             <Bar
+              isAnimationActive={shouldAnimateCharts()}
               key={key}
               dataKey={key}
               name={t(`attribution.buckets.${key}`)}

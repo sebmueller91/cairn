@@ -8,12 +8,11 @@ import {
   type Transaction,
   type TransactionType,
 } from "../../lib/api";
-import { formatDate } from "../../lib/format";
+import { formatCurrency, formatDate } from "../../lib/format";
 import { DataTable, type Column } from "../ui/DataTable";
 import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
-import { SignedAmount } from "./SignedAmount";
 import { TableSkeleton } from "./TableSkeleton";
 
 const TRANSACTION_TYPES: TransactionType[] = [
@@ -110,7 +109,11 @@ export function LedgerView() {
       key: "amount",
       header: t("data:ledger.amount"),
       align: "right",
-      render: (tx) => <SignedAmount value={tx.amount_eur} lang={i18n.language} />,
+      // A booking's amount is a magnitude, not a gain: the ledger stores
+      // every type as a positive figure and the type column carries the
+      // direction. Colouring it green with an up-arrow would read as
+      // profit on rows that are purchases.
+      render: (tx) => <span className="tnum">{formatCurrency(tx.amount_eur, i18n.language)}</span>,
     },
     {
       key: "note",

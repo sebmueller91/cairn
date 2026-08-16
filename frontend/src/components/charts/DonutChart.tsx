@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
+import { shouldAnimateCharts } from "./chartTheme";
 
 export type DonutSlice = { name: string; value: number; color: string };
 
@@ -33,6 +34,7 @@ export function DonutChart({
             outerRadius="85%"
             paddingAngle={2}
             stroke="none"
+            isAnimationActive={shouldAnimateCharts()}
           >
             {data.map((slice) => (
               <Cell key={slice.name} fill={slice.color} />

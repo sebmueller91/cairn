@@ -32,7 +32,10 @@ export function useAnimatedNumber(target: number, durationMs = 600): number {
       return;
     }
     const from = displayRef.current;
-    if (prefersReducedMotion() || durationMs <= 0 || from === target) {
+    // document.hidden covers a tab that is already in the background when
+    // this mounts: no frames will fire, so animating would just freeze the
+    // display on the old value.
+    if (prefersReducedMotion() || durationMs <= 0 || from === target || document.hidden) {
       displayRef.current = target;
       setDisplay(target);
       return;
@@ -50,8 +53,22 @@ export function useAnimatedNumber(target: number, durationMs = 600): number {
       if (t < 1) frame = requestAnimationFrame(step);
     };
 
+    // A hidden tab stops firing frames, which would strand the display on
+    // an intermediate value — a materially wrong euro figure, not just an
+    // unfinished animation. Snap to the real number instead.
+    const snapIfHidden = () => {
+      if (!document.hidden) return;
+      cancelAnimationFrame(frame);
+      displayRef.current = target;
+      setDisplay(target);
+    };
+
     frame = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(frame);
+    document.addEventListener("visibilitychange", snapIfHidden);
+    return () => {
+      cancelAnimationFrame(frame);
+      document.removeEventListener("visibilitychange", snapIfHidden);
+    };
   }, [target, durationMs]);
 
   return display;

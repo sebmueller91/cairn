@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
 import {
+  shouldAnimateCharts,
   CHART_MARGINS,
   axisProps,
   compactTickFormatter,
@@ -72,6 +73,7 @@ export function GradientAreaChart({
           }
         />
         <Area
+          isAnimationActive={shouldAnimateCharts()}
           type="monotone"
           dataKey="value"
           stroke={color}

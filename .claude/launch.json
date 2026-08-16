@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "cairn-frontend-qa",
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "CAIRN_API_URL=http://localhost:8100 npm run dev --prefix frontend -- --port 5273"],
+      "port": 5273
+    },
+    {
       "name": "cairn-frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--prefix", "frontend"],

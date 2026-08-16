@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { api, ApiError, type Account, type Transaction } from "../lib/api";
+import { parseDecimalInput } from "../lib/decimalInput";
 import { useOnlineStatus } from "../lib/online";
 import { Modal } from "./ui/Modal";
 import { EmptyState } from "./ui/EmptyState";
@@ -85,11 +86,11 @@ export function CashBalanceModal({
   const submitBalance = useMutation({
     mutationFn: () => {
       if (!selectedAccount) throw new Error("no_account_selected");
-      // Comma or dot both mean "decimal separator" to a user typing in de
-      // or en locale; the wire format is always a plain decimal string
-      // (ADR 0001) so this normalizes before it ever reaches parseFloat-free
-      // code — never coerce to `number` here.
-      const normalized = balance.trim().replace(",", ".");
+      // Whatever the user typed becomes a plain decimal string here (ADR
+      // 0001: money never becomes a float). Grouping separators included —
+      // "12.345,67" is what a German keyboard produces naturally.
+      const normalized = parseDecimalInput(balance);
+      if (normalized === null) throw new ApiError(400, "invalid_amount", {});
       return api.post<Transaction>("/api/transactions", {
         external_id: newExternalId(),
         date,

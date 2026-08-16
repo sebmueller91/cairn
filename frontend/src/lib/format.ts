@@ -36,11 +36,18 @@ export function formatPercent(
   options?: Intl.NumberFormatOptions,
 ): string {
   const n = typeof value === "string" ? Number(value) : value;
+  const { minimumFractionDigits, maximumFractionDigits, ...rest } = options ?? {};
+  // One decimal by default, but a caller asking for whole percent
+  // (maximumFractionDigits: 0) must not collide with that default minimum —
+  // Intl throws a RangeError when min > max, which takes down the whole
+  // subtree rendering the number.
+  const max = maximumFractionDigits ?? Math.max(1, minimumFractionDigits ?? 1);
+  const min = minimumFractionDigits ?? Math.min(1, max);
   return new Intl.NumberFormat(intlLocale(lang), {
     style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-    ...options,
+    minimumFractionDigits: min,
+    maximumFractionDigits: max,
+    ...rest,
   }).format(n);
 }
 

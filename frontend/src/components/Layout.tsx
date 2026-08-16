@@ -129,7 +129,10 @@ export function Layout() {
   return (
     <div className="flex min-h-screen bg-bg text-text">
       <Sidebar />
-      <div className="flex flex-1 flex-col">
+      {/* min-w-0: a flex child defaults to min-width:auto, so one wide chart
+          or table would push the whole column past the viewport and scroll
+          the page sideways. Wide content scrolls inside its own card. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <Header />
         <main className="mx-auto w-full max-w-6xl flex-1 p-4 pb-20 md:p-6 md:pb-6">
           <Outlet />

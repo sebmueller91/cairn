@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Flag } from "lucide-react";
 import type { AllocationTimeseriesPoint, MilestoneResponse } from "../../lib/api";
@@ -137,6 +137,16 @@ export function MilestoneJourney({
       ? (journey.current / journey.next) * 100
       : 0;
 
+  // The path can be wider than the card once enough rungs are crossed, and
+  // the interesting end is the right one — the milestone still ahead. Park
+  // the scroll there instead of on ancient history.
+  const pathRef = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const path = pathRef.current;
+    if (!path) return;
+    path.scrollLeft = path.scrollWidth - path.clientWidth;
+  }, [journey]);
+
   function projectionLabel(): string {
     if (serverDate) return formatMonthYear(serverDate, i18n.language);
     if (projectedDate) return `≈ ${formatMonthYear(projectedDate, i18n.language)}`;
@@ -183,7 +193,7 @@ export function MilestoneJourney({
         <>
           {/* Desktop: a path walked left to right. Scrolls sideways rather
               than squeezing, so a long history stays legible. */}
-          <ol className="no-scrollbar mt-2 hidden overflow-x-auto md:flex">
+          <ol ref={pathRef} className="no-scrollbar mt-2 hidden overflow-x-auto md:flex">
             {journey.nodes.map((node, i) => {
               const first = i === 0;
               const last = i === journey.nodes.length - 1;

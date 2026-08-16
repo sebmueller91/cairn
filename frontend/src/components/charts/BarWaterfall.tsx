@@ -25,6 +25,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { ChartTooltip } from "./ChartTooltip";
 import {
+  shouldAnimateCharts,
   CHART_MARGINS,
   axisProps,
   compactTickFormatter,
@@ -56,7 +57,19 @@ export function BarWaterfall({
     <ResponsiveContainer width="100%" height={height}>
       <BarChart data={data} margin={CHART_MARGINS}>
         <CartesianGrid {...gridProps} />
-        <XAxis dataKey="name" {...axisProps} interval={0} />
+        {/* Every bar must keep its label (interval 0), but the category
+            names are whole words — "Bewertungsänderungen" — so they only
+            fit on an angle. The extra height is the axis's own, leaving
+            CHART_MARGINS untouched. */}
+        <XAxis
+          dataKey="name"
+          {...axisProps}
+          interval={0}
+          angle={-30}
+          textAnchor="end"
+          height={72}
+          fontSize={11}
+        />
         <YAxis
           {...axisProps}
           orientation="right"
@@ -70,7 +83,7 @@ export function BarWaterfall({
           }
         />
         <Bar dataKey="base" stackId="w" fill="transparent" isAnimationActive={false} />
-        <Bar dataKey="delta" stackId="w" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="delta" stackId="w" radius={[4, 4, 0, 0]} isAnimationActive={shouldAnimateCharts()}>
           {data.map((bar) => (
             <Cell key={bar.name} fill={bar.color} />
           ))}

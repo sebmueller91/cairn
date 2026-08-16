@@ -21,7 +21,8 @@
     "emptyHint": "Add a factsheet breakdown for this instrument to see it here."
   },
   "targetVsActual": {
-    "title": "Target vs. actual"
+    "title": "Target vs. actual",
+    "scopeNote": "Tradeable positions only — real estate, vehicles and loans are excluded here."
   },
   "realAssetsLoans": {
     "title": "Real assets & loans",

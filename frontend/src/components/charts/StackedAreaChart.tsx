@@ -23,6 +23,7 @@ import {
 } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
 import {
+  shouldAnimateCharts,
   CHART_MARGINS,
   axisProps,
   compactTickFormatter,
@@ -97,6 +98,7 @@ export function StackedAreaChart({
         />
         {series.map((s) => (
           <Area
+            isAnimationActive={shouldAnimateCharts()}
             key={s.key}
             type="monotone"
             dataKey={s.key}

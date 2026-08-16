@@ -88,7 +88,11 @@ export function TargetVsActualCard() {
 
   return (
     <GlassCard>
-      <h2 className="mb-4 font-medium">{t("targetVsActual.title")}</h2>
+      <h2 className="font-medium">{t("targetVsActual.title")}</h2>
+      {/* Without this the card reads as contradicting the donut above: the
+          rebalancing endpoint only counts tradeable positions, so a house
+          shows as 0% here while it dominates the allocation chart. */}
+      <p className="mb-4 mt-1 text-xs text-text-muted">{t("targetVsActual.scopeNote")}</p>
       {isLoading ? (
         <div className="space-y-4">
           <Skeleton className="h-6 w-full" />

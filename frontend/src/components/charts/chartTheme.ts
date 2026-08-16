@@ -3,9 +3,23 @@
 
 import { formatCurrency, formatDate, formatNumber } from "../../lib/format";
 import { ASSET_CLASS_COLORS } from "../../lib/assetClasses";
+import { prefersReducedMotion } from "../../lib/motion";
 
 export { ASSET_CLASS_COLORS };
 export type { AssetClass } from "../../lib/assetClasses";
+
+/**
+ * Pass to every animated Recharts series as `isAnimationActive`.
+ *
+ * Recharts drives its entry animation with requestAnimationFrame, which a
+ * hidden tab never fires — a chart mounted in a background tab would stay
+ * frozen at frame zero (i.e. blank) even after the tab is shown again. It
+ * also can't see the CSS reduced-motion kill-switch, being JS-driven. In
+ * both cases the chart should simply draw itself finished.
+ */
+export function shouldAnimateCharts(): boolean {
+  return !prefersReducedMotion() && !(typeof document !== "undefined" && document.hidden);
+}
 
 /**
  * FIXED — do not change per chart.

@@ -11,6 +11,7 @@ import {
 } from "recharts";
 import { ChartTooltip } from "./ChartTooltip";
 import {
+  shouldAnimateCharts,
   CHART_MARGINS,
   axisProps,
   compactTickFormatter,
@@ -80,6 +81,7 @@ export function LineCompareChart({
           }
         />
         <Line
+          isAnimationActive={shouldAnimateCharts()}
           type="monotone"
           dataKey="a"
           name={primaryLabel}
@@ -90,6 +92,7 @@ export function LineCompareChart({
         />
         {secondary && (
           <Line
+            isAnimationActive={shouldAnimateCharts()}
             type="monotone"
             dataKey="b"
             name={secondaryLabel}
