@@ -1,5 +1,7 @@
 {
   "title": "Performance",
+  "building_title": "Under construction",
+  "building_hint": "This view is being rebuilt and will be back shortly.",
   "periods": {
     "1M": "1M",
     "3M": "3M",

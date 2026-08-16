@@ -332,3 +332,31 @@ export interface MilestoneResponse {
   months_to_reach: number | null;
   estimated_date: string | null;
 }
+
+// Net worth decomposed by asset class over time (GET /api/timeseries/allocation).
+// `values` is keyed by AssetClass; a missing key means 0 for that date, not
+// "unknown" — the backend only emits buckets that actually had a row.
+// LIABILITY, when present, is negative (loans reduce net worth).
+export interface AllocationTimeseriesPoint {
+  date: string;
+  values: Record<string, string>;
+}
+
+export function getAllocationTimeseries(params: {
+  from?: string;
+  to?: string;
+  granularity?: "day" | "week" | "month";
+}): Promise<AllocationTimeseriesPoint[]> {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.granularity) query.set("granularity", params.granularity);
+  const qs = query.toString();
+  return api.get<AllocationTimeseriesPoint[]>(
+    `/api/timeseries/allocation${qs ? `?${qs}` : ""}`,
+  );
+}
+
+export function getHealth(): Promise<Health> {
+  return api.get<Health>("/api/health");
+}

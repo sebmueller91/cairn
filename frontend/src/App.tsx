@@ -1,16 +1,13 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "./lib/auth";
+import { AssetFilterProvider } from "./lib/assetFilter";
 import { Layout } from "./components/Layout";
 import { Login } from "./pages/Login";
-import { Dashboard } from "./pages/Dashboard";
-import { Performance } from "./pages/Performance";
-import { Allocation } from "./pages/Allocation";
-import { Tax } from "./pages/Tax";
-import { Positions } from "./pages/Positions";
-import { Transactions } from "./pages/Transactions";
-import { Accounts } from "./pages/Accounts";
-import { Instruments } from "./pages/Instruments";
-import { Assets } from "./pages/Assets";
+import { Overview } from "./pages/Overview";
+import { Wealth } from "./pages/Wealth";
+import { Portfolio } from "./pages/Portfolio";
+import { PerformanceHub } from "./pages/PerformanceHub";
+import { Data } from "./pages/Data";
 import { Settings } from "./pages/Settings";
 
 export function App() {
@@ -24,21 +21,19 @@ export function App() {
   if (!scope) return <Login />;
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route index element={<Dashboard />} />
-          <Route path="performance" element={<Performance />} />
-          <Route path="allocation" element={<Allocation />} />
-          <Route path="tax" element={<Tax />} />
-          <Route path="positions" element={<Positions />} />
-          <Route path="transactions" element={<Transactions />} />
-          <Route path="accounts" element={<Accounts />} />
-          <Route path="instruments" element={<Instruments />} />
-          <Route path="assets" element={<Assets />} />
-          <Route path="settings" element={<Settings />} />
-        </Route>
-      </Routes>
-    </BrowserRouter>
+    <AssetFilterProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route index element={<Overview />} />
+            <Route path="wealth" element={<Wealth />} />
+            <Route path="portfolio" element={<Portfolio />} />
+            <Route path="performance" element={<PerformanceHub />} />
+            <Route path="data" element={<Data />} />
+            <Route path="settings" element={<Settings />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </AssetFilterProvider>
   );
 }

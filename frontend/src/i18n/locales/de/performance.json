@@ -1,5 +1,7 @@
 {
   "title": "Performance",
+  "building_title": "Wird gebaut",
+  "building_hint": "Diese Ansicht entsteht gerade neu und ist bald wieder da.",
   "periods": {
     "1M": "1M",
     "3M": "3M",

@@ -1,114 +1,140 @@
-import { useCallback, useSyncExternalStore } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { useQueryClient } from "@tanstack/react-query";
+import {
+  LayoutDashboard,
+  TrendingUp,
+  PieChart,
+  Activity,
+  Table2,
+  Settings as SettingsIcon,
+  LogOut,
+} from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { useOnlineStatus } from "../lib/online";
-import { formatDateTime } from "../lib/format";
-import { ThemeToggle } from "./ThemeToggle";
-import { LanguageToggle } from "./LanguageToggle";
-
-const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
-
-// Rolls up the oldest dataUpdatedAt across every currently-mounted query,
-// not just one endpoint — the status bar should reflect the actual data
-// on screen, which may be a mix of ages once IndexedDB-cached pages are
-// visited offline.
-function useOldestDataUpdatedAt(): number | null {
-  const queryClient = useQueryClient();
-  const subscribe = useCallback(
-    (onStoreChange: () => void) => queryClient.getQueryCache().subscribe(onStoreChange),
-    [queryClient],
-  );
-  const getSnapshot = useCallback(() => {
-    const mounted = queryClient
-      .getQueryCache()
-      .getAll()
-      .filter((q) => q.getObserversCount() > 0 && q.state.dataUpdatedAt > 0);
-    if (!mounted.length) return null;
-    return Math.min(...mounted.map((q) => q.state.dataUpdatedAt));
-  }, [queryClient]);
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-}
+import { FreshnessIndicator } from "./FreshnessIndicator";
 
 const NAV_ITEMS = [
-  { to: "/", key: "dashboard" },
-  { to: "/performance", key: "performance" },
-  { to: "/allocation", key: "allocation" },
-  { to: "/tax", key: "tax" },
-  { to: "/positions", key: "positions" },
-  { to: "/transactions", key: "transactions" },
-  { to: "/accounts", key: "accounts" },
-  { to: "/instruments", key: "instruments" },
-  { to: "/assets", key: "assets" },
-  { to: "/settings", key: "settings" },
+  { to: "/", key: "overview", icon: LayoutDashboard },
+  { to: "/wealth", key: "wealth", icon: TrendingUp },
+  { to: "/portfolio", key: "portfolio", icon: PieChart },
+  { to: "/performance", key: "performance", icon: Activity },
+  { to: "/data", key: "data", icon: Table2 },
 ] as const;
 
-function navLinkClass({ isActive }: { isActive: boolean }) {
+function sidebarLinkClass({ isActive }: { isActive: boolean }) {
   return [
-    "block rounded-md px-3 py-2 text-sm font-medium",
-    isActive
-      ? "bg-accent text-accent-fg"
-      : "text-text-muted hover:bg-bg-subtle hover:text-text",
+    "group relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+    isActive ? "bg-accent/10 text-accent" : "text-text-muted hover:text-text",
   ].join(" ");
 }
 
-function FreshnessIndicator() {
-  const { t, i18n } = useTranslation("common");
-  const online = useOnlineStatus();
-  const oldest = useOldestDataUpdatedAt();
+function tabLinkClass({ isActive }: { isActive: boolean }) {
+  return [
+    "flex flex-1 flex-col items-center justify-center gap-0.5 py-1.5 text-[10px] font-medium",
+    isActive ? "text-accent" : "text-text-muted",
+  ].join(" ");
+}
 
-  if (oldest == null) return null;
-  const isStale = Date.now() - oldest > STALE_AFTER_MS;
-  const asOf = t("status.asOf", { date: formatDateTime(new Date(oldest), i18n.language) });
-
+/** Desktop sidebar (md and up) — icons, labels, and a glowing active bar. */
+function Sidebar() {
+  const { t } = useTranslation("common");
   return (
-    <span
-      className={[
-        "tnum rounded px-1.5 py-0.5 text-xs",
-        isStale ? "bg-warning/10 text-warning" : "text-text-muted",
-      ].join(" ")}
-      title={isStale ? t("status.stale") : undefined}
-    >
-      {asOf}
-      {!online && ` · ${t("status.offline")}`}
-    </span>
+    <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-bg-card p-4 backdrop-blur-glass md:flex">
+      <div className="mb-6 flex items-center gap-2 px-3">
+        <span
+          aria-hidden
+          className="size-2 rounded-full bg-accent"
+          style={{ boxShadow: "var(--glow-accent)" }}
+        />
+        <span className="text-lg font-semibold tracking-tight">Cairn</span>
+      </div>
+      <nav className="space-y-1">
+        {NAV_ITEMS.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink key={item.to} to={item.to} end={item.to === "/"} className={sidebarLinkClass}>
+              {({ isActive }) => (
+                <>
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-accent"
+                      style={{ boxShadow: "var(--glow-accent)" }}
+                    />
+                  )}
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  {t(`nav.${item.key}`)}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
+    </aside>
   );
 }
 
-export function Layout() {
+/** Mobile bottom tab bar (below md), fixed, safe-area aware. */
+function BottomTabs() {
+  const { t } = useTranslation("common");
+  return (
+    <nav
+      className="fixed inset-x-0 bottom-0 z-20 flex border-t border-border bg-bg-card backdrop-blur-glass md:hidden"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      {NAV_ITEMS.map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink key={item.to} to={item.to} end={item.to === "/"} className={tabLinkClass}>
+            <Icon className="size-5" aria-hidden />
+            {t(`nav.${item.key}`)}
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
+function Header() {
   const { t } = useTranslation("common");
   const { logout } = useAuth();
 
   return (
+    <header className="flex items-center justify-between border-b border-border bg-bg-card px-4 py-3 backdrop-blur-glass md:px-6">
+      <div className="flex items-center gap-3">
+        {/* Wordmark only shows here on mobile — the sidebar already carries it on desktop. */}
+        <span className="text-sm font-semibold tracking-tight md:hidden">Cairn</span>
+        <FreshnessIndicator />
+      </div>
+      <div className="flex items-center gap-3">
+        <NavLink
+          to="/settings"
+          className="text-text-muted hover:text-text"
+          aria-label={t("nav.settings")}
+        >
+          <SettingsIcon className="size-4" aria-hidden />
+        </NavLink>
+        <button
+          onClick={() => logout()}
+          className="flex items-center gap-1 text-sm text-text-muted hover:text-text"
+        >
+          <LogOut className="size-4" aria-hidden />
+          <span className="hidden sm:inline">{t("actions.logout")}</span>
+        </button>
+      </div>
+    </header>
+  );
+}
+
+export function Layout() {
+  return (
     <div className="flex min-h-screen bg-bg text-text">
-      <aside className="w-56 shrink-0 border-r border-border p-4">
-        <div className="mb-6 px-3 text-lg font-semibold">Cairn</div>
-        <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <NavLink key={item.to} to={item.to} end={item.to === "/"} className={navLinkClass}>
-              {t(`nav.${item.key}`)}
-            </NavLink>
-          ))}
-        </nav>
-      </aside>
+      <Sidebar />
       <div className="flex flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-border px-6 py-3">
-          <FreshnessIndicator />
-          <div className="flex items-center gap-3">
-            <LanguageToggle />
-            <ThemeToggle />
-            <button
-              onClick={() => logout()}
-              className="text-sm text-text-muted hover:text-text"
-            >
-              {t("actions.logout")}
-            </button>
-          </div>
-        </header>
-        <main className="flex-1 p-6">
+        <Header />
+        <main className="mx-auto w-full max-w-6xl flex-1 p-4 pb-20 md:p-6 md:pb-6">
           <Outlet />
         </main>
+        <BottomTabs />
       </div>
     </div>
   );

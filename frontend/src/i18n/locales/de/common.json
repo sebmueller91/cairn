@@ -1,7 +1,11 @@
 {
   "nav": {
     "dashboard": "Übersicht",
+    "overview": "Überblick",
+    "wealth": "Vermögen",
+    "portfolio": "Portfolio",
     "performance": "Performance",
+    "data": "Daten",
     "allocation": "Allokation",
     "tax": "Steuern",
     "positions": "Positionen",
@@ -18,7 +22,21 @@
     "delete": "Löschen",
     "edit": "Bearbeiten",
     "logout": "Abmelden",
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "updateCash": "Kontostand aktualisieren"
+  },
+  "assetClass": {
+    "EQUITY": "Aktien & ETFs",
+    "BOND": "Anleihen",
+    "COMMODITY": "Rohstoffe",
+    "CRYPTO": "Krypto",
+    "REAL_ESTATE": "Immobilien",
+    "VEHICLE": "Fahrzeuge",
+    "CASH": "Bargeld",
+    "LIABILITY": "Schulden"
+  },
+  "filter": {
+    "reset": "Alle anzeigen"
   },
   "status": {
     "loading": "Lädt…",

@@ -9,6 +9,10 @@ import deErrors from "./locales/de/errors.json";
 import dePerformance from "./locales/de/performance.json";
 import deAllocation from "./locales/de/allocation.json";
 import deTax from "./locales/de/tax.json";
+import deOverview from "./locales/de/overview.json";
+import deWealth from "./locales/de/wealth.json";
+import dePortfolio from "./locales/de/portfolio.json";
+import deData from "./locales/de/data.json";
 import enCommon from "./locales/en/common.json";
 import enDashboard from "./locales/en/dashboard.json";
 import enAssets from "./locales/en/assets.json";
@@ -17,6 +21,10 @@ import enErrors from "./locales/en/errors.json";
 import enPerformance from "./locales/en/performance.json";
 import enAllocation from "./locales/en/allocation.json";
 import enTax from "./locales/en/tax.json";
+import enOverview from "./locales/en/overview.json";
+import enWealth from "./locales/en/wealth.json";
+import enPortfolio from "./locales/en/portfolio.json";
+import enData from "./locales/en/data.json";
 
 const STORAGE_KEY = "cairn-language";
 
@@ -40,6 +48,10 @@ i18n
         performance: dePerformance,
         allocation: deAllocation,
         tax: deTax,
+        overview: deOverview,
+        wealth: deWealth,
+        portfolio: dePortfolio,
+        data: deData,
       },
       en: {
         common: enCommon,
@@ -50,6 +62,10 @@ i18n
         performance: enPerformance,
         allocation: enAllocation,
         tax: enTax,
+        overview: enOverview,
+        wealth: enWealth,
+        portfolio: enPortfolio,
+        data: enData,
       },
     },
     lng: stored === "en" ? "en" : "de",
@@ -64,6 +80,10 @@ i18n
       "performance",
       "allocation",
       "tax",
+      "overview",
+      "wealth",
+      "portfolio",
+      "data",
     ],
     interpolation: { escapeValue: false },
   });
