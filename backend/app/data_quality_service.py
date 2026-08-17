@@ -12,9 +12,12 @@ from sqlalchemy.orm import Session
 
 from app.ledger import compute_positions, txn_to_event
 from app.models import (
+    Account,
+    AccountType,
     EtfComposition,
     Instrument,
     PricePoint,
+    TransactionType,
     Txn,
     ValuationAnchor,
     ValuationMode,
@@ -34,6 +37,12 @@ STALE_BACKUP_HOURS = 48
 # the order of a point a year, which makes a year the point where the
 # breakdown is worth a look rather than the point where it's wrong.
 STALE_COMPOSITION_DAYS = 365
+# A cash balance has no market price to refresh it: past the last
+# statement the snapshot engine simply carries the figure forward, so its
+# only protection against silent drift is being told how old it is. Three
+# months is roughly the point where a current account has moved enough
+# that the number is worth re-reading off the bank.
+STALE_CASH_STATEMENT_DAYS = 90
 # Same file scripts/backup.sh writes and app.routers.health reads — a
 # module-level path rather than importing health.py, so this stays a
 # read-only aggregation with no dependency on another router.
@@ -169,7 +178,51 @@ def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQuali
                         )
                     )
 
+    issues.extend(_cash_statement_issues(db, as_of))
     issues.extend(_composition_issues(db, positions, instruments, as_of))
+    return issues
+
+
+def _cash_statement_issues(db: Session, as_of: date) -> list[DataQualityIssue]:
+    """Flags cash accounts whose last balance statement has gone stale.
+
+    Unlike a position, a cash account carries no instrument and no price,
+    so nothing else in this panel would ever mention it — and the
+    snapshot engine keeps reporting the last known balance indefinitely.
+    An account that never had a statement at all is not flagged: it holds
+    nothing and contributes nothing, which is not a data-quality problem.
+    """
+    issues: list[DataQualityIssue] = []
+    accounts = (
+        db.query(Account)
+        .filter(Account.type == AccountType.CASH, Account.archived.is_(False))
+        .all()
+    )
+    for account in accounts:
+        latest = (
+            db.query(Txn)
+            .filter(
+                Txn.account_id == account.id,
+                Txn.type == TransactionType.BALANCE_STATEMENT,
+                Txn.voided_at.is_(None),
+            )
+            .order_by(Txn.date.desc())
+            .first()
+        )
+        if latest is None:
+            continue
+        age = (as_of - latest.date).days
+        if age > STALE_CASH_STATEMENT_DAYS:
+            issues.append(
+                DataQualityIssue(
+                    kind="stale_cash_statement",
+                    account_id=account.id,
+                    detail=(
+                        f"{account.name}: last balance statement is {age} days old"
+                    ),
+                    age_days=age,
+                )
+            )
     return issues
 
 

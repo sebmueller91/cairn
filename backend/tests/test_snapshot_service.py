@@ -181,3 +181,65 @@ def test_rebuild_is_idempotent_and_wipes_stale_rows(client, auth_headers, db_ses
 
     assert first_count == second_count
     assert first_count > 0
+
+
+def test_cash_balance_carries_forward_past_the_last_statement(
+    client, auth_headers, db_session
+):
+    """The day after the last statement must not read as a balance of zero.
+
+    Nothing refreshes a cash account the way a price feed refreshes an
+    instrument, so the absence of a newer statement is the normal state,
+    not a signal that the money is gone. Before this, the account simply
+    stopped being written and its whole balance dropped out of net worth
+    overnight — silently, because a missing snapshot row and a genuine
+    zero are indistinguishable downstream.
+    """
+    from app.models import DailySnapshot
+    from app.snapshot_service import rebuild_snapshots
+
+    cash_account = _create_account(client, auth_headers, name="Giro", type_="CASH")
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": "carry-bal-1",
+            "date": "2024-03-01",
+            "type": "BALANCE_STATEMENT",
+            "account_id": cash_account,
+            "amount": "4200.00",
+            "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+
+    rebuild_snapshots(db_session)
+
+    def cash_on(d):
+        row = (
+            db_session.query(DailySnapshot)
+            .filter(
+                DailySnapshot.date == d,
+                DailySnapshot.scope_type == "cash_account",
+                DailySnapshot.scope_id == str(cash_account),
+            )
+            .first()
+        )
+        return row.value_eur if row else None
+
+    assert cash_on(date(2024, 3, 1)) == Decimal("4200.00")
+    assert cash_on(date(2024, 3, 2)) == Decimal("4200.00")
+    assert cash_on(date.today()) == Decimal("4200.00")
+    # ...but only forward. A date before the account had any statement is
+    # unknown, not 4200, and must stay absent.
+    assert cash_on(date(2024, 2, 28)) is None
+
+    total = (
+        db_session.query(DailySnapshot)
+        .filter(
+            DailySnapshot.date == date.today(),
+            DailySnapshot.scope_type == "total",
+            DailySnapshot.scope_id == "investable",
+        )
+        .first()
+    )
+    assert total.value_eur == Decimal("4200.00")

@@ -275,3 +275,77 @@ def test_backup_issue_stale_backup_is_flagged(tmp_path, monkeypatch):
     assert issue is not None
     assert issue.kind == "stale_backup"
     assert issue.age_days == 3
+
+
+def _cash_account_with_statement(client, auth_headers, name, ext_id, when):
+    account = client.post(
+        "/api/accounts",
+        json={"name": name, "type": "CASH", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()["id"]
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": ext_id, "date": str(when), "type": "BALANCE_STATEMENT",
+            "account_id": account, "amount": "1000.00", "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+    return account
+
+
+def test_stale_cash_statement_is_flagged(client, auth_headers):
+    """The snapshot engine carries the last balance forward forever, so
+    ageing is the only thing that keeps a carried figure honest."""
+    from app.data_quality_service import STALE_CASH_STATEMENT_DAYS, check_data_quality
+    from app.database import SessionLocal
+
+    today = date.today()
+    old = today - timedelta(days=STALE_CASH_STATEMENT_DAYS + 5)
+    account = _cash_account_with_statement(client, auth_headers, "Altes Giro", "dq-cash-old", old)
+
+    db = SessionLocal()
+    try:
+        issues = check_data_quality(db, as_of=today)
+    finally:
+        db.close()
+    flagged = [i for i in issues if i.kind == "stale_cash_statement" and i.account_id == account]
+    assert len(flagged) == 1
+    assert flagged[0].age_days == STALE_CASH_STATEMENT_DAYS + 5
+
+
+def test_recent_cash_statement_is_not_flagged(client, auth_headers):
+    from app.data_quality_service import check_data_quality
+    from app.database import SessionLocal
+
+    today = date.today()
+    account = _cash_account_with_statement(
+        client, auth_headers, "Frisches Giro", "dq-cash-new", today - timedelta(days=3)
+    )
+
+    db = SessionLocal()
+    try:
+        issues = check_data_quality(db, as_of=today)
+    finally:
+        db.close()
+    assert [i for i in issues if i.kind == "stale_cash_statement" and i.account_id == account] == []
+
+
+def test_cash_account_without_any_statement_is_not_flagged(client, auth_headers):
+    """An account that was never given a balance holds nothing and is
+    reported as nothing — there is no stale figure to warn about."""
+    from app.data_quality_service import check_data_quality
+    from app.database import SessionLocal
+
+    account = client.post(
+        "/api/accounts",
+        json={"name": "Leeres Konto", "type": "CASH", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()["id"]
+
+    db = SessionLocal()
+    try:
+        issues = check_data_quality(db, as_of=date.today())
+    finally:
+        db.close()
+    assert [i for i in issues if i.account_id == account] == []

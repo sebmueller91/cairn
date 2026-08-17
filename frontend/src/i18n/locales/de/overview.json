@@ -35,7 +35,10 @@
       "missing_valuation": "Keine Bewertung vorhanden",
       "no_cost_basis": "Keine Anschaffungskosten erfasst",
       "missing_backup": "Noch kein erfolgreiches Backup",
-      "stale_backup": "Backup ist veraltet"
+      "stale_backup": "Backup ist veraltet",
+      "stale_composition": "Aufteilung ist veraltet",
+      "composition_age_unknown": "Alter der Aufteilung unbekannt",
+      "stale_cash_statement": "Kontostand ist veraltet"
     }
   },
   "empty": {

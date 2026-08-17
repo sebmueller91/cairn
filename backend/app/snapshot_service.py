@@ -105,6 +105,9 @@ def rebuild_snapshots(db: Session) -> int:
     )
     known_deposits = [(d.date, d.amount_eur) for d in all_known_deposits(db)]
     cash_daily: dict[int, dict[date, Decimal]] = {}
+    # Last interpolated day per cash account, and the balance there — see
+    # the carry-forward in the snapshot loop below.
+    cash_last: dict[int, tuple[date, Decimal]] = {}
     for account in cash_accounts:
         statements = (
             db.query(Txn)
@@ -117,9 +120,13 @@ def rebuild_snapshots(db: Session) -> int:
             .all()
         )
         if statements:
-            cash_daily[account.id] = interpolate_cash_balance(
+            series = interpolate_cash_balance(
                 [(s.date, s.amount_eur) for s in statements], known_deposits
             )
+            cash_daily[account.id] = series
+            if series:
+                last_day = max(series)
+                cash_last[account.id] = (last_day, series[last_day])
 
     loans = db.query(Loan).all()
     loan_configs: dict[int, LoanConfig] = {}
@@ -214,7 +221,19 @@ def rebuild_snapshots(db: Session) -> int:
         for account_id, daily in cash_daily.items():
             balance = daily.get(day)
             if balance is None:
-                continue
+                last = cash_last.get(account_id)
+                # Interpolation only spans first statement → last statement.
+                # Before the first there is genuinely nothing to report;
+                # after the last there is no new information, which is not
+                # the same as a balance of zero. Carry the last reported
+                # figure forward — the same rule prices follow above — or
+                # the entire cash balance drops out of net worth on the
+                # day after the last statement, silently and by thousands.
+                # data_quality_service flags the balance as it ages so the
+                # carried figure is never mistaken for a fresh one.
+                if last is None or day < last[0]:
+                    continue
+                balance = last[1]
             db.add(
                 DailySnapshot(
                     date=day,

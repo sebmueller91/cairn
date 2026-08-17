@@ -35,7 +35,10 @@
       "missing_valuation": "No valuation data",
       "no_cost_basis": "No cost basis recorded",
       "missing_backup": "No successful backup yet",
-      "stale_backup": "Backup is stale"
+      "stale_backup": "Backup is stale",
+      "stale_composition": "Breakdown is stale",
+      "composition_age_unknown": "Breakdown age unknown",
+      "stale_cash_statement": "Cash balance is stale"
     }
   },
   "empty": {
