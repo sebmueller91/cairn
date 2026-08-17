@@ -2,9 +2,9 @@
 // period vocabulary has exactly one definition across the four cards.
 
 /** Ranges the Wealth page offers. `MAX` means "everything on record". */
-export type Period = "1M" | "3M" | "6M" | "1Y" | "MAX";
+export type Period = "1M" | "3M" | "6M" | "1Y" | "5Y" | "MAX";
 
-export const PERIODS: readonly Period[] = ["1M", "3M", "6M", "1Y", "MAX"];
+export const PERIODS: readonly Period[] = ["1M", "3M", "6M", "1Y", "5Y", "MAX"];
 
 export type Granularity = "day" | "week" | "month";
 
@@ -35,6 +35,12 @@ export function rangeFor(period: Period): {
       return { from: monthsBack(6), granularity: "week" };
     case "1Y":
       return { from: monthsBack(12), granularity: "week" };
+    case "5Y":
+      // Still weekly rather than monthly: ~260 points is nothing for the
+      // chart, and it keeps the shape of a drawdown visible. Monthly
+      // buckets smooth exactly the detail this range exists to show —
+      // MAX is where the ladder finally gives that up.
+      return { from: monthsBack(60), granularity: "week" };
     case "MAX":
       return { granularity: "month" };
   }
