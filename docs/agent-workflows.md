@@ -160,12 +160,44 @@ savings-rate resolution follows from how often these arrive (spec 3.6).
 
 ## 6. Mortgage overpayment, car valuation anchor
 
-**Not yet supported.** `LOAN_PAYMENT`, `EXTRA_REPAYMENT`, and `VALUATION`
-are recognized transaction types but the phase-4 API rejects them with
-`unsupported_transaction_type` — they need the `loan` and
-`valuation_anchor` tables, which arrive in phase 5 along with the house/car
-model. Don't attempt to work around this by booking them as a different
-type; wait for phase 5.
+Both live now (the tables arrived in phase 5).
+
+- A mortgage is a `LOAN` account plus a `POST /api/loans` row (`principal`,
+  `rate_pct`, `start_date`, `monthly_payment`). The balance is *derived*
+  from the amortization schedule, never stored — so to correct it, fix the
+  loan's parameters rather than booking an adjusting entry.
+- `POST /api/transactions` with `type: "EXTRA_REPAYMENT"` on the loan's
+  account books a Sondertilgung; it feeds back into the schedule.
+- `GET /api/loans/{id}/status?as_of=&house_instrument_id=` gives the balance
+  at any date, plus LTV when you pass the house instrument. The link is a
+  query parameter, not stored on the loan.
+- House and car: an `ANCHORED` / `MODELED` instrument holding quantity 1.
+  `POST /api/valuations` sets an anchor. An ANCHORED instrument is worth
+  **nothing before its first anchor**, so when backfilling, place an anchor
+  at or before the position's opening date or the whole history reads zero.
+
+---
+
+## 7. ETF region/sector breakdown (look-through)
+
+The breakdowns live in `docs/etf-compositions.json`, which is the source of
+truth — not the database. Edit the factsheet numbers there and re-run:
+
+```
+python3 scripts/apply-compositions.py --dry-run   # zeigt Summen je Dimension
+python3 scripts/apply-compositions.py
+```
+
+`PUT /api/instruments/{id}/composition` replaces one (instrument, dimension)
+pair wholesale, so the script is idempotent. Two things to keep in mind:
+
+- **Use one taxonomy across every instrument.** "USA" on one ETF and
+  "North America" on another will not aggregate — they become two slices.
+  The agreed category lists are in the file's `_taxonomie` block.
+- Instruments with no composition rows fall back to their own
+  `region`/`sector` fields, which is what makes a directly-held stock work
+  (it is trivially 100% of itself). Anything with neither lands in
+  `Unknown`, so a large Unknown slice means a missing breakdown, not a bug.
 
 ---
 
