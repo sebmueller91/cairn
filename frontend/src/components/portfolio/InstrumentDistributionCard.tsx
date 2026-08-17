@@ -28,7 +28,12 @@ export function InstrumentDistributionCard() {
         (p) =>
           p.instrument &&
           selected.has(p.instrument.asset_class) &&
-          p.value_eur !== null,
+          p.value_eur !== null &&
+          // A fully sold position stays in /api/positions so its realized
+          // P/L survives, but it holds nothing and therefore has no share
+          // of a distribution — it would only ever render as a 0,00 € row
+          // at the bottom of the ranking.
+          Number(p.value_eur) > 0,
       )
       .sort((a, b) => Number(b.value_eur) - Number(a.value_eur));
   }, [rows, selected]);
