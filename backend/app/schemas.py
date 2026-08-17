@@ -439,9 +439,14 @@ class EtfCompositionSet(BaseModel):
 
 
 class EtfCompositionRow(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     dimension: str
     category: str
     weight_pct: DecimalStr
+    # None for breakdowns entered before this was tracked — unknown age,
+    # not fresh. The data quality panel reports it either way.
+    updated_at: datetime | None = None
 
 
 class LookThroughRowRead(BaseModel):

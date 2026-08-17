@@ -11,7 +11,14 @@ from pathlib import Path
 from sqlalchemy.orm import Session
 
 from app.ledger import compute_positions, txn_to_event
-from app.models import Instrument, PricePoint, Txn, ValuationAnchor, ValuationMode
+from app.models import (
+    EtfComposition,
+    Instrument,
+    PricePoint,
+    Txn,
+    ValuationAnchor,
+    ValuationMode,
+)
 from app.valuation_service import current_instrument_value
 
 STALE_PRICE_DAYS = 7
@@ -22,6 +29,11 @@ STALE_VALUATION_DAYS = 730
 # spec 6.6: "the data quality panel warns when the last successful backup
 # is older than 48 hours."
 STALE_BACKUP_HOURS = 48
+# Fund compositions have no automatic source, so they only refresh when
+# somebody sits down with the factsheets. Index region weights drift on
+# the order of a point a year, which makes a year the point where the
+# breakdown is worth a look rather than the point where it's wrong.
+STALE_COMPOSITION_DAYS = 365
 # Same file scripts/backup.sh writes and app.routers.health reads — a
 # module-level path rather than importing health.py, so this stays a
 # read-only aggregation with no dependency on another router.
@@ -157,4 +169,69 @@ def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQuali
                         )
                     )
 
+    issues.extend(_composition_issues(db, positions, instruments, as_of))
+    return issues
+
+
+def _composition_issues(db, positions, instruments, as_of: date) -> list[DataQualityIssue]:
+    """Flags look-through breakdowns that are stale or of unknown age.
+
+    Only for instruments actually held and actually carrying a breakdown:
+    a directly-held share has none by design (it falls back to its own
+    region/sector fields), so its absence is not a defect. A *missing*
+    breakdown isn't reported here either — it already shows up in the
+    look-through itself as an "Unknown" slice, which is louder than a
+    line in a panel.
+    """
+    held = {
+        instrument_id
+        for (_, instrument_id), pos in positions.items()
+        if pos.quantity != 0
+    }
+    if not held:
+        return []
+
+    newest: dict[tuple[int, str], datetime | None] = {}
+    rows = (
+        db.query(EtfComposition)
+        .filter(EtfComposition.instrument_id.in_(held))
+        .all()
+    )
+    for row in rows:
+        key = (row.instrument_id, row.dimension)
+        if key not in newest:
+            newest[key] = row.updated_at
+        elif newest[key] is not None and (
+            row.updated_at is None or row.updated_at < newest[key]
+        ):
+            # The oldest row in a pair sets its age — the PUT writes them
+            # together, so a straggler means a partial or hand-edited write.
+            newest[key] = row.updated_at
+
+    issues: list[DataQualityIssue] = []
+    for (instrument_id, dimension), updated_at in sorted(newest.items()):
+        instrument = instruments.get(instrument_id)
+        if instrument is None:
+            continue
+        if updated_at is None:
+            issues.append(
+                DataQualityIssue(
+                    kind="composition_age_unknown",
+                    instrument_id=instrument_id,
+                    instrument_name=instrument.name,
+                    detail=f"{dimension} breakdown has no recorded entry date",
+                )
+            )
+            continue
+        age = (as_of - updated_at.date()).days
+        if age > STALE_COMPOSITION_DAYS:
+            issues.append(
+                DataQualityIssue(
+                    kind="stale_composition",
+                    instrument_id=instrument_id,
+                    instrument_name=instrument.name,
+                    detail=f"{dimension} breakdown is {age} days old",
+                    age_days=age,
+                )
+            )
     return issues

@@ -137,12 +137,16 @@ def test_export_includes_hand_entered_irreplaceable_data(client, auth_headers, d
     assert data["house_price_index_points"] == [
         {"series": "EFH_DE", "date": "2024-01-01", "index_value": "142.3"}
     ]
-    assert data["etf_compositions"] == [
-        {
-            "instrument_id": instrument, "dimension": "region",
-            "category": "Europe", "weight_pct": "100",
-        }
-    ]
+    # updated_at travels with the breakdown on purpose: restoring without
+    # it would reset the staleness clock and make a years-old breakdown
+    # look freshly entered.
+    assert len(data["etf_compositions"]) == 1
+    composition = data["etf_compositions"][0]
+    assert composition["instrument_id"] == instrument
+    assert composition["dimension"] == "region"
+    assert composition["category"] == "Europe"
+    assert composition["weight_pct"] == "100"
+    assert composition["updated_at"] is not None
     assert data["target_allocation"] == [
         {"asset_class": "EQUITY", "target_pct": "100"}
     ]
@@ -164,12 +168,12 @@ def test_export_includes_hand_entered_irreplaceable_data(client, auth_headers, d
     assert house_rows == [{"series": "EFH_DE", "date": "2024-01-01", "index_value": "142.3"}]
 
     etf_rows = list(csv.DictReader(io.StringIO(zf.read("etf_compositions.csv").decode("utf-8"))))
-    assert etf_rows == [
-        {
-            "instrument_id": str(instrument), "dimension": "region",
-            "category": "Europe", "weight_pct": "100",
-        }
-    ]
+    assert len(etf_rows) == 1
+    assert etf_rows[0]["instrument_id"] == str(instrument)
+    assert etf_rows[0]["dimension"] == "region"
+    assert etf_rows[0]["category"] == "Europe"
+    assert etf_rows[0]["weight_pct"] == "100"
+    assert etf_rows[0]["updated_at"]
 
     target_rows = list(
         csv.DictReader(io.StringIO(zf.read("target_allocation.csv").decode("utf-8")))

@@ -380,3 +380,13 @@ class EtfComposition(Base):
     dimension: Mapped[str] = mapped_column(String, primary_key=True)
     category: Mapped[str] = mapped_column(String, primary_key=True)
     weight_pct: Mapped[Quantity] = mapped_column(Quantity, nullable=False)
+    # When this breakdown was last entered. There is no automatic source
+    # for fund compositions (see docs/agent-workflows.md workflow 7), so
+    # the only defence against a years-stale pie chart is knowing its age
+    # — the data quality panel flags it, exactly as it does a stale price.
+    # Set explicitly by the router rather than by a server default: the
+    # column was added to an existing SQLite table, where a
+    # CURRENT_TIMESTAMP default cannot be attached retroactively. NULL
+    # means "entered before this was tracked", which reads as unknown age
+    # rather than as fresh.
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)

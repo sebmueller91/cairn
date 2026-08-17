@@ -5,7 +5,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { HBarList, type HBarItem } from "../charts/HBarList";
 import { api, type LookThroughResponse } from "../../lib/api";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, formatPercent } from "../../lib/format";
 
 function useLookThrough(dimension: "region" | "sector") {
   return useQuery({
@@ -18,10 +18,24 @@ function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const { data, isLoading, isError } = useLookThrough(dimension);
 
-  const items: HBarItem[] = (data?.rows ?? [])
-    .slice()
-    .sort((a, b) => Number(b.value_eur) - Number(a.value_eur))
-    .map((row) => ({ key: row.category, label: row.category, value: Number(row.value_eur) }));
+  const rows = (data?.rows ?? []).slice().sort(
+    (a, b) => Number(b.value_eur) - Number(a.value_eur),
+  );
+  // Share of the look-through total, not of net worth: the question this
+  // card answers is "how is what I hold in markets split up", so the
+  // house and the mortgage have no business in the denominator.
+  const total = rows.reduce((sum, row) => sum + Number(row.value_eur), 0);
+
+  const items: HBarItem[] = rows.map((row) => ({
+    key: row.category,
+    label: row.category,
+    value: Number(row.value_eur),
+    secondary: total > 0 && (
+      <span className="tnum text-text-muted">
+        {formatPercent(Number(row.value_eur) / total, i18n.language)}
+      </span>
+    ),
+  }));
 
   return (
     <div>

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import UTC, date, datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -37,10 +37,11 @@ def set_composition(
         EtfComposition.instrument_id == instrument_id,
         EtfComposition.dimension == body.dimension,
     ).delete()
+    entered_at = datetime.now(UTC).replace(tzinfo=None)
     rows = [
         EtfComposition(
             instrument_id=instrument_id, dimension=body.dimension, category=category,
-            weight_pct=weight,
+            weight_pct=weight, updated_at=entered_at,
         )
         for category, weight in body.breakdown.items()
     ]
