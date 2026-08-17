@@ -228,7 +228,9 @@ def test_look_through_endpoint_end_to_end(client, auth_headers, db_session):
     assert resp.status_code == 200
     body = resp.json()
     assert body["dimension"] == "region"
-    assert body["rows"] == [{"category": "North America", "value_eur": "1000.00"}]
+    assert body["rows"] == [
+        {"category": "North America", "value_eur": "1000.00", "benchmark_pct": None}
+    ]
 
 
 def test_look_through_endpoint_requires_auth(client):
@@ -288,7 +290,7 @@ def test_look_through_endpoint_as_of_passthrough(client, auth_headers, db_sessio
     )
     assert historical.status_code == 200
     assert historical.json()["rows"] == [
-        {"category": "North America", "value_eur": "1000.00"}
+        {"category": "North America", "value_eur": "1000.00", "benchmark_pct": None}
     ]
 
     later = client.get(
@@ -298,7 +300,7 @@ def test_look_through_endpoint_as_of_passthrough(client, auth_headers, db_sessio
     )
     assert later.status_code == 200
     assert later.json()["rows"] == [
-        {"category": "North America", "value_eur": "2000.00"}
+        {"category": "North America", "value_eur": "2000.00", "benchmark_pct": None}
     ]
 
     # Omitting as_of keeps today's behavior — with no PricePoint after
@@ -309,5 +311,5 @@ def test_look_through_endpoint_as_of_passthrough(client, auth_headers, db_sessio
     )
     assert default.status_code == 200
     assert default.json()["rows"] == [
-        {"category": "North America", "value_eur": "2000.00"}
+        {"category": "North America", "value_eur": "2000.00", "benchmark_pct": None}
     ]

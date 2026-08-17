@@ -18,7 +18,9 @@
     "region": "Region",
     "sector": "Sector",
     "caption": "Covers priced market instruments only (ETFs, stocks, crypto).",
-    "emptyHint": "Add a factsheet breakdown for this instrument to see it here."
+    "emptyHint": "Add a factsheet breakdown for this instrument to see it here.",
+    "vsBenchmark": "vs. {{benchmark}}",
+    "benchmarkTooltip": "Deviation from the world market in percentage points"
   },
   "targetVsActual": {
     "title": "Target vs. actual",

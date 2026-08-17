@@ -298,11 +298,17 @@ export interface TaxOverviewResponse {
 export interface LookThroughRow {
   category: string;
   value_eur: string;
+  /** The benchmark's weight for this category, null when none is set.
+   *  A row may carry a weight with value_eur "0" — that's the useful
+   *  case of holding nothing where the world market holds something. */
+  benchmark_pct: string | null;
 }
 
 export interface LookThroughResponse {
   dimension: string;
   rows: LookThroughRow[];
+  /** Name of the yardstick, e.g. "MSCI ACWI". Null when none is set. */
+  benchmark_label: string | null;
 }
 
 export interface MilestoneResponse {

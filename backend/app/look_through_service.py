@@ -20,17 +20,52 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
+from app import kv_store
 from app.ledger import compute_positions, txn_to_event
 from app.models import EtfComposition, Instrument, Txn, ValuationMode
 from app.valuation_service import current_instrument_value
 
 UNKNOWN_CATEGORY = "Unknown"
+# An instrument whose region/sector is set to this is left out of that
+# dimension entirely, rather than being bucketed. Gold and bitcoin have
+# no country of domicile, and parking them under a catch-all makes them
+# the third-largest slice of a chart about geography — which shrinks
+# every real region's share and answers a question nobody asked. Distinct
+# from an empty field, which still means "not entered yet" and shows up
+# as Unknown so it can be noticed and fixed.
+NOT_APPLICABLE = "n/a"
+BENCHMARK_KEY_PREFIX = "look_through_benchmark_"
 
 
 @dataclass
 class LookThroughRow:
     category: str
     value_eur: Decimal
+
+
+def benchmark_key(dimension: str) -> str:
+    return f"{BENCHMARK_KEY_PREFIX}{dimension}"
+
+
+def get_benchmark(db: Session, dimension: str) -> tuple[str | None, dict[str, Decimal]]:
+    """The market-wide split this dimension is compared against — e.g. MSCI
+    ACWI for regions. Returns (label, {category: weight_pct})."""
+    raw = kv_store.get(db, benchmark_key(dimension)) or {}
+    weights = {k: Decimal(str(v)) for k, v in (raw.get("breakdown") or {}).items()}
+    return raw.get("label"), weights
+
+
+def set_benchmark(
+    db: Session, dimension: str, label: str, breakdown: dict[str, Decimal]
+) -> None:
+    total = sum(breakdown.values(), Decimal(0))
+    if breakdown and abs(total - Decimal(100)) > Decimal(1):
+        raise ValueError(f"benchmark must sum to ~100, got {total}")
+    kv_store.set(
+        db,
+        benchmark_key(dimension),
+        {"label": label, "breakdown": {k: str(v) for k, v in breakdown.items()}},
+    )
 
 
 def compute_look_through(
@@ -71,10 +106,10 @@ def compute_look_through(
             for category, weight_pct in breakdown:
                 add(category, value * weight_pct / Decimal(100))
         else:
-            own = (instrument.region if dimension == "region" else instrument.sector) or (
-                UNKNOWN_CATEGORY
-            )
-            add(own, value)
+            own = instrument.region if dimension == "region" else instrument.sector
+            if own == NOT_APPLICABLE:
+                continue
+            add(own or UNKNOWN_CATEGORY, value)
 
     return [
         LookThroughRow(category=k, value_eur=v)

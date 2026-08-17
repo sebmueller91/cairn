@@ -101,6 +101,21 @@ def main() -> None:
             call("PATCH", f"/api/instruments/{inst['id']}",
                  {"region": spec["region"], "sector": spec["sector"]})
 
+    print()
+    for dimension, spec in (data.get("benchmarks") or {}).items():
+        if dimension.startswith("_"):
+            continue
+        total = sum(spec["breakdown"].values())
+        print(f"{'benchmark':10}{spec['label'][:38]:40}{dimension:10}"
+              f"{len(spec['breakdown']):>11}{total:>8.1f}")
+        if abs(total - 100) > 1.0:
+            sys.exit(f"  benchmark {dimension} summiert auf {total}, nicht ~100")
+        if not args.dry_run:
+            call("PUT", "/api/look-through/benchmark", {
+                "dimension": dimension, "label": spec["label"],
+                "breakdown": {k: str(v) for k, v in spec["breakdown"].items()},
+            })
+
     if missing:
         print(f"\nnicht gefunden (Ticker stimmt nicht mit einem Instrument ueberein): {missing}")
     print("\nProbelauf, nichts geschrieben" if args.dry_run else "\ngeschrieben")

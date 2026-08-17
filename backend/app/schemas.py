@@ -452,11 +452,32 @@ class EtfCompositionRow(BaseModel):
 class LookThroughRowRead(BaseModel):
     category: str
     value_eur: DecimalStr
+    # The benchmark's weight for this category, None when no benchmark is
+    # configured or it doesn't list the category. A row can carry a
+    # benchmark weight with value_eur 0 — that is the interesting case of
+    # holding nothing where the world holds something.
+    benchmark_pct: DecimalStr | None = None
 
 
 class LookThroughResponse(BaseModel):
     dimension: str
     rows: list[LookThroughRowRead]
+    # Name of the yardstick the rows are compared against ("MSCI ACWI"),
+    # None when none is configured for this dimension.
+    benchmark_label: str | None = None
+
+
+class BenchmarkSet(BaseModel):
+    dimension: str
+    label: str = Field(min_length=1)
+    # category -> percentage of the world market, e.g. {"Europe": "14"}
+    breakdown: dict[str, DecimalStr]
+
+
+class BenchmarkRead(BaseModel):
+    dimension: str
+    label: str | None
+    breakdown: dict[str, DecimalStr]
 
 
 class MilestoneResponse(BaseModel):

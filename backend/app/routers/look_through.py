@@ -1,4 +1,5 @@
 from datetime import UTC, date, datetime
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -6,9 +7,11 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.look_through_service import compute_look_through
+from app.look_through_service import compute_look_through, get_benchmark, set_benchmark
 from app.models import EtfComposition, Instrument, TxnSource
 from app.schemas import (
+    BenchmarkRead,
+    BenchmarkSet,
     EtfCompositionRow,
     EtfCompositionSet,
     LookThroughResponse,
@@ -86,7 +89,65 @@ def get_look_through(
     _scope=Depends(get_scope),
 ) -> LookThroughResponse:
     rows = compute_look_through(db, dimension, as_of=as_of)
+    label, benchmark = get_benchmark(db, dimension)
+
+    held = {r.category: r.value_eur for r in rows}
+    # Categories the benchmark lists but the portfolio holds nothing in
+    # come through at zero rather than being dropped: "the world has 8%
+    # here and I have none" is the single most useful thing this
+    # comparison can tell you, and a missing row would hide it.
+    for category in benchmark:
+        held.setdefault(category, Decimal(0))
+
     return LookThroughResponse(
         dimension=dimension,
-        rows=[LookThroughRowRead(category=r.category, value_eur=r.value_eur) for r in rows],
+        benchmark_label=label,
+        rows=[
+            LookThroughRowRead(
+                category=category,
+                value_eur=value,
+                benchmark_pct=benchmark.get(category),
+            )
+            for category, value in sorted(held.items())
+        ],
     )
+
+
+@router.get("/look-through/benchmark", response_model=BenchmarkRead)
+def read_benchmark(
+    dimension: str = "region",
+    db: Session = Depends(get_db),
+    _scope=Depends(get_scope),
+) -> BenchmarkRead:
+    label, breakdown = get_benchmark(db, dimension)
+    return BenchmarkRead(dimension=dimension, label=label, breakdown=breakdown)
+
+
+@router.put("/look-through/benchmark", response_model=BenchmarkRead)
+def write_benchmark(
+    body: BenchmarkSet,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> BenchmarkRead:
+    """The market-wide split to compare a dimension against — MSCI ACWI
+    for regions. Replace-all, like the per-instrument compositions."""
+    try:
+        set_benchmark(db, body.dimension, body.label, body.breakdown)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": "benchmark_must_sum_to_100", "params": {"error": str(e)}},
+        ) from e
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="look_through_benchmark",
+        entity_id=body.dimension,
+        payload_hash="n/a",
+        diff={"label": body.label,
+              "breakdown": {k: str(v) for k, v in body.breakdown.items()}},
+    )
+    db.commit()
+    label, breakdown = get_benchmark(db, body.dimension)
+    return BenchmarkRead(dimension=body.dimension, label=label, breakdown=breakdown)

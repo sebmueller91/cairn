@@ -18,7 +18,9 @@
     "region": "Region",
     "sector": "Branche",
     "caption": "Nur börsenbewertete Positionen (ETFs, Aktien, Krypto).",
-    "emptyHint": "Für dieses Instrument eine Factsheet-Aufschlüsselung hinterlegen, um es hier zu sehen."
+    "emptyHint": "Für dieses Instrument eine Factsheet-Aufschlüsselung hinterlegen, um es hier zu sehen.",
+    "vsBenchmark": "vs. {{benchmark}}",
+    "benchmarkTooltip": "Abweichung vom Weltmarkt in Prozentpunkten"
   },
   "targetVsActual": {
     "title": "Ziel vs. Ist",
