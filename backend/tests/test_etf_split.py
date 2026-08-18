@@ -140,3 +140,52 @@ def test_target_can_be_cleared(client, auth_headers, db_session):
 
 def test_endpoint_requires_auth(client):
     assert client.get("/api/look-through/etf-split").status_code == 401
+
+
+def test_same_fund_in_two_depots_is_one_row(client, auth_headers, db_session):
+    """compute_positions keys by (account, instrument), but two depots
+    holding the same fund is one holding to the reader — listing it twice
+    reads as two different funds with identical names."""
+    from datetime import date
+    from decimal import Decimal
+
+    from app.look_through_service import compute_etf_split
+    from app.models import PricePoint
+
+    instrument = client.post(
+        "/api/instruments",
+        json={
+            "name": "World Fund", "isin": "XX0000002007", "asset_class": "EQUITY",
+            "valuation_mode": "MARKET", "currency": "EUR", "tags": ["etf"],
+        },
+        headers=auth_headers,
+    ).json()["id"]
+    db_session.add(
+        PricePoint(instrument_id=instrument, date=date.today(), close=Decimal("100.00"),
+                   currency="EUR", provider="test", quality="ok")
+    )
+    db_session.commit()
+    client.put(
+        f"/api/instruments/{instrument}/composition",
+        json={"dimension": "region", "breakdown": {"North America": "80", "Emerging Asia": "20"}},
+        headers=auth_headers,
+    )
+    for n, name in enumerate(["Depot A", "Depot B"]):
+        account = client.post(
+            "/api/accounts", json={"name": name, "type": "BROKERAGE", "currency": "EUR"},
+            headers=auth_headers,
+        ).json()["id"]
+        client.post(
+            "/api/transactions",
+            json={
+                "external_id": f"two-depots-{n}", "date": str(date.today()), "type": "BUY",
+                "account_id": account, "instrument_id": instrument,
+                "quantity": "10", "price": "100.00", "currency": "EUR",
+            },
+            headers=auth_headers,
+        )
+
+    split = compute_etf_split(db_session)
+    assert len(split.rows) == 1
+    assert split.rows[0].value_eur == Decimal("2000.00")
+    assert split.rows[0].emerging_pct == Decimal("20")

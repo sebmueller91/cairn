@@ -188,7 +188,7 @@ def compute_etf_split(db: Session, as_of: date | None = None) -> EtfSplit:
     for row in region_rows:
         composition.setdefault(row.instrument_id, []).append((row.category, row.weight_pct))
 
-    rows: list[EtfSplitRow] = []
+    by_instrument: dict[int, EtfSplitRow] = {}
     developed = Decimal(0)
     emerging = Decimal(0)
 
@@ -219,14 +219,24 @@ def compute_etf_split(db: Session, as_of: date | None = None) -> EtfSplit:
         )
         developed += value - em
         emerging += em
-        rows.append(
-            EtfSplitRow(
+        # Same fund in two depots is one holding to the reader.
+        existing = by_instrument.get(instrument_id)
+        if existing is None:
+            by_instrument[instrument_id] = EtfSplitRow(
                 instrument_id=instrument_id,
                 name=instrument.name,
                 value_eur=value,
                 emerging_eur=em,
-                emerging_pct=(em / value * Decimal(100)) if value else Decimal(0),
+                emerging_pct=Decimal(0),
             )
+        else:
+            existing.value_eur += value
+            existing.emerging_eur += em
+
+    rows = list(by_instrument.values())
+    for row in rows:
+        row.emerging_pct = (
+            row.emerging_eur / row.value_eur * Decimal(100) if row.value_eur else Decimal(0)
         )
 
     total = developed + emerging
