@@ -4,8 +4,8 @@ import { useQuery } from "@tanstack/react-query";
 import {
   api,
   getAllocationTimeseries,
+  getCpiPoints,
   type MilestoneResponse,
-  type NetWorthPoint,
 } from "../lib/api";
 import { useAssetFilter } from "../lib/assetFilter";
 import { AssetClassChips } from "../components/AssetClassChips";
@@ -51,21 +51,13 @@ export function Wealth() {
     queryFn: () => getAllocationTimeseries({ granularity: "month" }),
   });
 
-  // CPI-deflated totals come from a different endpoint and cannot be filtered
-  // (the deflation is applied server-side to the whole portfolio), so this
-  // only runs when the user asked for real terms with nothing filtered out.
-  const realQuery = useQuery({
-    queryKey: ["networthReal", from ?? "all", granularity],
-    queryFn: () => {
-      const params = new URLSearchParams({
-        scope: "net",
-        granularity,
-        real: "true",
-      });
-      if (from) params.set("from", from);
-      return api.get<NetWorthPoint[]>(`/api/timeseries/networth?${params}`);
-    },
-    enabled: real && allSelected,
+  // The CPI series itself, not a deflated total: deflation is a scalar per
+  // date, so handing the client the index lets the real view follow the
+  // asset filter instead of being restricted to the whole portfolio.
+  const cpiQuery = useQuery({
+    queryKey: ["cpi"],
+    queryFn: getCpiPoints,
+    staleTime: 24 * 60 * 60 * 1000,
   });
 
   const milestoneQuery = useQuery({
@@ -83,11 +75,10 @@ export function Wealth() {
 
       <WealthCurveCard
         points={windowQuery.data}
-        realPoints={realQuery.data}
+        cpiPoints={cpiQuery.data}
         selected={selected}
         allSelected={allSelected}
         isLoading={windowQuery.isPending}
-        isRealLoading={realQuery.isPending}
         period={period}
         onPeriodChange={setPeriod}
         real={real}

@@ -259,6 +259,17 @@ export function getContributions(params: { from?: string; to?: string } = {}) {
   return api.get<ContributionsResponse>(`/api/contributions${suffix}`);
 }
 
+export interface CpiIndexPointRead {
+  date: string;
+  index_value: string;
+}
+
+/** German CPI (ECB HICP), monthly. Fetched so the client can deflate a
+ * *filtered* series — the server only ever deflates the whole portfolio. */
+export function getCpiPoints() {
+  return api.get<CpiIndexPointRead[]>("/api/cpi");
+}
+
 export interface DriftRow {
   asset_class: string;
   current_value_eur: string;

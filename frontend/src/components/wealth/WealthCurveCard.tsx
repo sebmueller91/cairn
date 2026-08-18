@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { TrendingUp } from "lucide-react";
-import type { AllocationTimeseriesPoint, NetWorthPoint } from "../../lib/api";
+import type { AllocationTimeseriesPoint, CpiIndexPointRead } from "../../lib/api";
 import type { AssetClass } from "../../lib/assetClasses";
-import { sumSelected } from "../../lib/allocationSeries";
+import { deflateSeries, sumSelected } from "../../lib/allocationSeries";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { GradientAreaChart } from "../charts/GradientAreaChart";
 import { EmptyState } from "../ui/EmptyState";
@@ -76,22 +76,20 @@ function ModeToggle({
 /** The hero panel: one curve, the value it ends on, and how it got there. */
 export function WealthCurveCard({
   points,
-  realPoints,
+  cpiPoints,
   selected,
   allSelected,
   isLoading,
-  isRealLoading,
   period,
   onPeriodChange,
   real,
   onRealChange,
 }: {
   points: AllocationTimeseriesPoint[] | undefined;
-  realPoints: NetWorthPoint[] | undefined;
+  cpiPoints: CpiIndexPointRead[] | undefined;
   selected: Set<AssetClass>;
   allSelected: boolean;
   isLoading: boolean;
-  isRealLoading: boolean;
   period: Period;
   onPeriodChange: (p: Period) => void;
   real: boolean;
@@ -99,26 +97,23 @@ export function WealthCurveCard({
 }) {
   const { t, i18n } = useTranslation("wealth");
 
-  // Real terms are unfiltered by definition — the deflated series the server
-  // returns is a total, so a narrowed filter silently falls back to nominal
-  // rather than pairing a real curve with a filtered headline.
-  const realActive = real && allSelected;
-
   const nominal = useMemo(
     () => sumSelected(points ?? [], selected),
     [points, selected],
   );
+  // Deflating the already-filtered sum, rather than asking the server for a
+  // deflated total, is what lets real terms follow the asset filter:
+  // CPI(latest)/CPI(t) is a scalar per date, so it distributes over whatever
+  // subset of classes went into the sum. With no CPI loaded this returns the
+  // series untouched, which is why the toggle used to look broken.
   const deflated = useMemo(
-    () =>
-      (realPoints ?? []).map((p) => ({
-        date: p.date,
-        value: Number(p.value_eur),
-      })),
-    [realPoints],
+    () => deflateSeries(nominal, cpiPoints ?? []),
+    [nominal, cpiPoints],
   );
 
+  const realActive = real && (cpiPoints?.length ?? 0) > 0;
   const series = realActive ? deflated : nominal;
-  const loading = realActive ? isRealLoading || isLoading : isLoading;
+  const loading = isLoading;
 
   const formatValue = useCallback(
     (n: number) => formatCurrency(n, i18n.language),
@@ -144,7 +139,7 @@ export function WealthCurveCard({
           <ModeToggle
             real={realActive}
             onChange={onRealChange}
-            disabled={!allSelected}
+            disabled={(cpiPoints?.length ?? 0) === 0}
             disabledHint={t("mode.realDisabled")}
           />
           <SegmentedControl

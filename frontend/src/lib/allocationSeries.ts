@@ -190,3 +190,44 @@ export function linearProjection(
   const projectedX = Math.max(targetX, lastX);
   return new Date(originMs + projectedX * DAY_MS).toISOString().slice(0, 10);
 }
+
+export interface CpiPoint {
+  date: string;
+  index_value: string;
+}
+
+/**
+ * Restates a series in the purchasing power of the newest CPI reading:
+ * `nominal(t) * CPI(latest) / CPI(t)`, looked up by carry-forward against
+ * a typically monthly index.
+ *
+ * A direct port of backend `real_wealth_service.deflate_series`, and it has
+ * to stay one. The backend applies this to the whole portfolio; doing it
+ * here as well is what lets the real view follow the asset filter, since
+ * deflation is a scalar per date and therefore distributes over any subset
+ * of the classes being summed.
+ *
+ * Points older than the first CPI reading come back untouched rather than
+ * dropped — there is nothing to deflate against yet, and shortening the
+ * series would silently misalign it with the nominal one.
+ */
+export function deflateSeries(
+  series: SeriesPoint[],
+  cpiPoints: CpiPoint[],
+): SeriesPoint[] {
+  if (cpiPoints.length === 0) return series;
+  const sorted = [...cpiPoints].sort((a, b) => a.date.localeCompare(b.date));
+  const latest = Number(sorted[sorted.length - 1].index_value);
+  if (!Number.isFinite(latest) || latest === 0) return series;
+
+  let idx = -1;
+  let current: number | null = null;
+  return series.map((point) => {
+    while (idx + 1 < sorted.length && sorted[idx + 1].date <= point.date) {
+      idx += 1;
+      current = Number(sorted[idx].index_value);
+    }
+    if (current === null || !Number.isFinite(current) || current === 0) return point;
+    return { date: point.date, value: (point.value * latest) / current };
+  });
+}

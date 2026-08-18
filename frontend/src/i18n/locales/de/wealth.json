@@ -11,7 +11,7 @@
   "mode": {
     "nominal": "Nominal",
     "real": "Real",
-    "realDisabled": "Nur mit allen Anlageklassen verfügbar (Inflationsbereinigung basiert auf dem Gesamtvermögen)"
+    "realDisabled": "Kein Preisindex geladen — scripts/fetch-cpi.py ausführen."
   },
   "curve": {
     "title": "Verlauf",

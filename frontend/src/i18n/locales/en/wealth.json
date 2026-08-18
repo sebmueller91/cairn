@@ -11,7 +11,7 @@
   "mode": {
     "nominal": "Nominal",
     "real": "Real",
-    "realDisabled": "Only available with every asset class selected (inflation adjustment is based on total net worth)"
+    "realDisabled": "No price index loaded — run scripts/fetch-cpi.py."
   },
   "curve": {
     "title": "Trajectory",

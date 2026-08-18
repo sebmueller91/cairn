@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AllocationTimeseriesPoint } from "./api";
 import type { AssetClass } from "./assetClasses";
 import {
+  deflateSeries,
   findCrossings,
   latestMix,
   linearProjection,
@@ -225,5 +226,56 @@ describe("linearProjection", () => {
 
   it("returns null for a non-finite target", () => {
     expect(linearProjection(monthly(2024, [1000, 2000]), Number.NaN)).toBeNull();
+  });
+});
+
+describe("deflateSeries", () => {
+  const cpi = [
+    { date: "2020-01-01", index_value: "100" },
+    { date: "2022-01-01", index_value: "110" },
+    { date: "2024-01-01", index_value: "125" },
+  ];
+
+  it("restates everything in the newest reading's purchasing power", () => {
+    const out = deflateSeries([{ date: "2020-06-30", value: 1000 }], cpi);
+    expect(out[0].value).toBeCloseTo(1250, 6); // 1000 * 125/100
+  });
+
+  it("leaves the newest period untouched", () => {
+    // The base period is the latest CPI point, so anything at or after it
+    // is already expressed in today's money.
+    const out = deflateSeries([{ date: "2024-06-30", value: 5000 }], cpi);
+    expect(out[0].value).toBeCloseTo(5000, 6);
+  });
+
+  it("carries the index forward between readings", () => {
+    // Mid-2022 has no reading of its own and must use the 2022 one, not
+    // interpolate toward 2024.
+    const out = deflateSeries([{ date: "2022-07-01", value: 1100 }], cpi);
+    expect(out[0].value).toBeCloseTo(1250, 6); // 1100 * 125/110
+  });
+
+  it("passes through points older than the first reading", () => {
+    // Nothing to deflate against yet; dropping them would misalign the
+    // real curve against the nominal one it is compared with.
+    const out = deflateSeries([{ date: "2019-01-01", value: 700 }], cpi);
+    expect(out[0]).toEqual({ date: "2019-01-01", value: 700 });
+  });
+
+  it("is a no-op with no CPI data at all", () => {
+    // Exactly the state that made the toggle look broken: an empty table
+    // must return the input unchanged rather than zeroing the curve.
+    const series = [{ date: "2024-01-01", value: 42 }];
+    expect(deflateSeries(series, [])).toEqual(series);
+  });
+
+  it("keeps the series length and order", () => {
+    const series = [
+      { date: "2019-01-01", value: 1 },
+      { date: "2021-01-01", value: 2 },
+      { date: "2025-01-01", value: 3 },
+    ];
+    const out = deflateSeries(series, cpi);
+    expect(out.map((p) => p.date)).toEqual(series.map((p) => p.date));
   });
 });
