@@ -103,11 +103,6 @@ export function ClassDistributionCard() {
                 </span>
               </div>
             )}
-            {liabilitySelected && (
-              <p className="pt-1 text-xs text-text-muted italic">
-                {t("classDistribution.liabilityHint")}
-              </p>
-            )}
           </div>
         </>
       )}

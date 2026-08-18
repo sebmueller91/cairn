@@ -57,7 +57,9 @@ export function Replay({
   selected,
   isLoading,
 }: {
-  /** Full history at month granularity — this card never takes a window. */
+  /** The *selected* window, at whatever granularity that period uses —
+   * same series the curve above it draws. Replaying a range the page is not
+   * showing made the scrubber disagree with the chart beside it. */
   points: AllocationTimeseriesPoint[] | undefined;
   selected: Set<AssetClass>;
   isLoading: boolean;

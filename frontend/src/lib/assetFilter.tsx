@@ -30,6 +30,9 @@ function readStoredSelection(): Set<AssetClass> {
 interface AssetFilterState {
   selected: Set<AssetClass>;
   toggle: (c: AssetClass) => void;
+  /** Replace the whole selection at once — how the preset row works.
+   * An empty list is ignored, same rule as toggle(). */
+  selectOnly: (classes: readonly AssetClass[]) => void;
   reset: () => void;
   allSelected: boolean;
 }
@@ -65,6 +68,14 @@ export function AssetFilterProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const selectOnly = useCallback(
+    (classes: readonly AssetClass[]) => {
+      if (classes.length === 0) return;
+      persist(new Set(classes));
+    },
+    [persist],
+  );
+
   const reset = useCallback(() => {
     persist(new Set(ASSET_CLASSES));
   }, [persist]);
@@ -72,8 +83,8 @@ export function AssetFilterProvider({ children }: { children: ReactNode }) {
   const allSelected = selected.size === ASSET_CLASSES.length;
 
   const value = useMemo(
-    () => ({ selected, toggle, reset, allSelected }),
-    [selected, toggle, reset, allSelected],
+    () => ({ selected, toggle, selectOnly, reset, allSelected }),
+    [selected, toggle, selectOnly, reset, allSelected],
   );
 
   return (

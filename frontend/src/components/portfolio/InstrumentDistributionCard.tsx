@@ -1,14 +1,17 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { DonutChart, type DonutSlice } from "../charts/DonutChart";
 import { HBarList, type HBarItem } from "../charts/HBarList";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, formatPercent } from "../../lib/format";
 import { ASSET_CLASS_COLORS } from "../../lib/assetClasses";
 import { useAssetFilter } from "../../lib/assetFilter";
-import { usePositionsWithInstruments } from "./usePositionsWithInstruments";
+import {
+  usePositionsWithInstruments,
+  type PositionWithInstrument,
+} from "./usePositionsWithInstruments";
 import { SignedAmount } from "./SignedAmount";
 
 const TOP_N = 8;
@@ -58,6 +61,37 @@ export function InstrumentDistributionCard() {
     return result;
   }, [filtered, t]);
 
+  // Absolute gain and the same gain as a share of what was paid — the
+  // percentage is what makes two positions comparable when one is a house
+  // and the other is 200 EUR of silver. Cost basis of zero has no
+  // percentage to give (a position that arrived by transfer rather than
+  // purchase), so that case shows the amount alone rather than a division
+  // by zero rendered as Infinity.
+  const plSecondary = useCallback(
+    (p: PositionWithInstrument) => {
+      if (p.unrealized_pl_eur === null) return undefined;
+      const cost = Number(p.cost_basis_eur);
+      const pl = Number(p.unrealized_pl_eur);
+      const pct = cost > 0 ? pl / cost : null;
+      return (
+        <span className="flex items-baseline gap-1.5">
+          <SignedAmount value={p.unrealized_pl_eur} lang={i18n.language} className="text-xs" />
+          {pct !== null && (
+            <span
+              className={`tnum text-xs ${
+                pl > 0 ? "text-positive" : pl < 0 ? "text-negative" : "text-text-muted"
+              }`}
+            >
+              {pl >= 0 ? "+" : ""}
+              {formatPercent(pct, i18n.language)}
+            </span>
+          )}
+        </span>
+      );
+    },
+    [i18n.language],
+  );
+
   const barItems: HBarItem[] = useMemo(() => {
     if (!filtered) return [];
     const visible = expanded ? filtered : filtered.slice(0, VISIBLE_CAP);
@@ -66,12 +100,9 @@ export function InstrumentDistributionCard() {
       label: p.instrument!.name,
       value: Number(p.value_eur),
       color: ASSET_CLASS_COLORS[p.instrument!.asset_class],
-      secondary:
-        p.unrealized_pl_eur !== null ? (
-          <SignedAmount value={p.unrealized_pl_eur} lang={i18n.language} className="text-xs" />
-        ) : undefined,
+      secondary: plSecondary(p),
     }));
-  }, [filtered, expanded, i18n.language]);
+  }, [filtered, expanded, plSecondary]);
 
   return (
     <GlassCard>

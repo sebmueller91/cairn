@@ -37,5 +37,11 @@
     "name": "Name",
     "date": "Date",
     "quantity": "Quantity"
+  },
+  "presets": {
+    "all": "Everything",
+    "depot": "Investments",
+    "equityOnly": "Equities only",
+    "property": "Property & loan"
   }
 }

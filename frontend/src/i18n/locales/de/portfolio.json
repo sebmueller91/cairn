@@ -1,10 +1,8 @@
 {
   "title": "Portfolio",
-  "filterNote": "Die Klassen- und Instrumentenansicht berücksichtigen den Filter oben; Look-through, Zielallokation und Sachwerte zeigen immer das gesamte Portfolio.",
   "classDistribution": {
     "title": "Klassenverteilung heute",
-    "netLabel": "Netto (Auswahl)",
-    "liabilityHint": "Schulden mindern das Nettovermögen — sie lassen sich nicht als Donut-Segment darstellen und werden deshalb separat aufgeführt."
+    "netLabel": "Netto (Auswahl)"
   },
   "instrumentDistribution": {
     "title": "Instrumentenverteilung",

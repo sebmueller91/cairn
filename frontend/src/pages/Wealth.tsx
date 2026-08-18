@@ -9,6 +9,7 @@ import {
 } from "../lib/api";
 import { useAssetFilter } from "../lib/assetFilter";
 import { AssetClassChips } from "../components/AssetClassChips";
+import { AssetPresetChips } from "../components/AssetPresetChips";
 import { PageHeader } from "../components/ui/PageHeader";
 import { ClassMixCard } from "../components/wealth/ClassMixCard";
 import { MilestoneJourney } from "../components/wealth/MilestoneJourney";
@@ -41,8 +42,10 @@ export function Wealth() {
     queryFn: () => getAllocationTimeseries({ from, granularity }),
   });
 
-  // Full history, monthly. At `MAX` this is literally the same query key as
-  // the one above, so React Query serves both cards from one request.
+  // Full history, monthly — the milestone journey needs every crossing ever,
+  // not just the ones inside the selected window. At `MAX` this is literally
+  // the same query key as the one above, so React Query serves both from one
+  // request.
   const historyQuery = useQuery({
     queryKey: ["allocationTimeseries", "all", "month"],
     queryFn: () => getAllocationTimeseries({ granularity: "month" }),
@@ -75,6 +78,7 @@ export function Wealth() {
     <div className="space-y-6">
       <PageHeader title={t("title")}>
         <AssetClassChips />
+        <AssetPresetChips />
       </PageHeader>
 
       <WealthCurveCard
@@ -97,9 +101,9 @@ export function Wealth() {
           isLoading={windowQuery.isPending}
         />
         <Replay
-          points={historyQuery.data}
+          points={windowQuery.data}
           selected={selected}
-          isLoading={historyQuery.isPending}
+          isLoading={windowQuery.isPending}
         />
       </div>
 
