@@ -10,11 +10,16 @@ import {
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { DonutChart, type DonutSlice } from "../charts/DonutChart";
+import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
 import { isoDaysAgo } from "./utils";
 
 /** Mini allocation donut for the latest snapshot. LIABILITY is excluded —
  * a donut can't render a negative slice — and shown as a small debt line
- * underneath instead. */
+ * underneath instead.
+ *
+ * The total sits beside the ring rather than inside it: a six-figure sum in
+ * a 180px donut hole overflows its own chart, and the hole is too small to
+ * hold a number this app routinely shows to the cent. */
 export function ClassMixCard() {
   const { t, i18n } = useTranslation("overview");
 
@@ -27,7 +32,7 @@ export function ClassMixCard() {
     return (
       <GlassCard>
         <Skeleton className="h-4 w-28" />
-        <Skeleton className="mx-auto mt-6 size-36 rounded-full" />
+        <Skeleton className="mt-6 size-32 rounded-full" />
       </GlassCard>
     );
   }
@@ -56,28 +61,41 @@ export function ClassMixCard() {
 
   const total = slices.reduce((sum, s) => sum + s.value, 0);
   const liability = latest ? Number(latest.values.LIABILITY ?? "0") : 0;
+  const legend: LegendItem[] = slices.map((s) => ({
+    key: s.name,
+    label: s.name,
+    color: s.color,
+    value: s.value,
+  }));
 
   return (
     <GlassCard>
-      <div className="mb-1 text-sm text-text-muted">{t("classMix.title")}</div>
+      <div className="text-sm text-text-muted">{t("classMix.title")}</div>
       {slices.length === 0 ? (
         <p className="py-10 text-center text-sm text-text-muted">
           {t("common:status.empty")}
         </p>
       ) : (
-        <DonutChart
-          data={slices}
-          height={180}
-          formatValue={(n) => formatCurrency(n, i18n.language)}
-        >
-          <div className="tnum text-lg font-[650] tracking-tight">
-            {formatCurrency(total, i18n.language)}
+        <div className="mt-3 flex items-start gap-4">
+          <div className="w-[128px] shrink-0">
+            <DonutChart
+              data={slices}
+              height={128}
+              formatValue={(n) => formatCurrency(n, i18n.language)}
+            />
           </div>
-        </DonutChart>
-      )}
-      {liability < 0 && (
-        <div className="mt-2 text-center text-xs text-negative">
-          {formatCurrency(liability, i18n.language)} {t("classMix.liabilities")}
+          <div className="min-w-0 flex-1">
+            <div className="tnum text-lg font-[650] leading-tight tracking-tight">
+              {formatCurrency(total, i18n.language)}
+            </div>
+            <div className="text-xs text-text-muted">{t("classMix.grossLabel")}</div>
+            {liability < 0 && (
+              <div className="tnum mt-0.5 text-xs text-negative">
+                {formatCurrency(liability, i18n.language)} {t("classMix.liabilities")}
+              </div>
+            )}
+            <ChartLegend items={legend} language={i18n.language} className="mt-2.5" />
+          </div>
         </div>
       )}
     </GlassCard>

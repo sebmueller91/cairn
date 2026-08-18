@@ -7,6 +7,12 @@ import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
 import { closestPoint, fetchNetWorth90d, NET_WORTH_QUERY_KEY } from "./utils";
 
+/** Days back the delta chip compares against. Named so the caption and the
+ * lookup can never drift apart. */
+const DELTA_DAYS = 30;
+/** Days the sparkline covers — the window fetchNetWorth90d asks for. */
+const SPARK_DAYS = 90;
+
 /** The hero panel: latest net worth (scope=net, so loans count against it),
  * a 90-day sparkline, and a delta chip vs. ~30 days ago. Single query — the
  * sparkline and the delta both read off the same 90-day series. */
@@ -46,7 +52,7 @@ export function NetWorthHero() {
   const latestValue = Number(latest.value_eur);
 
   const target = new Date();
-  target.setDate(target.getDate() - 30);
+  target.setDate(target.getDate() - DELTA_DAYS);
   const reference = closestPoint(points, target);
   const delta = reference ? latestValue - Number(reference.value_eur) : undefined;
 
@@ -61,6 +67,7 @@ export function NetWorthHero() {
         format={format}
         delta={delta}
         formatDelta={formatDelta}
+        deltaCaption={t("hero.deltaCaption", { days: DELTA_DAYS })}
       >
         <Sparkline
           data={points.map((p) => Number(p.value_eur))}
@@ -68,6 +75,9 @@ export function NetWorthHero() {
           height={56}
           className="w-full"
         />
+        <div className="mt-1.5 text-xs text-text-muted">
+          {t("hero.sparkCaption", { days: SPARK_DAYS })}
+        </div>
       </StatHero>
     </GlassCard>
   );

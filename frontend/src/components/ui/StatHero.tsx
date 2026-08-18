@@ -8,6 +8,7 @@ export function StatHero({
   format,
   delta,
   formatDelta,
+  deltaCaption,
   children,
   className = "",
 }: {
@@ -19,6 +20,9 @@ export function StatHero({
   delta?: number;
   /** Defaults to `format`. Pass a percent formatter when the delta is relative. */
   formatDelta?: (n: number) => string;
+  /** Small note beside the delta chip — what period the delta and the
+   * sparkline actually cover. Without it the chip is an unlabelled number. */
+  deltaCaption?: ReactNode;
   /** Slot under the value — a Sparkline fits here. */
   children?: ReactNode;
   className?: string;
@@ -53,6 +57,9 @@ export function StatHero({
             </svg>
             {deltaFmt(delta)}
           </span>
+        )}
+        {deltaCaption && (
+          <span className="text-xs text-text-muted">{deltaCaption}</span>
         )}
       </div>
       {children && <div className="mt-3">{children}</div>}

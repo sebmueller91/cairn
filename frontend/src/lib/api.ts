@@ -237,6 +237,28 @@ export interface AttributionResponse {
   periods: AttributionPeriod[];
 }
 
+/** GET /api/contributions — what actually went in over a window, as
+ * opposed to attribution, which explains a change in wealth. */
+export interface ContributionsResponse {
+  start_date: string;
+  end_date: string;
+  /** Asset class -> net invested (purchases minus sales). Classes netting
+   * to exactly zero are absent rather than present with "0". */
+  by_asset_class: Record<string, string>;
+  total_invested: string;
+  /** Positive when loan principal fell over the window. */
+  debt_repaid: string;
+  net_worth_change: string;
+}
+
+export function getContributions(params: { from?: string; to?: string } = {}) {
+  const query = new URLSearchParams();
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  const suffix = query.toString() ? `?${query}` : "";
+  return api.get<ContributionsResponse>(`/api/contributions${suffix}`);
+}
+
 export interface DriftRow {
   asset_class: string;
   current_value_eur: string;

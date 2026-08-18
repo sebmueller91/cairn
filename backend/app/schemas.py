@@ -522,6 +522,20 @@ class ReconcileResponse(BaseModel):
     differences: list[ReconcileDifference]
 
 
+class ContributionsResponse(BaseModel):
+    """GET /api/contributions — what went in over a window (spec 4.3)."""
+
+    start_date: date_
+    end_date: date_
+    # Asset class -> net invested (purchases minus sales). Classes with a
+    # net of exactly zero are omitted rather than reported as 0.
+    by_asset_class: dict[str, DecimalStr]
+    total_invested: DecimalStr
+    # Positive means principal went down over the window.
+    debt_repaid: DecimalStr
+    net_worth_change: DecimalStr
+
+
 class ValuationAnchorCreate(BaseModel):
     instrument_id: int
     date: date_

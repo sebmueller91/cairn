@@ -8,7 +8,7 @@ import { CashBalanceModal } from "../components/CashBalanceModal";
 import { NetWorthHero } from "../components/overview/NetWorthHero";
 import { ClassMixCard } from "../components/overview/ClassMixCard";
 import { NextMilestoneCard } from "../components/overview/NextMilestoneCard";
-import { ThisMonthCard } from "../components/overview/ThisMonthCard";
+import { LastTwelveMonthsCard } from "../components/overview/LastTwelveMonthsCard";
 import { FreshnessStrip } from "../components/overview/FreshnessStrip";
 import { fetchNetWorth90d, NET_WORTH_QUERY_KEY } from "../components/overview/utils";
 
@@ -55,7 +55,7 @@ export function Overview() {
           <div className="grid gap-4 md:grid-cols-3 md:gap-5">
             <ClassMixCard />
             <NextMilestoneCard />
-            <ThisMonthCard />
+            <LastTwelveMonthsCard />
           </div>
 
           <FreshnessStrip />

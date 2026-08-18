@@ -1,22 +1,20 @@
 {
   "title": "Overview",
   "hero": {
-    "label": "Net worth"
+    "label": "Net worth",
+    "deltaCaption": "vs. {{days}} days ago",
+    "sparkCaption": "Last {{days}} days"
   },
   "classMix": {
     "title": "Asset mix",
-    "liabilities": "debt"
+    "liabilities": "debt",
+    "grossLabel": "Gross wealth"
   },
   "milestone": {
     "title": "Next milestone",
     "caption": "About {{months}} months away",
-    "unreachable": "Not projectable at the current savings rate and assumption."
-  },
-  "thisMonth": {
-    "title": "This month",
-    "marketGains": "Market gains/losses",
-    "deposits": "Deposits",
-    "income": "Income"
+    "unreachable": "Not projectable at the current savings rate and assumption.",
+    "targetLabel": "Target"
   },
   "freshness": {
     "prices": "Prices",
@@ -44,5 +42,13 @@
   "empty": {
     "title": "No data yet",
     "hint": "Once an account exists and has a first valuation, this page fills in automatically via the agent."
+  },
+  "lastYear": {
+    "title": "Last 12 months",
+    "range": "since {{from}}",
+    "invested": "Net invested",
+    "noContributions": "No purchases or sales in this period.",
+    "debtRepaid": "Debt repaid",
+    "netChange": "Net worth change"
   }
 }

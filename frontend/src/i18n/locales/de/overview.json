@@ -1,22 +1,20 @@
 {
   "title": "Überblick",
   "hero": {
-    "label": "Nettovermögen"
+    "label": "Nettovermögen",
+    "deltaCaption": "vs. vor {{days}} Tagen",
+    "sparkCaption": "Verlauf der letzten {{days}} Tage"
   },
   "classMix": {
     "title": "Anlageklassen",
-    "liabilities": "Schulden"
+    "liabilities": "Schulden",
+    "grossLabel": "Bruttovermögen"
   },
   "milestone": {
     "title": "Nächster Meilenstein",
     "caption": "In etwa {{months}} Monaten",
-    "unreachable": "Bei aktueller Sparrate und Annahme nicht absehbar."
-  },
-  "thisMonth": {
-    "title": "Dieser Monat",
-    "marketGains": "Marktgewinne/-verluste",
-    "deposits": "Einzahlungen",
-    "income": "Erträge"
+    "unreachable": "Bei aktueller Sparrate und Annahme nicht absehbar.",
+    "targetLabel": "Ziel"
   },
   "freshness": {
     "prices": "Kurse",
@@ -44,5 +42,13 @@
   "empty": {
     "title": "Noch keine Daten",
     "hint": "Sobald ein Konto angelegt und eine erste Bewertung erfasst ist, füllt sich diese Seite automatisch über den Agenten."
+  },
+  "lastYear": {
+    "title": "Letzte 12 Monate",
+    "range": "seit {{from}}",
+    "invested": "Netto investiert",
+    "noContributions": "Keine Käufe oder Verkäufe in diesem Zeitraum.",
+    "debtRepaid": "Schulden getilgt",
+    "netChange": "Veränderung Nettovermögen"
   }
 }

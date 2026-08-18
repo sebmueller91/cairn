@@ -9,6 +9,7 @@ from app.routers import (
     allocation,
     attribution,
     auth,
+    contributions,
     cpi,
     data_quality,
     export,
@@ -70,6 +71,7 @@ app.include_router(export.router)
 app.include_router(loans.router)
 app.include_router(performance.router)
 app.include_router(attribution.router)
+app.include_router(contributions.router)
 app.include_router(allocation.router)
 app.include_router(tax.router)
 app.include_router(look_through.router)
