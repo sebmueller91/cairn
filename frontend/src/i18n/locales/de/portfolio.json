@@ -22,7 +22,14 @@
   },
   "targetVsActual": {
     "title": "Ziel vs. Ist",
-    "scopeNote": "Nur handelbare Positionen — Immobilien, Fahrzeuge und Kredite zählen hier nicht mit."
+    "scopeNote": "Nur handelbare Positionen — Immobilien, Fahrzeuge und Kredite zählen hier nicht mit.",
+    "edit": "Ziele bearbeiten",
+    "editTitle": "Zielallokation",
+    "sum": "Summe",
+    "mustSum": "Die Ziele müssen sich auf 100 % summieren.",
+    "clearHint": "Alle Felder leer lassen entfernt die Ziele.",
+    "saved": "Ziele gespeichert",
+    "noTargets": "Noch keine Ziele gesetzt."
   },
   "realAssetsLoans": {
     "title": "Sachwerte & Kredite",

@@ -22,7 +22,14 @@
   },
   "targetVsActual": {
     "title": "Target vs. actual",
-    "scopeNote": "Tradeable positions only — real estate, vehicles and loans are excluded here."
+    "scopeNote": "Tradeable positions only — real estate, vehicles and loans are excluded here.",
+    "edit": "Edit targets",
+    "editTitle": "Target allocation",
+    "sum": "Total",
+    "mustSum": "Targets must add up to 100%.",
+    "clearHint": "Leaving every field empty removes the targets.",
+    "saved": "Targets saved",
+    "noTargets": "No targets set yet."
   },
   "realAssetsLoans": {
     "title": "Real assets & loans",

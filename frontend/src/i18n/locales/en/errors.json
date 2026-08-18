@@ -25,5 +25,6 @@
   "unknown_price_provider": "Unknown price provider.",
   "no_price_available": "No price available for {{date}} — enter a price manually or backfill price history first.",
   "generic": "Something went wrong.",
-  "invalid_amount": "That amount isn't a valid number."
+  "invalid_amount": "That amount isn't a valid number.",
+  "targets_must_sum_to_100": "Targets must add up to 100% (currently {{sum}})."
 }

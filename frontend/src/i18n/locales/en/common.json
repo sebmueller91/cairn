@@ -12,7 +12,9 @@
     "login": "Log in",
     "updateCash": "Update cash balance",
     "hideAmounts": "Hide amounts",
-    "showAmounts": "Show amounts"
+    "showAmounts": "Show amounts",
+    "cancel": "Cancel",
+    "save": "Save"
   },
   "assetClass": {
     "EQUITY": "Stocks & ETFs",

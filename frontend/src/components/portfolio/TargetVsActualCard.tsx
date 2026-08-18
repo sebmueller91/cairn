@@ -7,6 +7,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { api, type AllocationResponse } from "../../lib/api";
 import { formatPercent } from "../../lib/format";
 import { ASSET_CLASS_COLORS, assetClassLabelKey, type AssetClass } from "../../lib/assetClasses";
+import { TargetAllocationModal } from "./TargetAllocationModal";
 
 function DriftBadge({ driftPp, lang }: { driftPp: number; lang: string }) {
   const cls = driftPp > 0 ? "text-positive" : driftPp < 0 ? "text-negative" : "text-text-muted";
@@ -68,7 +69,7 @@ function DriftRowView({
   );
 }
 
-/** Section 4 — target vs. actual allocation per asset class, read-only. */
+/** Section 4 — target vs. actual allocation per asset class. */
 export function TargetVsActualCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const { data, isLoading, isError } = useQuery({
@@ -76,6 +77,7 @@ export function TargetVsActualCard() {
     queryFn: () => api.get<AllocationResponse>("/api/allocation"),
   });
 
+  const [editing, setEditing] = useState(false);
   const [grown, setGrown] = useState(false);
   useEffect(() => {
     const id = requestAnimationFrame(() => setGrown(true));
@@ -85,10 +87,24 @@ export function TargetVsActualCard() {
   const rows = (data?.drift ?? []).filter(
     (r) => Number(r.current_pct) !== 0 || Number(r.target_pct) !== 0,
   );
+  // Only the classes the drift actually covers are offered as targets — see
+  // the note in TargetAllocationModal.
+  const editableClasses = rows.map((r) => r.asset_class as AssetClass);
+  const hasTargets = rows.some((r) => Number(r.target_pct) !== 0);
 
   return (
     <GlassCard>
-      <h2 className="font-medium">{t("targetVsActual.title")}</h2>
+      <div className="flex items-start justify-between gap-3">
+        <h2 className="font-medium">{t("targetVsActual.title")}</h2>
+        <button
+          type="button"
+          onClick={() => setEditing(true)}
+          disabled={editableClasses.length === 0}
+          className="shrink-0 rounded-full border border-border px-3 py-1 text-xs font-medium text-text-muted transition-colors hover:border-accent hover:text-text disabled:opacity-40"
+        >
+          {t("targetVsActual.edit")}
+        </button>
+      </div>
       {/* Without this the card reads as contradicting the donut above: the
           rebalancing endpoint only counts tradeable positions, so a house
           shows as 0% here while it dominates the allocation chart. */}
@@ -105,6 +121,9 @@ export function TargetVsActualCard() {
         <EmptyState title={t("common:status.empty")} />
       ) : (
         <div className="space-y-4">
+          {!hasTargets && (
+            <p className="text-xs text-text-muted">{t("targetVsActual.noTargets")}</p>
+          )}
           {rows.map((row) => (
             <DriftRowView
               key={row.asset_class}
@@ -118,6 +137,11 @@ export function TargetVsActualCard() {
           ))}
         </div>
       )}
+      <TargetAllocationModal
+        open={editing}
+        onClose={() => setEditing(false)}
+        classes={editableClasses}
+      />
     </GlassCard>
   );
 }

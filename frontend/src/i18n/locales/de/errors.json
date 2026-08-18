@@ -25,5 +25,6 @@
   "unknown_price_provider": "Unbekannter Kursanbieter.",
   "no_price_available": "Kein Kurs für {{date}} verfügbar — Preis manuell angeben oder zuerst Kurshistorie laden.",
   "generic": "Ein Fehler ist aufgetreten.",
-  "invalid_amount": "Betrag ist keine gültige Zahl."
+  "invalid_amount": "Betrag ist keine gültige Zahl.",
+  "targets_must_sum_to_100": "Die Ziele müssen sich auf 100 % summieren (aktuell {{sum}})."
 }
