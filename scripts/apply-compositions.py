@@ -101,6 +101,27 @@ def main() -> None:
             call("PATCH", f"/api/instruments/{inst['id']}",
                  {"region": spec["region"], "sector": spec["sector"]})
 
+    # Fonds oder Einzelwert als Tag am Instrument. Die Unterscheidung steht
+    # ohnehin schon in dieser Datei - `compositions` sind Fonds, weil nur ein
+    # Fonds eine Durchsicht hat, `direct_holdings` sind Einzelwerte. Sie am
+    # Namen zu erraten ("...UCITS ETF") waere ein stiller Fehler, sobald ein
+    # Fonds mal anders heisst.
+    kinds = {t: "etf" for t in data["compositions"] if not t.startswith("_")}
+    kinds |= {t: "direct" for t in data["direct_holdings"] if not t.startswith("_")}
+    kinds |= {t: k for t, k in (data.get("kinds") or {}).items() if not t.startswith("_")}
+    print()
+    tagged = 0
+    for ticker, kind in sorted(kinds.items()):
+        inst = by_ticker.get(ticker)
+        if inst is None:
+            continue
+        tags = sorted({*(t for t in inst["tags"] if t not in ("etf", "direct")), kind})
+        if tags != sorted(inst["tags"]):
+            tagged += 1
+            if not args.dry_run:
+                call("PATCH", f"/api/instruments/{inst['id']}", {"tags": tags})
+    print(f"{'tag':10}{'Fonds/Einzelwert':40}{len(kinds):>11} zugeordnet, {tagged} geaendert")
+
     print()
     for dimension, spec in (data.get("benchmarks") or {}).items():
         if dimension.startswith("_"):

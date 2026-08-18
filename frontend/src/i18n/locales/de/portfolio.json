@@ -30,5 +30,15 @@
     "loans": "Kredite",
     "noLtv": "—",
     "unnamedLoan": "Kredit #{{id}}"
+  },
+  "equityBreakdown": {
+    "title": "Aktien & ETFs im Detail",
+    "byInstrument": "Nach Instrument",
+    "byKind": "Fonds gegenüber Einzelwerten",
+    "holdings": "{{count}} Positionen",
+    "other": "Übrige {{count}}",
+    "funds": "ETFs",
+    "direct": "Einzelwerte",
+    "unclassified": "Nicht zugeordnet"
   }
 }

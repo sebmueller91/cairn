@@ -30,5 +30,15 @@
     "loans": "Loans",
     "noLtv": "—",
     "unnamedLoan": "Loan #{{id}}"
+  },
+  "equityBreakdown": {
+    "title": "Equities in detail",
+    "byInstrument": "By instrument",
+    "byKind": "Funds vs. single companies",
+    "holdings": "{{count}} holdings",
+    "other": "Other {{count}}",
+    "funds": "ETFs",
+    "direct": "Single companies",
+    "unclassified": "Unclassified"
   }
 }

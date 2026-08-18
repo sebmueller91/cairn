@@ -35,6 +35,13 @@
   --color-chart-vehicle: var(--chart-vehicle);
   --color-chart-cash: var(--chart-cash);
   --color-chart-liability: var(--chart-liability);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
+  --color-series-5: var(--series-5);
+  --color-series-6: var(--series-6);
+  --color-series-7: var(--series-7);
 
   /* Attribution components (deposits / income / costs / valuation / fx /
      market). Deliberately a different hue family from the asset palette so
@@ -98,6 +105,20 @@
   --chart-cash: #e2e8f0;
   --chart-liability: #fb7185;
 
+  /* Categorical series palette — for charts whose slices are entities
+     (individual instruments), not asset classes. Stepped in OKLCH and
+     validated for the dark surface: every hue inside the L band, chroma
+     above the gray floor, and adjacent pairs separated under deuteranopia
+     and tritanopia as well as normal vision. Assign in this order and
+     never cycle — an eighth slice folds into a neutral "other". */
+  --series-1: #3892e4;
+  --series-2: #b24a0e;
+  --series-3: #00a7af;
+  --series-4: #ad4276;
+  --series-5: #42a554;
+  --series-6: #7f55b6;
+  --series-7: #aa8b00;
+
   --attr-deposits: #2dd4bf;
   --attr-income: #a3e635;
   --attr-costs: #f472b6;
@@ -139,6 +160,13 @@
     --chart-vehicle: #475569;
     --chart-cash: #64748b;
     --chart-liability: #e11d48;
+    --series-1: #1f7dcf;
+    --series-2: #9e3800;
+    --series-3: #00939b;
+    --series-4: #992f65;
+    --series-5: #2a9141;
+    --series-6: #6e43a3;
+    --series-7: #967700;
 
     --attr-deposits: #0d9488;
     --attr-income: #65a30d;
@@ -177,6 +205,13 @@
   --chart-vehicle: #475569;
   --chart-cash: #64748b;
   --chart-liability: #e11d48;
+  --series-1: #1f7dcf;
+  --series-2: #9e3800;
+  --series-3: #00939b;
+  --series-4: #992f65;
+  --series-5: #2a9141;
+  --series-6: #6e43a3;
+  --series-7: #967700;
 
   --attr-deposits: #0d9488;
   --attr-income: #65a30d;

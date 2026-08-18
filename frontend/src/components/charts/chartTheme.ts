@@ -91,3 +91,32 @@ export const ATTRIBUTION_COLORS = {
 } as const;
 
 export type AttributionKey = keyof typeof ATTRIBUTION_COLORS;
+
+/**
+ * Categorical palette for charts whose slices are *entities* — individual
+ * instruments — rather than asset classes, which have their own fixed
+ * colours above.
+ *
+ * Stepped in OKLCH and run through the palette validator for both surfaces:
+ * every hue inside its mode's lightness band, chroma above the gray floor,
+ * and adjacent pairs separated under deuteranopia and tritanopia as well as
+ * normal vision. Hues are interleaved around the wheel and alternate in
+ * lightness precisely so neighbours in a legend stay distinguishable.
+ *
+ * Assign in this order and never cycle: reusing a hue for a ninth slice
+ * makes two different holdings look like the same one. Anything past the
+ * end of this list belongs in a single neutral "other" slice.
+ */
+export const SERIES_COLORS = [
+  "var(--series-1)",
+  "var(--series-2)",
+  "var(--series-3)",
+  "var(--series-4)",
+  "var(--series-5)",
+  "var(--series-6)",
+  "var(--series-7)",
+] as const;
+
+/** The catch-all slice. Deliberately not a palette hue — "other" is not an
+ * entity and must not read as one. */
+export const OTHER_COLOR = "var(--text-muted)";
