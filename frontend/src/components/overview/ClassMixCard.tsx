@@ -57,6 +57,13 @@ export function ClassMixCard() {
           color: ASSET_CLASS_COLORS[c],
         }))
         .filter((s) => s.value > 0)
+        // Largest first, in the ring and in the legend alike. ASSET_CLASSES
+        // order is the right default where slices must stay put between
+        // frames (the replay's mix bar); a static card reads better ranked,
+        // and sorting the slices rather than the legend keeps the two in
+        // step — a legend in a different order than its chart stops being
+        // a key.
+        .sort((a, b) => b.value - a.value)
     : [];
 
   const total = slices.reduce((sum, s) => sum + s.value, 0);

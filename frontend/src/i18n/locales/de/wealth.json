@@ -21,12 +21,10 @@
     "window": "Veränderung über {{period}}"
   },
   "mix": {
-    "title": "Klassenmix im Zeitverlauf",
-    "hint": "Schulden liegen unter der Nulllinie"
+    "title": "Klassenmix im Zeitverlauf"
   },
   "replay": {
     "title": "Zeitreise",
-    "hint": "Abspielen oder am Regler ziehen",
     "play": "Abspielen",
     "pause": "Pausieren",
     "scrub": "Zeitpunkt wählen"

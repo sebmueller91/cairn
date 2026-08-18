@@ -21,12 +21,10 @@
     "window": "Change over {{period}}"
   },
   "mix": {
-    "title": "Class mix over time",
-    "hint": "Debt sits below the zero line"
+    "title": "Class mix over time"
   },
   "replay": {
     "title": "Time travel",
-    "hint": "Press play or drag the slider",
     "play": "Play",
     "pause": "Pause",
     "scrub": "Pick a point in time"

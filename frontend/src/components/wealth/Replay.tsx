@@ -193,12 +193,7 @@ export function Replay({
 
   return (
     <GlassCard className="flex flex-col">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-medium text-text-muted">
-          {t("replay.title")}
-        </h2>
-        <p className="text-xs text-text-muted/70">{t("replay.hint")}</p>
-      </div>
+      <h2 className="text-sm font-medium text-text-muted">{t("replay.title")}</h2>
 
       {isLoading ? (
         <div className="mt-4 space-y-4">

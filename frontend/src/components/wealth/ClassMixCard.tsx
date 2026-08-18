@@ -72,12 +72,7 @@ export function ClassMixCard({
 
   return (
     <GlassCard className="flex flex-col">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-medium text-text-muted">
-          {t("mix.title")}
-        </h2>
-        <p className="text-xs text-text-muted/70">{t("mix.hint")}</p>
-      </div>
+      <h2 className="text-sm font-medium text-text-muted">{t("mix.title")}</h2>
 
       {isLoading ? (
         <Skeleton className="mt-4 h-[280px] w-full" />
