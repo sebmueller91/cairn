@@ -47,5 +47,16 @@
     "funds": "ETFs",
     "direct": "Einzelwerte",
     "unclassified": "Nicht zugeordnet"
+  },
+  "etfSplit": {
+    "title": "ETF-Aufteilung: Industrie- vs. Schwellenländer",
+    "legend": "Industrieländer / Schwellenländer",
+    "vsTarget": "gegenüber Ziel",
+    "targetIs": "Ziel {{pct}}",
+    "editTarget": "Ziel bearbeiten",
+    "targetLabel": "Ziel Schwellenländer",
+    "clearHint": "Feld leeren entfernt das Ziel.",
+    "emergingShareColumn": "Spalte rechts: Schwellenländer-Anteil des jeweiligen ETFs",
+    "emptyHint": "Sobald ETFs im Bestand sind, erscheint hier ihre Aufteilung."
   }
 }

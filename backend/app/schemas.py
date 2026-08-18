@@ -522,6 +522,33 @@ class ReconcileResponse(BaseModel):
     differences: list[ReconcileDifference]
 
 
+class EtfSplitRowRead(BaseModel):
+    instrument_id: int
+    name: str
+    value_eur: DecimalStr
+    emerging_eur: DecimalStr
+    emerging_pct: DecimalStr
+
+
+class EtfSplitResponse(BaseModel):
+    """GET /api/look-through/etf-split — developed vs. emerging across the
+    fund holdings, with each fund's own contribution."""
+
+    developed_eur: DecimalStr
+    emerging_eur: DecimalStr
+    total_eur: DecimalStr
+    # None when no funds are held: a share of nothing is not zero.
+    emerging_pct: DecimalStr | None
+    target_emerging_pct: DecimalStr | None
+    drift_pp: DecimalStr | None
+    rows: list[EtfSplitRowRead]
+
+
+class EtfSplitTargetSet(BaseModel):
+    # None clears the target.
+    emerging_pct: DecimalStr | None = None
+
+
 class ContributionsResponse(BaseModel):
     """GET /api/contributions — what went in over a window (spec 4.3)."""
 

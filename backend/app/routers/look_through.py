@@ -7,11 +7,20 @@ from sqlalchemy.orm import Session
 from app import audit
 from app.auth import get_scope, require_write_scope
 from app.database import get_db
-from app.look_through_service import compute_look_through, get_benchmark, set_benchmark
+from app.look_through_service import (
+    compute_etf_split,
+    compute_look_through,
+    get_benchmark,
+    set_benchmark,
+    set_etf_split_target,
+)
 from app.models import EtfComposition, Instrument, TxnSource
 from app.schemas import (
     BenchmarkRead,
     BenchmarkSet,
+    EtfSplitResponse,
+    EtfSplitRowRead,
+    EtfSplitTargetSet,
     EtfCompositionRow,
     EtfCompositionSet,
     LookThroughResponse,
@@ -151,3 +160,61 @@ def write_benchmark(
     db.commit()
     label, breakdown = get_benchmark(db, body.dimension)
     return BenchmarkRead(dimension=body.dimension, label=label, breakdown=breakdown)
+
+
+@router.get("/look-through/etf-split", response_model=EtfSplitResponse)
+def get_etf_split(
+    as_of: date | None = None,
+    db: Session = Depends(get_db),
+    _scope=Depends(get_scope),
+) -> EtfSplitResponse:
+    """Developed vs. emerging across fund holdings only, each fund weighted
+    by its own region breakdown rather than bucketed whole."""
+    split = compute_etf_split(db, as_of)
+    return EtfSplitResponse(
+        developed_eur=split.developed_eur,
+        emerging_eur=split.emerging_eur,
+        total_eur=split.total_eur,
+        emerging_pct=split.emerging_pct,
+        target_emerging_pct=split.target_emerging_pct,
+        drift_pp=split.drift_pp,
+        rows=[
+            EtfSplitRowRead(
+                instrument_id=r.instrument_id,
+                name=r.name,
+                value_eur=r.value_eur,
+                emerging_eur=r.emerging_eur,
+                emerging_pct=r.emerging_pct,
+            )
+            for r in split.rows
+        ],
+    )
+
+
+@router.put("/look-through/etf-split/target", response_model=EtfSplitResponse)
+def put_etf_split_target(
+    body: EtfSplitTargetSet,
+    db: Session = Depends(get_db),
+    _scope=Depends(require_write_scope),
+) -> EtfSplitResponse:
+    try:
+        set_etf_split_target(db, body.emerging_pct)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "code": "etf_split_target_out_of_range",
+                "params": {"value": str(body.emerging_pct)},
+            },
+        ) from None
+    audit.record(
+        db,
+        actor=TxnSource.AGENT,
+        action="update",
+        entity="etf_split_target",
+        entity_id="etf_split_target",
+        payload_hash="n/a",
+        diff={"emerging_pct": str(body.emerging_pct)},
+    )
+    db.commit()
+    return get_etf_split(db=db, _scope=None)

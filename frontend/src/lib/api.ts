@@ -270,6 +270,37 @@ export function getCpiPoints() {
   return api.get<CpiIndexPointRead[]>("/api/cpi");
 }
 
+export interface EtfSplitRow {
+  instrument_id: number;
+  name: string;
+  value_eur: string;
+  emerging_eur: string;
+  emerging_pct: string;
+}
+
+/** GET /api/look-through/etf-split — developed vs. emerging across fund
+ * holdings, each fund weighted by its own region breakdown. */
+export interface EtfSplitResponse {
+  developed_eur: string;
+  emerging_eur: string;
+  total_eur: string;
+  /** null when no funds are held — a share of nothing is not zero. */
+  emerging_pct: string | null;
+  target_emerging_pct: string | null;
+  drift_pp: string | null;
+  rows: EtfSplitRow[];
+}
+
+export function getEtfSplit() {
+  return api.get<EtfSplitResponse>("/api/look-through/etf-split");
+}
+
+export function setEtfSplitTarget(emergingPct: string | null) {
+  return api.put<EtfSplitResponse>("/api/look-through/etf-split/target", {
+    emerging_pct: emergingPct,
+  });
+}
+
 export interface DriftRow {
   asset_class: string;
   current_value_eur: string;

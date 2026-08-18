@@ -47,5 +47,16 @@
     "funds": "ETFs",
     "direct": "Single companies",
     "unclassified": "Unclassified"
+  },
+  "etfSplit": {
+    "title": "ETF split: developed vs. emerging",
+    "legend": "Developed / emerging",
+    "vsTarget": "vs. target",
+    "targetIs": "target {{pct}}",
+    "editTarget": "Edit target",
+    "targetLabel": "Emerging target",
+    "clearHint": "Clearing the field removes the target.",
+    "emergingShareColumn": "Right column: each fund's emerging share",
+    "emptyHint": "The split appears here once funds are held."
   }
 }

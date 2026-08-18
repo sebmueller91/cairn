@@ -5,6 +5,7 @@ import { AssetPresetChips } from "../components/AssetPresetChips";
 import { ClassDistributionCard } from "../components/portfolio/ClassDistributionCard";
 import { InstrumentDistributionCard } from "../components/portfolio/InstrumentDistributionCard";
 import { EquityBreakdownCard } from "../components/portfolio/EquityBreakdownCard";
+import { EtfSplitCard } from "../components/portfolio/EtfSplitCard";
 import { LookThroughCard } from "../components/portfolio/LookThroughCard";
 import { TargetVsActualCard } from "../components/portfolio/TargetVsActualCard";
 import { RealAssetsLoansCard } from "../components/portfolio/RealAssetsLoansCard";
@@ -25,6 +26,7 @@ export function Portfolio() {
       </div>
 
       <EquityBreakdownCard />
+      <EtfSplitCard />
       <LookThroughCard />
       <TargetVsActualCard />
       <RealAssetsLoansCard />

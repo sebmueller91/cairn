@@ -14,6 +14,7 @@ instead — a directly-held stock's "breakdown" is trivially 100% of
 itself.
 """
 
+import json
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
@@ -115,3 +116,131 @@ def compute_look_through(
         LookThroughRow(category=k, value_eur=v)
         for k, v in sorted(totals.items(), key=lambda kv: kv[0])
     ]
+
+
+# The three region buckets this taxonomy treats as emerging. "Middle East &
+# Africa" is the imprecise one — MSCI counts Israel as developed and Saudi
+# Arabia and South Africa as emerging, and the single bucket cannot separate
+# them. It sits on the emerging side because that is where the bulk of the
+# weight is; at ~1.5% of a world index the rounding is smaller than the drift
+# the compositions themselves accumulate between factsheet updates.
+EMERGING_CATEGORIES = frozenset({"Emerging Asia", "Latin America", "Middle East & Africa"})
+
+ETF_SPLIT_TARGET_KEY = "etf_emerging_target_pct"
+ETF_TAG = "etf"
+
+
+@dataclass
+class EtfSplitRow:
+    instrument_id: int
+    name: str
+    value_eur: Decimal
+    emerging_eur: Decimal
+    emerging_pct: Decimal
+
+
+@dataclass
+class EtfSplit:
+    """Developed vs. emerging exposure across the fund holdings only.
+
+    Answers the question a 70/30 World/EM plan actually asks, which whole-fund
+    bucketing cannot: an all-world fund is not "a World ETF" or "an EM ETF",
+    it is both at once, and its emerging share belongs on the emerging side.
+    Every fund contributes its true weight, so adding another one never
+    requires deciding which bucket it goes in.
+    """
+
+    developed_eur: Decimal
+    emerging_eur: Decimal
+    total_eur: Decimal
+    emerging_pct: Decimal | None
+    target_emerging_pct: Decimal | None
+    drift_pp: Decimal | None
+    rows: list[EtfSplitRow]
+
+
+def get_etf_split_target(db: Session) -> Decimal | None:
+    raw = kv_store.get(db, ETF_SPLIT_TARGET_KEY)
+    return Decimal(str(raw)) if raw is not None else None
+
+
+def set_etf_split_target(db: Session, pct: Decimal | None) -> None:
+    """`None` clears the target and puts the card back to plain reporting."""
+    if pct is None:
+        kv_store.set(db, ETF_SPLIT_TARGET_KEY, None)
+        return
+    if not (Decimal(0) <= pct <= Decimal(100)):
+        raise ValueError(f"target must be between 0 and 100, got {pct}")
+    kv_store.set(db, ETF_SPLIT_TARGET_KEY, str(pct))
+
+
+def compute_etf_split(db: Session, as_of: date | None = None) -> EtfSplit:
+    as_of = as_of or date.today()
+
+    txns = db.query(Txn).filter(Txn.voided_at.is_(None), Txn.instrument_id.isnot(None)).all()
+    positions = compute_positions([txn_to_event(t) for t in txns])
+    instruments = {i.id: i for i in db.query(Instrument).all()}
+
+    region_rows = (
+        db.query(EtfComposition).filter(EtfComposition.dimension == "region").all()
+    )
+    composition: dict[int, list[tuple[str, Decimal]]] = {}
+    for row in region_rows:
+        composition.setdefault(row.instrument_id, []).append((row.category, row.weight_pct))
+
+    rows: list[EtfSplitRow] = []
+    developed = Decimal(0)
+    emerging = Decimal(0)
+
+    for (_, instrument_id), pos in positions.items():
+        if pos.quantity == 0:
+            continue
+        instrument = instruments.get(instrument_id)
+        if instrument is None or instrument.valuation_mode != ValuationMode.MARKET:
+            continue
+        # tags live as a JSON string on the model (models.py:tags_json);
+        # the list shape only exists at the schema boundary.
+        if ETF_TAG not in json.loads(instrument.tags_json or "[]"):
+            continue
+        price = current_instrument_value(db, instrument_id, as_of)
+        if price is None:
+            continue
+
+        value = pos.quantity * price
+        breakdown = composition.get(instrument_id, [])
+        # A fund with no breakdown counts as fully developed rather than being
+        # dropped: dropping it would quietly shrink the denominator and make
+        # the emerging share read high. data_quality already flags the missing
+        # breakdown itself.
+        em = sum(
+            (value * weight / Decimal(100) for category, weight in breakdown
+             if category in EMERGING_CATEGORIES),
+            Decimal(0),
+        )
+        developed += value - em
+        emerging += em
+        rows.append(
+            EtfSplitRow(
+                instrument_id=instrument_id,
+                name=instrument.name,
+                value_eur=value,
+                emerging_eur=em,
+                emerging_pct=(em / value * Decimal(100)) if value else Decimal(0),
+            )
+        )
+
+    total = developed + emerging
+    emerging_pct = (emerging / total * Decimal(100)) if total else None
+    target = get_etf_split_target(db)
+    drift = (emerging_pct - target) if (emerging_pct is not None and target is not None) else None
+
+    rows.sort(key=lambda r: r.value_eur, reverse=True)
+    return EtfSplit(
+        developed_eur=developed,
+        emerging_eur=emerging,
+        total_eur=total,
+        emerging_pct=emerging_pct,
+        target_emerging_pct=target,
+        drift_pp=drift,
+        rows=rows,
+    )

@@ -26,5 +26,6 @@
   "no_price_available": "Kein Kurs für {{date}} verfügbar — Preis manuell angeben oder zuerst Kurshistorie laden.",
   "generic": "Ein Fehler ist aufgetreten.",
   "invalid_amount": "Betrag ist keine gültige Zahl.",
-  "targets_must_sum_to_100": "Die Ziele müssen sich auf 100 % summieren (aktuell {{sum}})."
+  "targets_must_sum_to_100": "Die Ziele müssen sich auf 100 % summieren (aktuell {{sum}}).",
+  "etf_split_target_out_of_range": "Das Ziel muss zwischen 0 und 100 % liegen."
 }
