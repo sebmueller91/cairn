@@ -12,7 +12,7 @@ export function SignedAmount({ value, lang }: { value: string | null | undefined
   const arrow = n > 0 ? "▲" : n < 0 ? "▼" : "";
   return (
     <span className={cls}>
-      {arrow} {formatCurrency(value, lang)}
+      {arrow} <span className="sensitive">{formatCurrency(value, lang)}</span>
     </span>
   );
 }

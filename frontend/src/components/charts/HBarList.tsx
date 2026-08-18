@@ -44,7 +44,7 @@ export function HBarList({
           <div key={item.key ?? i}>
             <div className="flex items-baseline gap-2 text-sm">
               <span className="truncate">{item.label}</span>
-              <span className="tnum ml-auto shrink-0 font-medium">
+              <span className="tnum sensitive ml-auto shrink-0 font-medium">
                 {formatValue(item.value)}
               </span>
               {item.secondary && (

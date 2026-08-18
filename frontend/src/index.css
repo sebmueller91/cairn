@@ -306,3 +306,34 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/* Privacy mode (lib/privacy.ts): blur euro amounts so the app can be shown
+   to someone without showing them the numbers. Marked elements carry
+   `sensitive`; everything else — percentages, dates, names, weights — stays
+   readable on purpose.
+
+   The radius is in `em` so it tracks font size: a 48px hero number needs far
+   more blur to be unreadable than a 12px table cell, and a fixed pixel value
+   would either leave the hero legible or turn the table into soup. Selection
+   is disabled so the text cannot simply be highlighted and read, and the
+   transition makes the toggle read as deliberate rather than as a glitch. */
+.sensitive {
+  transition: filter 160ms ease;
+}
+
+:root[data-privacy="on"] .sensitive {
+  filter: blur(0.38em);
+  user-select: none;
+}
+
+/* SVG text (chart axis ticks) needs the filter on the element itself; the
+   same class works because CSS filters apply to SVG content too. */
+:root[data-privacy="on"] .recharts-cartesian-axis-tick text.sensitive {
+  filter: blur(0.3em);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sensitive {
+    transition: none;
+  }
+}

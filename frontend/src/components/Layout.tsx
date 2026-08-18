@@ -8,8 +8,11 @@ import {
   Table2,
   Settings as SettingsIcon,
   LogOut,
+  Eye,
+  EyeOff,
 } from "lucide-react";
 import { useAuth } from "../lib/auth";
+import { usePrivacy } from "../lib/privacy";
 import { FreshnessIndicator } from "./FreshnessIndicator";
 
 const NAV_ITEMS = [
@@ -97,6 +100,10 @@ function BottomTabs() {
 function Header() {
   const { t } = useTranslation("common");
   const { logout } = useAuth();
+  // In the header rather than in Settings: the point of the toggle is to hit
+  // it as somebody walks up to the screen, which is no time to go looking
+  // through a settings page.
+  const { enabled: privacy, toggle: togglePrivacy } = usePrivacy();
 
   return (
     <header className="flex items-center justify-between border-b border-border bg-bg-card px-4 py-3 backdrop-blur-glass md:px-6">
@@ -106,6 +113,22 @@ function Header() {
         <FreshnessIndicator />
       </div>
       <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={togglePrivacy}
+          aria-pressed={privacy}
+          title={t(privacy ? "actions.showAmounts" : "actions.hideAmounts")}
+          aria-label={t(privacy ? "actions.showAmounts" : "actions.hideAmounts")}
+          className={`transition-colors ${
+            privacy ? "text-accent" : "text-text-muted hover:text-text"
+          }`}
+        >
+          {privacy ? (
+            <EyeOff className="size-4" aria-hidden />
+          ) : (
+            <Eye className="size-4" aria-hidden />
+          )}
+        </button>
         <NavLink
           to="/settings"
           className="text-text-muted hover:text-text"

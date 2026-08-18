@@ -92,13 +92,14 @@ export function ClassMixCard() {
             />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="tnum text-lg font-[650] leading-tight tracking-tight">
+            <div className="tnum sensitive text-lg font-[650] leading-tight tracking-tight">
               {formatCurrency(total, i18n.language)}
             </div>
             <div className="text-xs text-text-muted">{t("classMix.grossLabel")}</div>
             {liability < 0 && (
               <div className="tnum mt-0.5 text-xs text-negative">
-                {formatCurrency(liability, i18n.language)} {t("classMix.liabilities")}
+                <span className="sensitive">{formatCurrency(liability, i18n.language)}</span>{" "}
+                {t("classMix.liabilities")}
               </div>
             )}
             <ChartLegend items={legend} language={i18n.language} className="mt-2.5" />

@@ -68,6 +68,7 @@ export function NetWorthHero() {
         delta={delta}
         formatDelta={formatDelta}
         deltaCaption={t("hero.deltaCaption", { days: DELTA_DAYS })}
+        sensitive
       >
         <Sparkline
           data={points.map((p) => Number(p.value_eur))}

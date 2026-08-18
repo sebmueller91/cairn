@@ -10,7 +10,9 @@
   "actions": {
     "logout": "Log out",
     "login": "Log in",
-    "updateCash": "Update cash balance"
+    "updateCash": "Update cash balance",
+    "hideAmounts": "Hide amounts",
+    "showAmounts": "Show amounts"
   },
   "assetClass": {
     "EQUITY": "Stocks & ETFs",

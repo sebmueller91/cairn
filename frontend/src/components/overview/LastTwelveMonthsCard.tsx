@@ -82,7 +82,7 @@ export function LastTwelveMonthsCard() {
       </div>
 
       <div className="mt-3">
-        <div className="tnum text-lg font-[650] leading-tight tracking-tight">
+        <div className="tnum sensitive text-lg font-[650] leading-tight tracking-tight">
           {money(invested)}
         </div>
         <div className="text-xs text-text-muted">{t("lastYear.invested")}</div>
@@ -102,14 +102,14 @@ export function LastTwelveMonthsCard() {
       <dl className="mt-3 space-y-1.5 border-t border-border pt-2.5 text-sm">
         <div className="flex items-center justify-between gap-2">
           <dt className="text-text-muted">{t("lastYear.debtRepaid")}</dt>
-          <dd className={`tnum font-medium ${debtRepaid > 0 ? "text-positive" : ""}`}>
+          <dd className={`tnum sensitive font-medium ${debtRepaid > 0 ? "text-positive" : ""}`}>
             {money(debtRepaid)}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-2">
           <dt className="text-text-muted">{t("lastYear.netChange")}</dt>
           <dd
-            className={`tnum font-medium ${
+            className={`tnum sensitive font-medium ${
               netChange > 0 ? "text-positive" : netChange < 0 ? "text-negative" : ""
             }`}
           >

@@ -175,6 +175,7 @@ export function WealthCurveCard({
             }
             value={last}
             format={formatValue}
+            sensitive
             delta={series.length > 1 ? delta : undefined}
             formatDelta={(n) =>
               `${n >= 0 ? "+" : "−"}${formatCurrency(Math.abs(n), i18n.language)}`

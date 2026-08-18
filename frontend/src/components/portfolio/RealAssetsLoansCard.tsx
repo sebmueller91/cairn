@@ -84,7 +84,9 @@ export function RealAssetsLoansCard() {
               <div key={p.instrument_id} className="flex items-center gap-2 text-sm">
                 <span className="truncate">{p.instrument!.name}</span>
                 <span className="tnum ml-auto shrink-0 font-medium">
-                  {p.value_eur !== null ? formatCurrency(p.value_eur, i18n.language) : "—"}
+                  <span className="sensitive">
+                    {p.value_eur !== null ? formatCurrency(p.value_eur, i18n.language) : "—"}
+                  </span>
                 </span>
               </div>
             ))}

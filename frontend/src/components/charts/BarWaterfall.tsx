@@ -72,6 +72,9 @@ export function BarWaterfall({
         />
         <YAxis
           {...axisProps}
+          // Money on the value axis, so privacy mode blurs the ticks too;
+          // an unblurred axis would give the hidden figures away.
+          tick={{ className: "sensitive", fill: "var(--text-muted)", fontSize: 12 }}
           orientation="right"
           width={56}
           tickFormatter={compactTickFormatter(i18n.language)}

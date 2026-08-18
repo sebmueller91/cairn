@@ -130,7 +130,7 @@ export function EquityBreakdownCard() {
             {t("equityBreakdown.byInstrument")}
           </h3>
           <DonutChart data={bySlice} height={200} formatValue={money}>
-            <div className="tnum text-lg font-[650] tracking-tight">{money(total)}</div>
+            <div className="tnum sensitive text-lg font-[650] tracking-tight">{money(total)}</div>
             <div className="mt-0.5 text-xs text-text-muted">
               {t("equityBreakdown.holdings", { count: holdings.length })}
             </div>

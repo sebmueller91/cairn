@@ -86,7 +86,11 @@ export function PositionsView() {
       key: "value",
       header: t("data:positions.value"),
       align: "right",
-      render: (p) => (p.value_eur ? formatCurrency(p.value_eur, i18n.language) : "—"),
+      render: (p) => (
+        <span className="sensitive">
+          {p.value_eur ? formatCurrency(p.value_eur, i18n.language) : "—"}
+        </span>
+      ),
     },
     {
       key: "unrealizedPl",

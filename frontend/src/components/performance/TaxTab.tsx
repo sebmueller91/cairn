@@ -57,20 +57,28 @@ export function TaxTab() {
       key: "costBasis",
       header: t("unrealized.costBasis"),
       align: "right",
-      render: (row) => formatCurrency(row.cost_basis_eur, i18n.language),
+      render: (row) => (
+        <span className="sensitive">{formatCurrency(row.cost_basis_eur, i18n.language)}</span>
+      ),
     },
     {
       key: "currentValue",
       header: t("unrealized.currentValue"),
       align: "right",
-      render: (row) => formatCurrency(row.current_value_eur, i18n.language),
+      render: (row) => (
+        <span className="sensitive">{formatCurrency(row.current_value_eur, i18n.language)}</span>
+      ),
     },
     {
       key: "unrealizedPl",
       header: t("unrealized.unrealizedPl"),
       align: "right",
       render: (row) => (
-        <span className={Number(row.unrealized_pl_eur) >= 0 ? "text-positive" : "text-negative"}>
+        <span
+          className={`sensitive ${
+            Number(row.unrealized_pl_eur) >= 0 ? "text-positive" : "text-negative"
+          }`}
+        >
           {formatCurrency(row.unrealized_pl_eur, i18n.language)}
         </span>
       ),
@@ -79,7 +87,9 @@ export function TaxTab() {
       key: "estimatedTax",
       header: t("unrealized.estimatedTax"),
       align: "right",
-      render: (row) => formatCurrency(row.estimated_tax_eur, i18n.language),
+      render: (row) => (
+        <span className="sensitive">{formatCurrency(row.estimated_tax_eur, i18n.language)}</span>
+      ),
     },
   ];
 
@@ -138,32 +148,32 @@ export function TaxTab() {
             <div className="grid flex-1 grid-cols-2 gap-4 sm:grid-cols-3">
               <div>
                 <div className="text-xs text-text-muted">{t("allowance")}</div>
-                <div className="tnum mt-0.5 text-lg font-medium">
+                <div className="tnum sensitive mt-0.5 text-lg font-medium">
                   {formatCurrency(data.saver_allowance.allowance_eur, i18n.language)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-text-muted">{t("realizedGains")}</div>
-                <div className="tnum mt-0.5 text-lg font-medium">
+                <div className="tnum sensitive mt-0.5 text-lg font-medium">
                   {formatCurrency(data.saver_allowance.realized_gains_eur, i18n.language)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-text-muted">{t("investmentIncome")}</div>
-                <div className="tnum mt-0.5 text-lg font-medium">
+                <div className="tnum sensitive mt-0.5 text-lg font-medium">
                   {formatCurrency(data.saver_allowance.investment_income_eur, i18n.language)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-text-muted">{t("used")}</div>
-                <div className="tnum mt-0.5 text-lg font-medium">
+                <div className="tnum sensitive mt-0.5 text-lg font-medium">
                   {formatCurrency(data.saver_allowance.total_eur, i18n.language)}
                 </div>
               </div>
               <div>
                 <div className="text-xs text-text-muted">{t("remaining")}</div>
                 <div
-                  className={`tnum mt-0.5 text-lg font-medium ${
+                  className={`tnum sensitive mt-0.5 text-lg font-medium ${
                     remainingEur < 0 ? "text-negative" : "text-positive"
                   }`}
                 >

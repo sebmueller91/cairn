@@ -113,7 +113,9 @@ export function LedgerView() {
       // every type as a positive figure and the type column carries the
       // direction. Colouring it green with an up-arrow would read as
       // profit on rows that are purchases.
-      render: (tx) => <span className="tnum">{formatCurrency(tx.amount_eur, i18n.language)}</span>,
+      render: (tx) => (
+        <span className="tnum sensitive">{formatCurrency(tx.amount_eur, i18n.language)}</span>
+      ),
     },
     {
       key: "note",

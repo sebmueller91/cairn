@@ -54,7 +54,7 @@ export function NextMilestoneCard() {
           className="shrink-0"
         />
         <div className="min-w-0 flex-1">
-          <div className="tnum text-lg font-[650] leading-tight tracking-tight">
+          <div className="tnum sensitive text-lg font-[650] leading-tight tracking-tight">
             {formatCurrency(data.next_milestone_eur, i18n.language)}
           </div>
           <div className="text-xs text-text-muted">{t("milestone.targetLabel")}</div>

@@ -61,7 +61,7 @@ export function ChartTooltip({
             {!hideName && row.name !== undefined && (
               <span className="text-text-muted">{row.name}</span>
             )}
-            <span className="tnum ml-auto font-medium">
+            <span className="tnum sensitive ml-auto font-medium">
               {formatValue(Number(row.value))}
             </span>
           </div>

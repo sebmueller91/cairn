@@ -9,6 +9,7 @@ export function StatHero({
   delta,
   formatDelta,
   deltaCaption,
+  sensitive = false,
   children,
   className = "",
 }: {
@@ -23,6 +24,9 @@ export function StatHero({
   /** Small note beside the delta chip — what period the delta and the
    * sparkline actually cover. Without it the chip is an unlabelled number. */
   deltaCaption?: ReactNode;
+  /** True when the value is money, so privacy mode blurs it. Off by
+   * default: the performance hero is a percentage and must stay readable. */
+  sensitive?: boolean;
   /** Slot under the value — a Sparkline fits here. */
   children?: ReactNode;
   className?: string;
@@ -35,12 +39,18 @@ export function StatHero({
     <div className={className}>
       <div className="text-sm text-text-muted">{label}</div>
       <div className="mt-1 flex flex-wrap items-baseline gap-3">
-        <span className="tnum text-4xl font-[650] tracking-tight md:text-5xl">
+        <span
+          className={`tnum text-4xl font-[650] tracking-tight md:text-5xl${
+            sensitive ? " sensitive" : ""
+          }`}
+        >
           {format(animated)}
         </span>
         {delta !== undefined && (
           <span
             className={`tnum inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-sm font-medium ${
+              sensitive ? "sensitive " : ""
+            }${
               up
                 ? "border-positive/30 bg-positive/10 text-positive"
                 : "border-negative/30 bg-negative/10 text-negative"

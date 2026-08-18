@@ -56,7 +56,7 @@ export function ClassDistributionCard() {
         <>
           {slices.length > 0 && (
             <DonutChart data={slices} formatValue={(n) => formatCurrency(n, i18n.language)}>
-              <div className="tnum text-xl font-[650] tracking-tight">
+              <div className="tnum sensitive text-xl font-[650] tracking-tight">
                 {formatCurrency(netTotal, i18n.language)}
               </div>
               <div className="mt-0.5 text-xs text-text-muted">
@@ -77,7 +77,7 @@ export function ClassDistributionCard() {
                     style={{ backgroundColor: slice.color }}
                   />
                   <span className="truncate">{slice.name}</span>
-                  <span className="tnum ml-auto shrink-0 font-medium">
+                  <span className="tnum sensitive ml-auto shrink-0 font-medium">
                     {formatCurrency(slice.value, i18n.language)}
                   </span>
                   <span className="tnum w-14 shrink-0 text-right text-text-muted">
@@ -98,7 +98,7 @@ export function ClassDistributionCard() {
                 <span className="truncate">
                   {t(`common:${assetClassLabelKey("LIABILITY")}`)}
                 </span>
-                <span className="tnum ml-auto shrink-0 font-medium text-negative">
+                <span className="tnum sensitive ml-auto shrink-0 font-medium text-negative">
                   {formatCurrency(liabilityValue, i18n.language)}
                 </span>
               </div>

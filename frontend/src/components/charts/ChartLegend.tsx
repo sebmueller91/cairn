@@ -39,7 +39,13 @@ export function ChartLegend({
             aria-hidden
           />
           <span className="truncate text-text-muted">{item.label}</span>
-          <span className="tnum ml-auto shrink-0 pl-1 text-text">
+          {/* A share is not a secret; an amount is. The presence of
+              formatValue is exactly the difference between the two. */}
+          <span
+            className={`tnum ml-auto shrink-0 pl-1 text-text${
+              formatValue ? " sensitive" : ""
+            }`}
+          >
             {formatValue
               ? formatValue(item.value)
               : total > 0

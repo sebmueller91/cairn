@@ -8,7 +8,7 @@ import {
   assetClassLabelKey,
   type AssetClass,
 } from "../../lib/assetClasses";
-import { formatCurrency } from "../../lib/format";
+import { formatCurrency, formatPercent } from "../../lib/format";
 import { prefersReducedMotion } from "../../lib/motion";
 import { GradientAreaChart } from "../charts/GradientAreaChart";
 import { CHART_MARGINS } from "../charts/chartTheme";
@@ -217,7 +217,7 @@ export function Replay({
               {dateLabel}
             </div>
             <div className="tnum mt-1 text-3xl font-[650] tracking-tight md:text-4xl">
-              {formatCurrency(value, i18n.language)}
+              <span className="sensitive">{formatCurrency(value, i18n.language)}</span>
             </div>
           </div>
 
@@ -226,7 +226,10 @@ export function Replay({
               {positives.map((entry) => (
                 <div
                   key={entry.cls}
-                  title={`${t(assetClassLabelKey(entry.cls), { ns: "common" })} · ${formatCurrency(entry.value, i18n.language)}`}
+                  title={`${t(assetClassLabelKey(entry.cls), { ns: "common" })} · ${formatPercent(
+                    entry.value / positiveTotal,
+                    i18n.language,
+                  )}`}
                   className="h-full min-w-0"
                   style={{
                     width: `${(entry.value / positiveTotal) * 100}%`,
@@ -238,7 +241,10 @@ export function Replay({
             {liability < 0 && (
               <div className="flex h-1.5 w-full">
                 <div
-                  title={`${t(assetClassLabelKey("LIABILITY"), { ns: "common" })} · ${formatCurrency(liability, i18n.language)}`}
+                  title={`${t(assetClassLabelKey("LIABILITY"), { ns: "common" })} · ${formatPercent(
+                    liabilityShare,
+                    i18n.language,
+                  )}`}
                   className="h-full rounded-full"
                   style={{
                     width: `${liabilityShare * 100}%`,

@@ -21,7 +21,7 @@ export function SignedAmount({
   return (
     <span className={`tnum ${cls} ${className}`}>
       {n > 0 ? "+" : ""}
-      {formatCurrency(n, lang)}
+      <span className="sensitive">{formatCurrency(n, lang)}</span>
     </span>
   );
 }

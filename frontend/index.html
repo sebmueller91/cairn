@@ -26,6 +26,13 @@
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute("content", theme === "light" ? "#ffffff" : "#05070d");
         }
+        // Same reason, higher stakes: privacy mode exists so amounts are not
+        // seen, and a cold start that painted them for one frame before React
+        // mounted would defeat it in exactly the situation it is for — someone
+        // standing next to you. Keep in lockstep with src/lib/privacy.ts.
+        if (localStorage.getItem("cairn-privacy") === "on") {
+          document.documentElement.setAttribute("data-privacy", "on");
+        }
       })();
     </script>
   </head>

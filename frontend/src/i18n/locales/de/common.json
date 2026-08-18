@@ -10,7 +10,9 @@
   "actions": {
     "logout": "Abmelden",
     "login": "Anmelden",
-    "updateCash": "Kontostand aktualisieren"
+    "updateCash": "Kontostand aktualisieren",
+    "hideAmounts": "Beträge verbergen",
+    "showAmounts": "Beträge anzeigen"
   },
   "assetClass": {
     "EQUITY": "Aktien & ETFs",

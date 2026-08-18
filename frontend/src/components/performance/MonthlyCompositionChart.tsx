@@ -77,6 +77,9 @@ export function MonthlyCompositionChart({
           <CartesianGrid {...gridProps} />
           <XAxis dataKey="label" {...axisProps} minTickGap={20} interval="preserveStartEnd" />
           <YAxis
+            // Euro amounts on the value axis — blurred with everything
+            // else in privacy mode.
+            tick={{ className: "sensitive", fill: "var(--text-muted)", fontSize: 12 }}
             {...axisProps}
             orientation="right"
             width={56}

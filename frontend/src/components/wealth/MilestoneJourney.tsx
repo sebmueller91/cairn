@@ -203,7 +203,7 @@ export function MilestoneJourney({
                   className="flex min-w-[7.5rem] flex-1 flex-col items-center"
                 >
                   <div
-                    className={`tnum h-8 text-center text-sm font-medium ${
+                    className={`tnum sensitive h-8 text-center text-sm font-medium ${
                       node.kind === "upcoming" ? "text-text-muted/50" : ""
                     }`}
                   >
@@ -246,7 +246,7 @@ export function MilestoneJourney({
                   </span>
                   <div className="min-w-0 flex-1">
                     <div
-                      className={`tnum text-sm font-medium ${
+                      className={`tnum sensitive text-sm font-medium ${
                         node.kind === "upcoming" ? "text-text-muted/50" : ""
                       }`}
                     >
