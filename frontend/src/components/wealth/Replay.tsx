@@ -15,7 +15,7 @@ import { CHART_MARGINS } from "../charts/chartTheme";
 import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
-import { formatMonthYear } from "./util";
+import { formatMonthYear, frameIndices } from "./util";
 
 /**
  * The whole point of this card is a value that changes ~60 times a second
@@ -128,18 +128,16 @@ export function Replay({
 
   // --- driven readouts -----------------------------------------------------
 
-  const lower = Math.min(Math.floor(frame), maxFrame);
-  const upper = Math.min(lower + 1, maxFrame);
-  const t01 = frame - lower;
+  // Clamped against the *current* series length, not against whatever the
+  // playhead was when the previous period was showing — see frameIndices.
+  const { lower, upper, t01, snap } = frameIndices(frame, total);
 
   const value =
     total > 0 ? lerp(series[lower].value, series[upper].value, t01) : 0;
   // The date snaps to the nearest bucket: an interpolated month label would
   // read as false precision on a month-granularity series.
   const dateLabel =
-    total > 0
-      ? formatMonthYear(series[Math.round(frame)].date, i18n.language)
-      : "—";
+    total > 0 ? formatMonthYear(series[snap].date, i18n.language) : "—";
 
   const mix = useMemo(() => {
     if (!points || points.length === 0) return [];

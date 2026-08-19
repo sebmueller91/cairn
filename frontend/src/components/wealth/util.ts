@@ -67,3 +67,39 @@ export function formatMonthYear(value: string | Date, lang: string): string {
     month: "short",
   }).format(date);
 }
+
+export interface FrameIndices {
+  /** Bucket at or before the playhead. */
+  lower: number;
+  /** The next bucket, for interpolating between them. */
+  upper: number;
+  /** 0..1 position between `lower` and `upper`. */
+  t01: number;
+  /** Nearest bucket — for labels, where interpolating would be false precision. */
+  snap: number;
+}
+
+/**
+ * Safe indices into a replay series for a (possibly stale) playhead.
+ *
+ * The playhead is React state while the series comes from props, so changing
+ * the period shrinks the series while the old frame is still in state. The
+ * clamping effect only runs *after* that render, which means every index has
+ * to be clamped here or the render in between reads past the end of the
+ * array. That is not hypothetical: it blanked the page whenever a shorter,
+ * already-cached range was selected with the playhead near the end.
+ *
+ * An empty series yields zeros; the caller must still not index into it.
+ */
+export function frameIndices(frame: number, total: number): FrameIndices {
+  if (total <= 0) return { lower: 0, upper: 0, t01: 0, snap: 0 };
+  const max = total - 1;
+  const clamped = Math.min(Math.max(frame, 0), max);
+  const lower = Math.min(Math.floor(clamped), max);
+  return {
+    lower,
+    upper: Math.min(lower + 1, max),
+    t01: clamped - lower,
+    snap: Math.min(Math.round(clamped), max),
+  };
+}

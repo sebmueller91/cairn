@@ -7,6 +7,7 @@ import "./index.css";
 import { AuthProvider } from "./lib/auth";
 import { persistOptions } from "./lib/persister";
 import { App } from "./App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -19,10 +20,12 @@ const queryClient = new QueryClient({
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
-      <AuthProvider>
-        <App />
-      </AuthProvider>
-    </PersistQueryClientProvider>
+    <ErrorBoundary>
+      <PersistQueryClientProvider client={queryClient} persistOptions={persistOptions}>
+        <AuthProvider>
+          <App />
+        </AuthProvider>
+      </PersistQueryClientProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );
