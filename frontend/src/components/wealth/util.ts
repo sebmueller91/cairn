@@ -2,9 +2,9 @@
 // period vocabulary has exactly one definition across the four cards.
 
 /** Ranges the Wealth page offers. `MAX` means "everything on record". */
-export type Period = "1M" | "3M" | "6M" | "1Y" | "5Y" | "MAX";
+export type Period = "7D" | "1M" | "3M" | "6M" | "1Y" | "5Y" | "MAX";
 
-export const PERIODS: readonly Period[] = ["1M", "3M", "6M", "1Y", "5Y", "MAX"];
+export const PERIODS: readonly Period[] = ["7D", "1M", "3M", "6M", "1Y", "5Y", "MAX"];
 
 export type Granularity = "day" | "week" | "month";
 
@@ -20,6 +20,11 @@ export function rangeFor(period: Period): {
 } {
   const now = new Date();
   const iso = (d: Date) => d.toISOString().slice(0, 10);
+  const daysBack = (n: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - n);
+    return iso(d);
+  };
   const monthsBack = (n: number) => {
     const d = new Date(now);
     d.setMonth(d.getMonth() - n);
@@ -27,6 +32,11 @@ export function rangeFor(period: Period): {
   };
 
   switch (period) {
+    case "7D":
+      // The only range where a single day's move is the whole story: prices
+      // land once a day, so a week is eight points and every one of them is
+      // a real close rather than a bucket average.
+      return { from: daysBack(7), granularity: "day" };
     case "1M":
       return { from: monthsBack(1), granularity: "day" };
     case "3M":

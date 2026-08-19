@@ -1,6 +1,7 @@
 {
   "title": "Wealth",
   "period": {
+    "7D": "7D",
     "1M": "1M",
     "3M": "3M",
     "6M": "6M",

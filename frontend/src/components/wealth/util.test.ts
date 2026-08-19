@@ -10,8 +10,12 @@ describe("rangeFor", () => {
     vi.useRealTimers();
   });
 
-  it("offers 5Y between 1Y and MAX", () => {
-    expect(PERIODS).toEqual(["1M", "3M", "6M", "1Y", "5Y", "MAX"]);
+  it("offers the full ladder from a week to everything", () => {
+    expect(PERIODS).toEqual(["7D", "1M", "3M", "6M", "1Y", "5Y", "MAX"]);
+  });
+
+  it("looks back seven days for 7D, at daily resolution", () => {
+    expect(rangeFor("7D")).toEqual({ from: "2026-08-09", granularity: "day" });
   });
 
   it("looks back five years for 5Y", () => {
