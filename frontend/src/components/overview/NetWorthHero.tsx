@@ -5,23 +5,18 @@ import { GlassCard } from "../ui/GlassCard";
 import { StatHero } from "../ui/StatHero";
 import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
-import { closestPoint, fetchNetWorth90d, NET_WORTH_QUERY_KEY } from "./utils";
-
-/** Days back the delta chip compares against. Named so the caption and the
- * lookup can never drift apart. */
-const DELTA_DAYS = 30;
-/** Days the sparkline covers — the window fetchNetWorth90d asks for. */
-const SPARK_DAYS = 90;
+import { closestPoint, fetchHeroNetWorth, HERO_DAYS, NET_WORTH_QUERY_KEY } from "./utils";
 
 /** The hero panel: latest net worth (scope=net, so loans count against it),
- * a 90-day sparkline, and a delta chip vs. ~30 days ago. Single query — the
- * sparkline and the delta both read off the same 90-day series. */
+ * a sparkline over HERO_DAYS, and a delta chip against the start of that
+ * same window. Single query — sparkline and delta read off one series, and
+ * one constant, so the curve and the number always cover the same period. */
 export function NetWorthHero() {
   const { t, i18n } = useTranslation("overview");
 
   const { data, isLoading, isError } = useQuery({
     queryKey: NET_WORTH_QUERY_KEY,
-    queryFn: fetchNetWorth90d,
+    queryFn: fetchHeroNetWorth,
   });
 
   if (isLoading) {
@@ -52,7 +47,7 @@ export function NetWorthHero() {
   const latestValue = Number(latest.value_eur);
 
   const target = new Date();
-  target.setDate(target.getDate() - DELTA_DAYS);
+  target.setDate(target.getDate() - HERO_DAYS);
   const reference = closestPoint(points, target);
   const delta = reference ? latestValue - Number(reference.value_eur) : undefined;
 
@@ -67,7 +62,7 @@ export function NetWorthHero() {
         format={format}
         delta={delta}
         formatDelta={formatDelta}
-        deltaCaption={t("hero.deltaCaption", { days: DELTA_DAYS })}
+        deltaCaption={t("hero.deltaCaption", { days: HERO_DAYS })}
         sensitive
       >
         <Sparkline
@@ -77,7 +72,7 @@ export function NetWorthHero() {
           className="w-full"
         />
         <div className="mt-1.5 text-xs text-text-muted">
-          {t("hero.sparkCaption", { days: SPARK_DAYS })}
+          {t("hero.sparkCaption", { days: HERO_DAYS })}
         </div>
       </StatHero>
     </GlassCard>

@@ -44,15 +44,22 @@ export function hoursSince(iso: string | null | undefined): number | null {
 /** Past this age, a freshness dot flips from green to amber. */
 export const STALE_THRESHOLD_HOURS = 48;
 
-/** Net worth (scope=net, so loans count against it), last 90 days at day
+/** The window the Overview hero reports on — both its sparkline and its
+ * delta chip. Half a year rather than a month or a quarter: the Overview is
+ * meant to answer "where is this heading", and over 30 days a portfolio
+ * this size is mostly market noise. One constant so the two figures in the
+ * hero can never describe different periods. */
+export const HERO_DAYS = 180;
+
+/** Net worth (scope=net, so loans count against it) over HERO_DAYS at day
  * granularity. Shared between NetWorthHero (the sparkline + delta) and
  * Overview (the page-level "no snapshots yet" check) under the same query
  * key, so it's genuinely one network round trip, not two. */
-export function fetchNetWorth90d(): Promise<NetWorthPoint[]> {
+export function fetchHeroNetWorth(): Promise<NetWorthPoint[]> {
   const params = new URLSearchParams({
     scope: "net",
     granularity: "day",
-    from: isoDaysAgo(90),
+    from: isoDaysAgo(HERO_DAYS),
   });
   return api.get<NetWorthPoint[]>(`/api/timeseries/networth?${params}`);
 }

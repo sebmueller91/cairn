@@ -10,7 +10,7 @@ import { ClassMixCard } from "../components/overview/ClassMixCard";
 import { NextMilestoneCard } from "../components/overview/NextMilestoneCard";
 import { LastTwelveMonthsCard } from "../components/overview/LastTwelveMonthsCard";
 import { FreshnessStrip } from "../components/overview/FreshnessStrip";
-import { fetchNetWorth90d, NET_WORTH_QUERY_KEY } from "../components/overview/utils";
+import { fetchHeroNetWorth, NET_WORTH_QUERY_KEY } from "../components/overview/utils";
 
 /** Mission control: the one-glance view of the whole portfolio. Every card
  * below runs its own query, keyed identically to this page-level one where
@@ -22,7 +22,7 @@ export function Overview() {
 
   const { data, isLoading, isError } = useQuery({
     queryKey: NET_WORTH_QUERY_KEY,
-    queryFn: fetchNetWorth90d,
+    queryFn: fetchHeroNetWorth,
   });
 
   const isEmpty = !isLoading && !isError && (data?.length ?? 0) === 0;
