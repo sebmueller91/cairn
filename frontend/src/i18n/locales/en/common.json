@@ -9,6 +9,7 @@
   },
   "actions": {
     "logout": "Log out",
+    "refresh": "Refresh",
     "login": "Log in",
     "updateCash": "Update cash balance",
     "hideAmounts": "Hide amounts",

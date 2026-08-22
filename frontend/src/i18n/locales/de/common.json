@@ -9,6 +9,7 @@
   },
   "actions": {
     "logout": "Abmelden",
+    "refresh": "Aktualisieren",
     "login": "Anmelden",
     "updateCash": "Kontostand aktualisieren",
     "hideAmounts": "Beträge verbergen",

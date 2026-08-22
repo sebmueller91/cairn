@@ -14,6 +14,7 @@ import {
 import { useAuth } from "../lib/auth";
 import { usePrivacy } from "../lib/privacy";
 import { FreshnessIndicator } from "./FreshnessIndicator";
+import { RefreshButton } from "./RefreshButton";
 
 const NAV_ITEMS = [
   { to: "/", key: "overview", icon: LayoutDashboard },
@@ -113,6 +114,7 @@ function Header() {
         <FreshnessIndicator />
       </div>
       <div className="flex items-center gap-3">
+        <RefreshButton />
         <button
           type="button"
           onClick={togglePrivacy}
