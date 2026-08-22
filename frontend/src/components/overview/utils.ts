@@ -44,6 +44,14 @@ export function hoursSince(iso: string | null | undefined): number | null {
 /** Past this age, a freshness dot flips from green to amber. */
 export const STALE_THRESHOLD_HOURS = 48;
 
+/** The offsite (NAS) leg is judged more leniently, mirroring
+ * `STALE_OFFSITE_BACKUP_HOURS` in the backend's data_quality_service — a
+ * NAS that was rebooting or asleep for a night shouldn't cry wolf. Kept
+ * equal to the backend's threshold on purpose: if the dot and the issue
+ * list disagreed, the strip would show a green dot next to a warning
+ * about the same thing. */
+export const STALE_OFFSITE_THRESHOLD_HOURS = 72;
+
 /** The window the Overview hero reports on — both its sparkline and its
  * delta chip. Half a year rather than a month or a quarter: the Overview is
  * meant to answer "where is this heading", and over 30 days a portfolio

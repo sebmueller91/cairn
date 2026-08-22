@@ -1,0 +1,32 @@
+# Offsite backup target on the Synology NAS (ADR 0015). Installed once by
+# hand on the Pi as /etc/systemd/system/srv-cairn-nas.mount — the unit
+# filename must match the mount path, so do not rename it.
+#
+# Committed here (without any credential in it) because Scenario B in
+# docs/disaster-recovery.md rebuilds the Pi from this repository: an
+# offsite layer that has to be reconstructed from memory is not really
+# part of the recovery story.
+#
+# Replace NAS-HOSTNAME and SHARE-NAME before installing.
+[Unit]
+Description=Cairn offsite backup target (Synology SMB share)
+Requires=network-online.target
+After=network-online.target
+
+[Mount]
+What=//NAS-HOSTNAME/SHARE-NAME
+Where=/srv/cairn/nas
+Type=cifs
+# credentials= keeps the password out of this file and out of `ps`; the
+# referenced file is root-owned 0600 and is *not* in this repository.
+# uid/gid/mode: the share is written by root from cron and read by nobody
+# else — the backup contains the complete financial picture, so it should
+# not be world-readable just because CIFS defaults that way.
+# soft: a hard mount blocks forever on an unreachable server, which is
+# exactly what a 03:00 cron job must not do. seal requires "Enable
+# transfer encryption" on the DSM SMB service.
+Options=credentials=/srv/cairn/config/nas.cred,uid=0,gid=0,file_mode=0600,dir_mode=0700,vers=3.1.1,seal,soft,nofail,_netdev
+TimeoutSec=30
+
+[Install]
+WantedBy=multi-user.target

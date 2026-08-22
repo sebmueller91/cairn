@@ -16,14 +16,30 @@ secrets are not, and both have a defined home outside the Pi.
 | API token(s) | `/srv/cairn/config/.env` **and your password manager** | never |
 | mkcert CA + leaf cert | dev Mac (`mkcert -CAROOT`) and `deploy/tls/` (gitignored) | never |
 | Backup cron | `crontab -l` on the Pi: `0 3 * * * /srv/cairn/backup.sh >> /srv/cairn/backups/cron.log 2>&1` | documented here |
+| Offsite copies on the NAS | `/srv/cairn/nas/cairn/{db,exports,pre-migration}/` (SMB share) | never |
+| NAS mount units | `/etc/systemd/system/srv-cairn-nas.{mount,automount}` | templates in `deploy/systemd/` |
+| NAS credentials | `/srv/cairn/config/nas.cred` **and your password manager** | never |
 
-> **Known gap:** backup layer 3 (offsite 3-2-1 to NAS + encrypted cloud)
-> is **not set up yet** — deliberately deferred until NAS/cloud details
-> exist. Until then, a dead Pi *SD card* is recoverable from
-> `/srv/cairn/backups` only if that directory lives on separate storage
-> (SSD); a fully dead/stolen Pi loses everything since the last time you
-> copied a backup off the device. Copy one off manually now and then, or
-> close this gap.
+> **Remaining gap:** backup layer 3 is now half done. Pi → NAS runs nightly
+> (ADR 0015); **NAS → encrypted cloud does not exist yet**. Everything
+> therefore still lives in one building. `restic` or `rclone crypt` from the
+> NAS itself is the intended shape (spec 6.6) — encrypted before it leaves,
+> because the file is your complete financial picture.
+
+> **Not in any backup, by design:** `/srv/cairn/config/.env` (the API token)
+> and `nas.cred`. Both live in your password manager instead — a backup that
+> contained the credentials to reach it protects nothing.
+
+### Offsite layer, in one paragraph
+
+`scripts/backup.sh` mirrors each night's `.db` snapshot, logical export and
+any deploy-time `pre-migration-*.db` to the NAS share, then re-runs
+`PRAGMA integrity_check` and a ZIP check **against the copies on the NAS**
+before recording success. It never passes `--delete`: the NAS side only ever
+grows, so a bad night on the Pi cannot propagate. Retention there is 180 days
+of daily snapshots, first-of-month snapshots for five years, deploy snapshots
+for one year, and **logical exports are never deleted**. Local retention on
+the Pi is unchanged at 14 days.
 
 ## Scenario A — bad migration or wrecked ledger (Pi still alive)
 
@@ -70,7 +86,15 @@ Roughly half an hour, as spec 6.6 estimates:
    ships the API image, frontend, Caddyfile, TLS cert, compose file, and
    `backup.sh`.
 7. Reinstall the cron line (table above).
-8. Rebuild caches (`rebuild-snapshots`, `prices/refresh`) and check
+8. Re-establish the offsite leg, or the rebuilt Pi silently has no layer 3:
+   `apt install cifs-utils`, write `/srv/cairn/config/nas.cred` (root-owned,
+   `chmod 600`, `username=`/`password=` from your password manager), copy
+   `deploy/systemd/srv-cairn-nas.{mount,automount}` to
+   `/etc/systemd/system/` with the hostname and share name filled in, then
+   `systemctl daemon-reload && systemctl enable --now srv-cairn-nas.automount`.
+   Confirm with a manual `/srv/cairn/backup.sh` run that `latest_run.json`
+   reports `"offsite_ok": true`.
+9. Rebuild caches (`rebuild-snapshots`, `prices/refresh`) and check
    the dashboard.
 
 The mkcert CA lives on the dev Mac, so certificates survive a Pi death
@@ -78,12 +102,41 @@ untouched. If the **dev Mac** dies instead: a new `mkcert -install` CA
 means re-trusting the new root cert on every device (ADR 0014) — annoying
 but not data loss.
 
+## Scenario C — the Pi and its SSD are both gone
+
+The case that had no answer before ADR 0015. Identical to Scenario B, except
+for where step 4's backup comes from: the NAS, not the Pi.
+
+1. Mount the share anywhere convenient — the NAS is reachable from any
+   machine on the LAN, and you do not need the new Pi to exist yet.
+2. Take the newest `cairn/db/cairn-YYYY-MM-DD.db`, and **verify before
+   trusting**: `sqlite3 <file> "PRAGMA integrity_check;"` → must print `ok`.
+   If it does not, walk backwards through the daily copies; that is what the
+   180-day window is for.
+3. Continue from Scenario B step 1 with that file as the restore source.
+
+If every `.db` copy is bad — the slow-corruption case, where the Pi has been
+faithfully mirroring a damaged file for weeks — use `cairn/exports/`. Those
+are never pruned, so there is a ZIP from before the damage. From there the
+route back in is the logical import described at the end of Scenario A.
+
+The NAS credentials are in your password manager; if the NAS shared folder
+has Btrfs snapshots enabled, DSM's snapshot browser is a second source that
+the Pi could never have written to, whatever went wrong on it.
+
 ## Rehearsal log
 
+- **Pending (layer 3)** — Scenario C has **not been rehearsed**. The code
+  path is new as of ADR 0015 and an unrehearsed restore is a guess, which is
+  the whole reason spec 6.6 asks for this log. Do it once the mount is live:
+  pull a `.db` straight off the NAS share, `PRAGMA integrity_check` → `ok`,
+  boot the API against it locally via the `DATABASE_PATH` override, then
+  replace this line with a dated entry.
 - **2026-08-15** — Scenario A mechanics rehearsed from the dev Mac:
   pulled that night's `cairn-2026-08-15.db` off the Pi, verified
   `PRAGMA integrity_check` → `ok`, booted the API locally against the
   restored file (`DATABASE_PATH` override), confirmed `/api/health` ok
   and authenticated reads served. Not yet rehearsed: a full Scenario B
   bare-metal rebuild (needs spare hardware), and any layer-3 offsite
-  restore (layer 3 doesn't exist yet).
+  restore (layer 3 did not exist at the time — see the pending entry
+  above).

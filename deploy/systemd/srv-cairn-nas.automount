@@ -1,0 +1,19 @@
+# Mounts the NAS share on first access rather than holding it open all
+# day (ADR 0015). Self-healing: if the NAS was down at 03:00 or was
+# rebooted since, the next run's access re-triggers the mount instead of
+# leaving a dead mountpoint behind. scripts/backup.sh checks with
+# `findmnt --types cifs` after touching the path, because an autofs
+# mountpoint exists whether or not the NAS actually answered.
+#
+# Installed once by hand on the Pi as
+# /etc/systemd/system/srv-cairn-nas.automount, then:
+#   systemctl daemon-reload && systemctl enable --now srv-cairn-nas.automount
+[Unit]
+Description=Automount for the Cairn offsite backup target
+
+[Automount]
+Where=/srv/cairn/nas
+TimeoutIdleSec=600
+
+[Install]
+WantedBy=multi-user.target

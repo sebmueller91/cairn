@@ -56,3 +56,4 @@ Listed in the plan-mode brief; expected to become ADRs 0001 onwards:
 12. Backup mechanics and failure visibility
 13. Test strategy and the structure of the golden dataset
 14. TLS and the single entry point (added in phase 6, not in the original brief)
+15. Offsite backup transport to the NAS (closes the layer-3 gap ADR 0012 deferred)

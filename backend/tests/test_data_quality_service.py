@@ -227,13 +227,13 @@ def test_stale_house_valuation_is_flagged(client, auth_headers, db_session):
 
 
 def test_data_quality_endpoint_end_to_end(client, auth_headers):
-    # No positions -> no per-instrument issues, but the backup-status file
-    # doesn't exist in a test environment either, so that one issue is
+    # No positions -> no per-instrument issues, but neither backup-status
+    # file exists in a test environment either, so those two issues are
     # expected rather than a fully empty list.
     resp = client.get("/api/data-quality", headers=auth_headers)
     assert resp.status_code == 200
     issues = resp.json()["issues"]
-    assert [i["kind"] for i in issues] == ["missing_backup"]
+    assert [i["kind"] for i in issues] == ["missing_backup", "missing_offsite_backup"]
 
 
 def test_data_quality_endpoint_requires_auth(client):
@@ -275,6 +275,97 @@ def test_backup_issue_stale_backup_is_flagged(tmp_path, monkeypatch):
     assert issue is not None
     assert issue.kind == "stale_backup"
     assert issue.age_days == 3
+
+
+def test_offsite_backup_issue_missing_file(monkeypatch):
+    from app import data_quality_service
+
+    monkeypatch.setattr(
+        data_quality_service, "_LAST_OFFSITE_FILE", data_quality_service.Path("/nope/does-not-exist")
+    )
+    issue = data_quality_service._offsite_backup_issue(datetime.now(timezone.utc))
+    assert issue is not None
+    assert issue.kind == "missing_offsite_backup"
+
+
+def test_offsite_backup_issue_fresh_is_clean(tmp_path, monkeypatch):
+    from app import data_quality_service
+
+    marker = tmp_path / "last_offsite_success"
+    now = datetime.now(timezone.utc)
+    marker.write_text((now - timedelta(hours=1)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_OFFSITE_FILE", marker)
+
+    assert data_quality_service._offsite_backup_issue(now) is None
+
+
+def test_offsite_backup_tolerates_a_night_the_local_backup_would_not(tmp_path, monkeypatch):
+    # The whole point of the looser threshold (ADR 0015): a NAS that was
+    # asleep or rebooting for a night sits in the window that already
+    # counts as stale for the local backup, and must not be flagged.
+    from app import data_quality_service
+
+    marker = tmp_path / "last_offsite_success"
+    now = datetime.now(timezone.utc)
+    marker.write_text((now - timedelta(hours=60)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_OFFSITE_FILE", marker)
+
+    assert 60 > data_quality_service.STALE_BACKUP_HOURS
+    assert data_quality_service._offsite_backup_issue(now) is None
+
+
+def test_offsite_backup_issue_stale_is_flagged(tmp_path, monkeypatch):
+    from app import data_quality_service
+
+    marker = tmp_path / "last_offsite_success"
+    now = datetime.now(timezone.utc)
+    marker.write_text((now - timedelta(hours=96)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_OFFSITE_FILE", marker)
+
+    issue = data_quality_service._offsite_backup_issue(now)
+    assert issue is not None
+    assert issue.kind == "stale_offsite_backup"
+    assert issue.age_days == 4
+
+
+def test_unparseable_marker_reads_as_never_succeeded(tmp_path, monkeypatch):
+    # The panel that reports a broken backup must not itself 500 on a
+    # truncated marker file — that would hide the very thing it exists
+    # to show.
+    from app import data_quality_service
+
+    marker = tmp_path / "last_success"
+    marker.write_text("not-a-timestamp")
+    monkeypatch.setattr(data_quality_service, "_LAST_SUCCESS_FILE", marker)
+
+    issue = data_quality_service._backup_issue(datetime.now(timezone.utc))
+    assert issue is not None
+    assert issue.kind == "missing_backup"
+
+
+def test_stale_offsite_does_not_affect_local_backup_and_vice_versa(tmp_path, monkeypatch):
+    # Two independent signals (ADR 0015): a dead NAS must never make the
+    # dashboard claim the local backup failed, and a healthy local backup
+    # must never hide a dead NAS.
+    from app import data_quality_service
+
+    now = datetime.now(timezone.utc)
+    local = tmp_path / "last_success"
+    local.write_text((now - timedelta(hours=1)).isoformat())
+    offsite = tmp_path / "last_offsite_success"
+    offsite.write_text((now - timedelta(days=30)).isoformat())
+    monkeypatch.setattr(data_quality_service, "_LAST_SUCCESS_FILE", local)
+    monkeypatch.setattr(data_quality_service, "_LAST_OFFSITE_FILE", offsite)
+
+    assert data_quality_service._backup_issue(now) is None
+    assert data_quality_service._offsite_backup_issue(now).kind == "stale_offsite_backup"
+
+    # And the mirror image.
+    local.write_text((now - timedelta(days=30)).isoformat())
+    offsite.write_text((now - timedelta(hours=1)).isoformat())
+
+    assert data_quality_service._backup_issue(now).kind == "stale_backup"
+    assert data_quality_service._offsite_backup_issue(now) is None
 
 
 def _cash_account_with_statement(client, auth_headers, name, ext_id, when):

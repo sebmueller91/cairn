@@ -32,6 +32,11 @@ STALE_VALUATION_DAYS = 730
 # spec 6.6: "the data quality panel warns when the last successful backup
 # is older than 48 hours."
 STALE_BACKUP_HOURS = 48
+# The offsite (NAS) leg is judged more leniently than the local backup on
+# purpose (ADR 0015): a NAS reboot, a firmware update or a night of disk
+# hibernation shouldn't cry wolf, but a leg that has genuinely stopped
+# still surfaces within a few days rather than never.
+STALE_OFFSITE_BACKUP_HOURS = 72
 # Fund compositions have no automatic source, so they only refresh when
 # somebody sits down with the factsheets. Index region weights drift on
 # the order of a point a year, which makes a year the point where the
@@ -43,10 +48,11 @@ STALE_COMPOSITION_DAYS = 365
 # months is roughly the point where a current account has moved enough
 # that the number is worth re-reading off the bank.
 STALE_CASH_STATEMENT_DAYS = 90
-# Same file scripts/backup.sh writes and app.routers.health reads — a
+# Same files scripts/backup.sh writes and app.routers.health reads — a
 # module-level path rather than importing health.py, so this stays a
 # read-only aggregation with no dependency on another router.
 _LAST_SUCCESS_FILE = Path("/backup-status/last_success")
+_LAST_OFFSITE_FILE = Path("/backup-status/last_offsite_success")
 
 
 @dataclass
@@ -61,33 +67,71 @@ class DataQualityIssue:
     age_days: int | None = None
 
 
-def _backup_issue(now: datetime) -> DataQualityIssue | None:
+def _marker_issue(
+    now: datetime,
+    path: Path,
+    threshold_hours: int,
+    missing_kind: str,
+    stale_kind: str,
+    label: str,
+) -> DataQualityIssue | None:
+    """Age one of backup.sh's success markers into an issue, or None if it
+    is recent enough. A marker that is absent, empty or unparseable counts
+    as "never succeeded" rather than raising — the panel reporting on a
+    failed backup is exactly the moment it must not itself fall over."""
     try:
-        text = _LAST_SUCCESS_FILE.read_text().strip()
-    except FileNotFoundError:
-        return DataQualityIssue(kind="missing_backup", detail="No successful backup recorded yet")
+        text = path.read_text().strip()
+    except (FileNotFoundError, OSError):
+        text = ""
     if not text:
-        return DataQualityIssue(kind="missing_backup", detail="No successful backup recorded yet")
-    last = datetime.fromisoformat(text)
+        return DataQualityIssue(kind=missing_kind, detail=f"No successful {label} recorded yet")
+    try:
+        last = datetime.fromisoformat(text)
+    except ValueError:
+        return DataQualityIssue(kind=missing_kind, detail=f"No successful {label} recorded yet")
     if last.tzinfo is None:
         last = last.replace(tzinfo=timezone.utc)
     age_hours = (now - last).total_seconds() / 3600
-    if age_hours > STALE_BACKUP_HOURS:
+    if age_hours > threshold_hours:
         return DataQualityIssue(
-            kind="stale_backup",
-            detail=f"Last successful backup is {int(age_hours)}h old",
+            kind=stale_kind,
+            detail=f"Last successful {label} is {int(age_hours)}h old",
             age_days=int(age_hours / 24),
         )
     return None
+
+
+def _backup_issue(now: datetime) -> DataQualityIssue | None:
+    return _marker_issue(
+        now,
+        _LAST_SUCCESS_FILE,
+        STALE_BACKUP_HOURS,
+        "missing_backup",
+        "stale_backup",
+        "backup",
+    )
+
+
+def _offsite_backup_issue(now: datetime) -> DataQualityIssue | None:
+    return _marker_issue(
+        now,
+        _LAST_OFFSITE_FILE,
+        STALE_OFFSITE_BACKUP_HOURS,
+        "missing_offsite_backup",
+        "stale_offsite_backup",
+        "offsite backup",
+    )
 
 
 def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQualityIssue]:
     as_of = as_of or date.today()
     issues: list[DataQualityIssue] = []
 
-    backup_issue = _backup_issue(datetime.now(timezone.utc))
-    if backup_issue is not None:
-        issues.append(backup_issue)
+    now = datetime.now(timezone.utc)
+    for check in (_backup_issue, _offsite_backup_issue):
+        issue = check(now)
+        if issue is not None:
+            issues.append(issue)
 
     txns = db.query(Txn).filter(Txn.voided_at.is_(None), Txn.instrument_id.isnot(None)).all()
     events = [txn_to_event(t) for t in txns]

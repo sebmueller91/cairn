@@ -201,6 +201,7 @@ export interface Health {
   last_price_fetch: string | null;
   last_snapshot: string | null;
   last_backup: string | null;
+  last_offsite_backup: string | null;
 }
 
 export interface PerformancePoint {

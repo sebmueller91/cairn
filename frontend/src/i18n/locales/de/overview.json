@@ -19,6 +19,7 @@
     "prices": "Kurse",
     "snapshot": "Schnappschuss",
     "backup": "Backup",
+    "offsite": "NAS",
     "dataQuality": "Datenqualität",
     "issuesNone": "Keine Probleme",
     "issuesCount_one": "{{count}} Problem",
@@ -33,6 +34,8 @@
       "no_cost_basis": "Keine Anschaffungskosten erfasst",
       "missing_backup": "Noch kein erfolgreiches Backup",
       "stale_backup": "Backup ist veraltet",
+      "missing_offsite_backup": "Noch keine Kopie auf dem NAS",
+      "stale_offsite_backup": "Kopie auf dem NAS ist veraltet",
       "stale_composition": "Aufteilung ist veraltet",
       "composition_age_unknown": "Alter der Aufteilung unbekannt",
       "stale_cash_statement": "Kontostand ist veraltet"

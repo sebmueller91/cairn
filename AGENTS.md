@@ -43,14 +43,19 @@ Decided — see `docs/adr/0001` through `0013` for the reasoning behind each.
   to see the app as secure.
 - **Jobs:** price fetch and snapshot rebuild run in-process (APScheduler);
   backup runs from host cron, deliberately decoupled from the API
-  container's own health (ADR 0009).
+  container's own health (ADR 0009). The nightly run now has a third leg
+  that mirrors snapshots and exports to the Synology NAS over a CIFS
+  mount and verifies them there (ADR 0015); it reports through its own
+  health field, separate from the local backup's, so neither can mask
+  the other. `scripts/test-backup.sh` exercises it without a real NAS.
 
 Runtime layout on the Pi: `/srv/cairn/data` (bind-mounted SQLite),
 `/srv/cairn/config/.env` (secrets, never committed), `/srv/cairn/backups`,
 `/srv/cairn/registry`, `/srv/cairn/frontend-dist` (built SPA, served by
-Caddy), `/srv/cairn/tls` (mkcert cert + key, never committed), and
-`/srv/cairn/Caddyfile`. The API token lives there and in your password
-manager — not only in `.env`.
+Caddy), `/srv/cairn/tls` (mkcert cert + key, never committed),
+`/srv/cairn/Caddyfile`, and `/srv/cairn/nas` (automounted SMB share on the
+NAS — the offsite backup target). The API token and the NAS credentials
+live there and in your password manager — not only in `.env`.
 
 ## Hard rules
 

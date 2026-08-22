@@ -15,11 +15,18 @@ router = APIRouter(tags=["health"])
 # its own timestamp going stale *is* the failure signal, without needing
 # a separate alert path (ADR 0012).
 _LAST_SUCCESS_FILE = Path("/backup-status/last_success")
+# The offsite (NAS) leg reports separately rather than folding into the
+# marker above (ADR 0015). A NAS that is rebooting or asleep would
+# otherwise make this endpoint report no backup at all on a night when
+# the local one succeeded perfectly — and an offsite leg that quietly
+# stopped would be invisible behind a healthy local one. Two markers,
+# neither able to mask the other.
+_LAST_OFFSITE_FILE = Path("/backup-status/last_offsite_success")
 
 
-def _last_backup() -> str | None:
+def _read_marker(path: Path) -> str | None:
     try:
-        return _LAST_SUCCESS_FILE.read_text().strip() or None
+        return path.read_text().strip() or None
     except FileNotFoundError:
         return None
 
@@ -37,5 +44,6 @@ def health(db: Session = Depends(get_db)) -> dict:
         "database": "reachable" if database_reachable else "unreachable",
         "last_price_fetch": kv_store.get(db, "last_price_fetch"),
         "last_snapshot": kv_store.get(db, "last_snapshot"),
-        "last_backup": _last_backup(),
+        "last_backup": _read_marker(_LAST_SUCCESS_FILE),
+        "last_offsite_backup": _read_marker(_LAST_OFFSITE_FILE),
     }

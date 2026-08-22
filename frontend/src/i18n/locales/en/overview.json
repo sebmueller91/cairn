@@ -19,6 +19,7 @@
     "prices": "Prices",
     "snapshot": "Snapshot",
     "backup": "Backup",
+    "offsite": "NAS",
     "dataQuality": "Data quality",
     "issuesNone": "No issues",
     "issuesCount_one": "{{count}} issue",
@@ -33,6 +34,8 @@
       "no_cost_basis": "No cost basis recorded",
       "missing_backup": "No successful backup yet",
       "stale_backup": "Backup is stale",
+      "missing_offsite_backup": "No offsite copy on the NAS yet",
+      "stale_offsite_backup": "Offsite copy on the NAS is stale",
       "stale_composition": "Breakdown is stale",
       "composition_age_unknown": "Breakdown age unknown",
       "stale_cash_statement": "Cash balance is stale"

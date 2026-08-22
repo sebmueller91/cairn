@@ -5,7 +5,7 @@ import { ChevronDown } from "lucide-react";
 import { api, getHealth, type DataQualityResponse } from "../../lib/api";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
-import { hoursSince, STALE_THRESHOLD_HOURS } from "./utils";
+import { hoursSince, STALE_OFFSITE_THRESHOLD_HOURS, STALE_THRESHOLD_HOURS } from "./utils";
 
 function StatusDot({ label, fresh }: { label: string; fresh: boolean }) {
   return (
@@ -24,8 +24,11 @@ function StatusDot({ label, fresh }: { label: string; fresh: boolean }) {
   );
 }
 
-/** Thin status strip: three freshness dots (prices / snapshot / backup)
- * plus a data-quality issue count that expands into the issue list. */
+/** Thin status strip: four freshness dots (prices / snapshot / backup /
+ * offsite copy on the NAS) plus a data-quality issue count that expands
+ * into the issue list. The backup and NAS dots are deliberately separate
+ * signals reading separate markers (ADR 0015) — a sleeping NAS must not
+ * make this strip claim there is no backup at all. */
 export function FreshnessStrip() {
   const { t } = useTranslation("overview");
   const [expanded, setExpanded] = useState(false);
@@ -51,9 +54,9 @@ export function FreshnessStrip() {
   const issues = quality.data?.issues ?? [];
   const qualityKnown = !quality.isError;
 
-  const isFresh = (iso: string | null | undefined) => {
+  const isFresh = (iso: string | null | undefined, threshold = STALE_THRESHOLD_HOURS) => {
     const hours = hoursSince(iso);
-    return hours !== null && hours <= STALE_THRESHOLD_HOURS;
+    return hours !== null && hours <= threshold;
   };
 
   return (
@@ -63,6 +66,10 @@ export function FreshnessStrip() {
           <StatusDot label={t("freshness.prices")} fresh={isFresh(health.data?.last_price_fetch)} />
           <StatusDot label={t("freshness.snapshot")} fresh={isFresh(health.data?.last_snapshot)} />
           <StatusDot label={t("freshness.backup")} fresh={isFresh(health.data?.last_backup)} />
+          <StatusDot
+            label={t("freshness.offsite")}
+            fresh={isFresh(health.data?.last_offsite_backup, STALE_OFFSITE_THRESHOLD_HOURS)}
+          />
         </div>
         <button
           type="button"
