@@ -88,7 +88,11 @@ check "local last_success written"       test -f "$ROOT/backups/last_success"
 check "offsite marker written"           test -f "$ROOT/backups/last_offsite_success"
 check "latest_run.json reports offsite"  grep -q '"offsite_ok": true' "$ROOT/backups/latest_run.json"
 check "NAS copy is a valid database" \
-  bash -c "[ \"\$(sqlite3 '$ROOT/nas/cairn/db/cairn-$TODAY.db' 'PRAGMA integrity_check;')\" = ok ]"
+  bash -c "[ \"\$(sqlite3 'file:$ROOT/nas/cairn/db/cairn-$TODAY.db?immutable=1' 'PRAGMA integrity_check;')\" = ok ]"
+# A -wal/-shm pair beside a restore candidate is a hazard, and on CIFS
+# they are not cleaned up on close the way they are locally.
+check "no stray wal/shm left on the NAS" \
+  bash -c "[ -z \"\$(find '$ROOT/nas' -name '*.db-wal' -o -name '*.db-shm')\" ]"
 
 echo
 echo "2. NAS unreachable: the local backup must still count as a success"

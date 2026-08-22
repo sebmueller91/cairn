@@ -132,8 +132,18 @@ if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
     # nothing to verify, and the run is already a failure anyway.
     nas_db="$NAS_DB_DIR/cairn-$TODAY.db"
     nas_zip="$NAS_EXPORT_DIR/cairn-export-$TODAY.zip"
+    # immutable=1 rather than a plain open, for two reasons. It stops
+    # SQLite creating a -wal/-shm pair beside the copy: locally those are
+    # cleaned up on close, but on CIFS they are left behind, so a plain
+    # open would strand a pair per night next to the very files a restore
+    # picks from — and a stale WAL beside a database you are about to
+    # restore is a genuine hazard (see Scenario A). It is also the more
+    # honest check: `.backup` produces a fully checkpointed standalone
+    # file, and immutable=1 verifies exactly that file, the way a restore
+    # would actually use it, rather than the file plus whatever journal
+    # happens to sit next to it.
     if [ "$rsync_ok" = true ] && [ "$export_ok" = true ] \
-        && [ "$(timeout 300 sqlite3 "$nas_db" 'PRAGMA integrity_check;')" = "ok" ] \
+        && [ "$(timeout 300 sqlite3 "file:$nas_db?immutable=1" 'PRAGMA integrity_check;')" = "ok" ] \
         && timeout 120 python3 -c "import zipfile,sys; sys.exit(0 if zipfile.is_zipfile(sys.argv[1]) else 1)" "$nas_zip"; then
       offsite_ok=true
     else
@@ -188,6 +198,12 @@ if [ "$offsite_ok" = true ]; then
     -mtime "+$NAS_MONTHLY_DAYS" -delete || true
   timeout 300 find "$NAS_PRE_DIR" -maxdepth 1 -name 'pre-migration-*.db' \
     -mtime "+$NAS_PRE_DAYS" -delete || true
+  # Defensive: nothing here should create these any more, but anyone who
+  # opens a copy on the share to check it will strand a pair, and they
+  # would otherwise sit next to the restore candidates forever — the
+  # retention patterns above deliberately do not match them.
+  timeout 300 find "$NAS_DB_DIR" "$NAS_PRE_DIR" -maxdepth 1 \
+    \( -name '*.db-wal' -o -name '*.db-shm' \) -delete || true
 fi
 
 if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$export_ok" = true ] && [ "$offsite_ok" = true ]; then
