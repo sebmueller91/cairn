@@ -20,11 +20,21 @@ secrets are not, and both have a defined home outside the Pi.
 | NAS mount units | `/etc/systemd/system/srv-cairn-nas.{mount,automount}` | templates in `deploy/systemd/` |
 | NAS credentials | `/srv/cairn/config/nas.cred` **and your password manager** | never |
 
-> **Remaining gap:** backup layer 3 is now half done. Pi → NAS runs nightly
-> (ADR 0015); **NAS → encrypted cloud does not exist yet**. Everything
-> therefore still lives in one building. `restic` or `rclone crypt` from the
-> NAS itself is the intended shape (spec 6.6) — encrypted before it leaves,
-> because the file is your complete financial picture.
+> **Layer 3 is complete, in two halves that are managed differently.**
+> Pi → NAS runs nightly from `scripts/backup.sh` and is described here and in
+> ADR 0015. **NAS → cloud runs weekly and is configured in DSM, not in this
+> repository** — so 3-2-1 holds: the ledger exists on the Pi's SSD, on the
+> NAS, and off-site.
+>
+> Because the cloud half lives outside this repo, nothing here can verify it.
+> Three things about it are **unrecorded and worth pinning down**, since a
+> backup nobody has checked is a guess: whether it is encrypted before it
+> leaves the NAS (spec 6.6 is emphatic that it must be — the file is the
+> complete financial picture, and the "only I can reach it" reasoning that
+> justifies leaving the NAS copy in the clear does not extend to someone
+> else's infrastructure), what its retention is, and whether a restore from
+> it has ever been attempted. The weekly cadence also means up to seven days
+> of the newest data exist only inside the house.
 
 > **Not in any backup, by design:** `/srv/cairn/config/.env` (the API token)
 > and `nas.cred`. Both live in your password manager instead — a backup that
@@ -40,6 +50,7 @@ Three settings on the `cairn-backup` shared folder that the Pi cannot see and
 | **Recycle Bin: off** (or on a deletion schedule) | Measured: with it on, deleting a 200 MB file freed **no** quota. Retention would sweep files into `#recycle` and never reclaim anything, until the share filled and the offsite leg began failing — years later, silently. |
 | **SMB transfer encryption: on** | The mount unit uses `seal`; without it the mount is refused. |
 | **Btrfs snapshots: on** (daily, keep 30) | The only defence against the Pi mirroring a corrupt file or its credentials being abused — snapshots are not writable over SMB. |
+| **Weekly cloud backup of the share** | The off-site leg of 3-2-1. Configured in DSM; see the note above for what about it is still unverified. |
 
 ### Offsite layer, in one paragraph
 

@@ -12,7 +12,10 @@ backup was copied off the device by hand.
 
 A dedicated backup user and a shared folder with 50 GB reserved now exist on
 the Synology, which is the missing detail. This decides the Pi → NAS half.
-NAS → encrypted cloud stays open.
+The NAS → cloud half already exists as a weekly DSM job outside this
+repository, so this ADR completes 3-2-1 rather than leaving it half-built —
+but it also means the off-site leg's encryption, retention and restore path
+are not described anywhere in here, and have not been verified from here.
 
 One constraint binds harder than it looks: **DSM permits SSH login only for
 members of the `administrators` group**. The obvious transport — `rsync` over
@@ -93,7 +96,8 @@ that quietly stopped months ago.
 
 ## Consequences
 Makes easy: a dead or stolen Pi is now recoverable, which it simply was not
-before. The cloud leg becomes a NAS-side concern that needs no change here.
+before, and with the NAS's own weekly cloud job the 3-2-1 rule is satisfied
+end to end.
 Makes hard: the backup now depends on a mount, so the script carries timeouts
 and a mount-verification guard it did not need before. It also depends on two
 pieces of DSM configuration this repository cannot enforce or even see: the
