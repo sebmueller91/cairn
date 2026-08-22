@@ -124,3 +124,50 @@ def test_endpoint_defaults_to_trailing_twelve_months(client, auth_headers):
 
 def test_endpoint_requires_auth(client):
     assert client.get("/api/contributions").status_code == 401
+
+
+def test_end_date_without_a_snapshot_uses_the_last_one(client, auth_headers, db_session):
+    """The snapshot job runs in the evening, so a window ending "today" has
+    no row for its end date for most of the day. Reading that as zero made
+    the whole outstanding loan look repaid and the opening net worth look
+    lost — the card showed a six-figure loss every morning."""
+    from datetime import date as _date
+
+    from app.contributions_service import compute_contributions
+    from app.models import DailySnapshot
+
+    for day, loan, net in (
+        (_date(2025, 1, 1), Decimal("-100000.00"), Decimal("50000.00")),
+        (_date(2025, 12, 30), Decimal("-94000.00"), Decimal("72000.00")),
+    ):
+        db_session.add(
+            DailySnapshot(date=day, scope_type="loan", scope_id="1", value_eur=loan)
+        )
+        db_session.add(
+            DailySnapshot(date=day, scope_type="total", scope_id="net", value_eur=net)
+        )
+    db_session.commit()
+
+    # 12-31 was never snapshotted; 12-30 is the last word on the matter.
+    result = compute_contributions(db_session, date(2025, 1, 1), date(2025, 12, 31))
+    assert result.debt_repaid == Decimal("6000.00")
+    assert result.net_worth_change == Decimal("22000.00")
+
+
+def test_window_starting_before_the_ledger_reads_as_zero(client, auth_headers, db_session):
+    """Carry-forward must not invent a baseline: with nothing on or before
+    the start date there was genuinely nothing, so the full end value is the
+    change."""
+    from datetime import date as _date
+
+    from app.contributions_service import compute_contributions
+    from app.models import DailySnapshot
+
+    db_session.add(
+        DailySnapshot(date=_date(2025, 6, 1), scope_type="total", scope_id="net",
+                      value_eur=Decimal("8000.00"))
+    )
+    db_session.commit()
+
+    result = compute_contributions(db_session, date(2025, 1, 1), date(2025, 12, 31))
+    assert result.net_worth_change == Decimal("8000.00")

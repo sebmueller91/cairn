@@ -38,11 +38,29 @@ class Contributions:
 
 
 def _total_on(db: Session, scope_type: str, scope_id: str | None, d: date) -> Decimal:
-    """Snapshot value for a scope on a date, summed when scope_id is None
-    (the `loan` scope has one row per loan). Missing rows read as zero:
-    before the first snapshot there genuinely was nothing."""
+    """Snapshot value for a scope *as of* a date — the latest snapshot on or
+    before `d`, summed when scope_id is None (the `loan` scope has one row
+    per loan).
+
+    On or before, not exactly on. The snapshot job runs once in the evening,
+    so for most of the day there is no row for today yet — and an exact
+    match would then read as zero and report the entire outstanding loan as
+    "repaid this year" and the whole opening net worth as a loss. Absence of
+    a snapshot is absence of news, the same rule prices and cash balances
+    follow. Genuinely nothing on or before the date (a window that starts
+    before the ledger does) still reads as zero, which is correct."""
+    latest = (
+        db.query(func.max(DailySnapshot.date))
+        .filter(DailySnapshot.scope_type == scope_type, DailySnapshot.date <= d)
+    )
+    if scope_id is not None:
+        latest = latest.filter(DailySnapshot.scope_id == scope_id)
+    as_of = latest.scalar()
+    if as_of is None:
+        return Decimal(0)
+
     q = db.query(func.sum(DailySnapshot.value_eur)).filter(
-        DailySnapshot.scope_type == scope_type, DailySnapshot.date == d
+        DailySnapshot.scope_type == scope_type, DailySnapshot.date == as_of
     )
     if scope_id is not None:
         q = q.filter(DailySnapshot.scope_id == scope_id)

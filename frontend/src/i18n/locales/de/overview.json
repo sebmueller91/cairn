@@ -2,7 +2,6 @@
   "title": "Überblick",
   "hero": {
     "label": "Nettovermögen",
-    "deltaCaption": "vs. vor {{days}} Tagen",
     "sparkCaption": "Verlauf der letzten {{days}} Tage"
   },
   "classMix": {

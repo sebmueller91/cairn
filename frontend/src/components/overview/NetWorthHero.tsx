@@ -62,7 +62,6 @@ export function NetWorthHero() {
         format={format}
         delta={delta}
         formatDelta={formatDelta}
-        deltaCaption={t("hero.deltaCaption", { days: HERO_DAYS })}
         sensitive
       >
         <Sparkline

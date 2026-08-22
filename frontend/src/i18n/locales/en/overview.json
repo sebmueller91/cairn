@@ -2,7 +2,6 @@
   "title": "Overview",
   "hero": {
     "label": "Net worth",
-    "deltaCaption": "vs. {{days}} days ago",
     "sparkCaption": "Last {{days}} days"
   },
   "classMix": {
