@@ -19,13 +19,16 @@ Where=/srv/cairn/nas
 Type=cifs
 # credentials= keeps the password out of this file and out of `ps`; the
 # referenced file is root-owned 0600 and is *not* in this repository.
-# uid/gid/mode: the share is written by root from cron and read by nobody
-# else — the backup contains the complete financial picture, so it should
-# not be world-readable just because CIFS defaults that way.
+# uid/gid: backup.sh runs from *sebastian's* crontab, not root's, so the
+# files on the share must be owned by sebastian or the offsite leg cannot
+# write at all. Names rather than numeric ids so a rebuilt Pi (Scenario B)
+# doesn't depend on the uid happening to come out the same.
+# file_mode/dir_mode: the backup is the complete financial picture, so it
+# should not be world-readable just because CIFS would default that way.
 # soft: a hard mount blocks forever on an unreachable server, which is
 # exactly what a 03:00 cron job must not do. seal requires "Enable
 # transfer encryption" on the DSM SMB service.
-Options=credentials=/srv/cairn/config/nas.cred,uid=0,gid=0,file_mode=0600,dir_mode=0700,vers=3.1.1,seal,soft,nofail,_netdev
+Options=credentials=/srv/cairn/config/nas.cred,uid=sebastian,gid=sebastian,file_mode=0600,dir_mode=0700,vers=3.1.1,seal,soft,nofail,_netdev
 TimeoutSec=30
 
 [Install]

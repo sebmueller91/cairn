@@ -90,7 +90,8 @@ Roughly half an hour, as spec 6.6 estimates:
    `apt install cifs-utils`, write `/srv/cairn/config/nas.cred` (root-owned,
    `chmod 600`, `username=`/`password=` from your password manager), copy
    `deploy/systemd/srv-cairn-nas.{mount,automount}` to
-   `/etc/systemd/system/` with the hostname and share name filled in, then
+   `/etc/systemd/system/` with the hostname and share name filled in (and
+   the `uid=`/`gid=` matching whoever owns the backup crontab), then
    `systemctl daemon-reload && systemctl enable --now srv-cairn-nas.automount`.
    Confirm with a manual `/srv/cairn/backup.sh` run that `latest_run.json`
    reports `"offsite_ok": true`.
