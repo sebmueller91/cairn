@@ -120,3 +120,79 @@ export const SERIES_COLORS = [
 /** The catch-all slice. Deliberately not a palette hue — "other" is not an
  * entity and must not read as one. */
 export const OTHER_COLOR = "var(--text-muted)";
+
+/**
+ * Y-axis domain and ticks for a single-value series — a window around the
+ * data rather than Recharts' default `[0, "auto"]`.
+ *
+ * Zero-based is the honest default when the *filled area* is what carries
+ * the meaning. Here it isn't: this is a level over time, and at a net worth
+ * of 760k a 46k half-year move renders as a flat line pinned to the top of
+ * a mostly empty chart — the reader learns nothing the big number above the
+ * chart didn't already say. Three things keep the truncation from lying:
+ * the gradient fades to fully transparent well before the axis, so there is
+ * no solid slab implying a quantity measured from zero; the value axis is
+ * always labelled, so the window's start is visible; and zero is never
+ * cropped out from below.
+ *
+ * Bounds are padded, then rounded outward to a round step, so ticks land on
+ * 700k / 720k / … rather than 703.417. Ticks are returned rather than left
+ * to Recharts, which would space them evenly across the domain and land on
+ * arbitrary values again.
+ */
+export function valueAxis(values: number[]): { domain: [number, number]; ticks: number[] } {
+  if (values.length === 0) return { domain: [0, 1], ticks: [0, 1] };
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  // A flat series has no span to scale to. Fall back to a fraction of its
+  // level so it draws down the middle instead of collapsing onto an edge,
+  // and to 1 for a series that is flat *at* zero.
+  const span = max - min || Math.abs(max) * 0.1 || 1;
+  const pad = span * 0.1;
+  const lowest = min - pad;
+  const highest = max + pad;
+
+  // Aim for four intervals, then widen the step until the grid stops being
+  // busy. Rounding the bounds outward can add up to two more intervals, and
+  // nine dashed rules on a 280px chart is noise, not orientation.
+  let step = niceStep((highest - lowest) / 4);
+  let lo = Math.floor(lowest / step) * step;
+  let hi = Math.ceil(highest / step) * step;
+  while ((hi - lo) / step > 7) {
+    step = nextNiceStep(step);
+    lo = Math.floor(lowest / step) * step;
+    hi = Math.ceil(highest / step) * step;
+  }
+
+  // Don't invent negative territory under a series that never goes there…
+  if (min >= 0 && lo < 0) lo = 0;
+  // …and don't put the waterline off-screen for one that does.
+  if (min < 0 && hi < 0) hi = 0;
+
+  const ticks: number[] = [];
+  for (let t = lo; t <= hi + step / 2; t += step) ticks.push(Math.round(t * 1e6) / 1e6);
+
+  return { domain: [lo, hi], ticks };
+}
+
+/**
+ * Round to the nearest 1, 2 or 5 × a power of ten — the steps axis ticks
+ * look right on. Nearest rather than upward: rounding 1.4 up to 2 doubles
+ * the step, and the bounds then round outward so far that the data occupies
+ * barely half the plot — which is the problem this whole function exists to
+ * solve, reintroduced one level down.
+ */
+function niceStep(raw: number): number {
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const normalized = raw / magnitude;
+  const factor = normalized < 1.5 ? 1 : normalized < 3.5 ? 2 : normalized < 7.5 ? 5 : 10;
+  return factor * magnitude;
+}
+
+/** The next round step up: 1 → 2 → 5 → 10. */
+function nextNiceStep(step: number): number {
+  const magnitude = 10 ** Math.floor(Math.log10(step) + 1e-9);
+  const normalized = Math.round(step / magnitude);
+  return (normalized === 1 ? 2 : normalized === 2 ? 5 : 10) * magnitude;
+}

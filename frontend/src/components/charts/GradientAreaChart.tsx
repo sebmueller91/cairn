@@ -1,9 +1,10 @@
-import { useId } from "react";
+import { useId, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Area,
   AreaChart,
   CartesianGrid,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -17,12 +18,16 @@ import {
   compactTickFormatter,
   dateTickFormatter,
   gridProps,
+  valueAxis,
 } from "./chartTheme";
 
 // `useTranslation` here is only ever read for `i18n.language` — the wrapper
 // holds no copy of its own, it just needs the locale to format axis ticks.
 
-/** Single-series time chart: 2px line over a gradient that fades to nothing. */
+/** Single-series time chart: 2px line over a gradient that fades to nothing.
+ *
+ * The value axis is scaled to the data, not to zero — see `valueAxis`. A
+ * series that goes negative gets a zero rule drawn under it. */
 export function GradientAreaChart({
   data,
   color = "var(--accent)",
@@ -37,6 +42,8 @@ export function GradientAreaChart({
   const { i18n } = useTranslation();
   const gradientId = `area-${useId().replace(/[^a-zA-Z0-9_-]/g, "")}`;
   const formatDateTick = dateTickFormatter(i18n.language);
+  const { domain, ticks } = useMemo(() => valueAxis(data.map((d) => d.value)), [data]);
+  const crossesZero = domain[0] < 0;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
@@ -64,8 +71,13 @@ export function GradientAreaChart({
           tick={{ className: "sensitive", fill: "var(--text-muted)", fontSize: 12 }}
           orientation="right"
           width={56}
+          domain={domain}
+          ticks={ticks}
           tickFormatter={compactTickFormatter(i18n.language)}
         />
+        {crossesZero && (
+          <ReferenceLine y={0} stroke="var(--text-muted)" strokeWidth={1} />
+        )}
         <Tooltip
           content={
             <ChartTooltip
