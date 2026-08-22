@@ -127,12 +127,21 @@ the Pi could never have written to, whatever went wrong on it.
 
 ## Rehearsal log
 
-- **Pending (layer 3)** — Scenario C has **not been rehearsed**. The code
-  path is new as of ADR 0015 and an unrehearsed restore is a guess, which is
-  the whole reason spec 6.6 asks for this log. Do it once the mount is live:
-  pull a `.db` straight off the NAS share, `PRAGMA integrity_check` → `ok`,
-  boot the API against it locally via the `DATABASE_PATH` override, then
-  replace this line with a dated entry.
+- **2026-08-22** — Scenario C rehearsed from the dev Mac, the day the
+  offsite leg went live. Deliberately restored **not** that night's copy but
+  an older retained one, since the point is that the retained copies are
+  usable, not just the freshest: read it off `//<nas-hostname>/<share-name>` at
+  `cairn/db/`, `PRAGMA integrity_check` → `ok`, booted the API against it
+  locally (`DATABASE_PATH` override), confirmed `/api/health` reported the
+  database reachable, that authenticated reads on accounts, transactions and
+  positions all served, and that an unauthenticated read was still refused.
+  The restored copy was deleted afterwards.
+  Caveat on fidelity: the file was read through the Pi's mount of the share
+  rather than by mounting the NAS independently, so what is proven is that
+  the copy on the NAS restores — not the "Pi is gone, mount the NAS from
+  somewhere else" step, which is a DSM credential exercise and untested.
+  Still not rehearsed: a full Scenario B bare-metal rebuild (needs spare
+  hardware), and any restore of the NAS → cloud layer, which does not exist.
 - **2026-08-15** — Scenario A mechanics rehearsed from the dev Mac:
   pulled that night's `cairn-2026-08-15.db` off the Pi, verified
   `PRAGMA integrity_check` → `ok`, booted the API locally against the
