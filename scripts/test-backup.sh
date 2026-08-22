@@ -134,6 +134,51 @@ check "local last_success NOT written"    test ! -f "$ROOT/backups/last_success"
 check "offsite marker NOT written"        test ! -f "$ROOT/backups/last_offsite_success"
 
 echo
+echo "5. Retention: the sweep that stays silent for six months"
+# The find lines below cannot delete anything for 180 days, so a mistake
+# in them would surface only long after it mattered -- and the failure
+# mode is deleting the wrong thing, permanently. Ages come from mtime,
+# not the filename, so these are planted with explicit mtimes.
+setup
+FAKE_CIFS=1
+export FAKE_CIFS
+run_backup >/dev/null
+plant() { # plant <path> <age-in-days>
+  : > "$1"
+  python3 -c "import os,sys,time; os.utime(sys.argv[1], (time.time()-float(sys.argv[2])*86400,)*2)" "$1" "$2"
+}
+plant "$ROOT/nas/cairn/db/cairn-2025-06-15.db"  440   # old daily
+plant "$ROOT/nas/cairn/db/cairn-2025-06-01.db"  440   # old, but a 1st
+plant "$ROOT/nas/cairn/db/cairn-2020-03-01.db"  2200  # a 1st, past 5 years
+plant "$ROOT/nas/cairn/exports/cairn-export-2015-01-01.zip" 4000
+plant "$ROOT/nas/cairn/pre-migration/pre-migration-20200101-000000.db" 400
+plant "$ROOT/nas/cairn/pre-migration/pre-migration-20260101-000000.db" 30
+run_backup >/dev/null
+check "old daily snapshot swept"              test ! -f "$ROOT/nas/cairn/db/cairn-2025-06-15.db"
+check "first-of-month KEPT past the daily window" test -f "$ROOT/nas/cairn/db/cairn-2025-06-01.db"
+check "first-of-month swept past five years"  test ! -f "$ROOT/nas/cairn/db/cairn-2020-03-01.db"
+check "today's snapshot untouched"            test -f "$ROOT/nas/cairn/db/cairn-$TODAY.db"
+check "ancient export NEVER pruned"           test -f "$ROOT/nas/cairn/exports/cairn-export-2015-01-01.zip"
+check "today's export untouched"              test -f "$ROOT/nas/cairn/exports/cairn-export-$TODAY.zip"
+check "old pre-migration swept"               test ! -f "$ROOT/nas/cairn/pre-migration/pre-migration-20200101-000000.db"
+check "recent pre-migration kept"             test -f "$ROOT/nas/cairn/pre-migration/pre-migration-20260101-000000.db"
+
+echo
+echo "6. Retention never runs on a failed offsite leg"
+# Otherwise a night when the NAS was unreachable could still age files
+# out of the only surviving copy.
+setup
+FAKE_CIFS=1
+export FAKE_CIFS
+run_backup >/dev/null
+plant "$ROOT/nas/cairn/db/cairn-2025-06-15.db" 440
+FAKE_CIFS=0
+export FAKE_CIFS
+run_backup >/dev/null
+check "old file survives a run that could not reach the NAS" \
+  test -f "$ROOT/nas/cairn/db/cairn-2025-06-15.db"
+
+echo
 if [ "$fail" -eq 0 ]; then
   echo "all $pass checks passed"
 else

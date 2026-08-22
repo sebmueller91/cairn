@@ -30,6 +30,17 @@ secrets are not, and both have a defined home outside the Pi.
 > and `nas.cred`. Both live in your password manager instead — a backup that
 > contained the credentials to reach it protects nothing.
 
+### NAS-side configuration this repository cannot enforce
+
+Three settings on the `cairn-backup` shared folder that the Pi cannot see and
+`deploy/` cannot ship. All three were verified or set on 2026-08-22:
+
+| Setting | Why it matters |
+|---|---|
+| **Recycle Bin: off** (or on a deletion schedule) | Measured: with it on, deleting a 200 MB file freed **no** quota. Retention would sweep files into `#recycle` and never reclaim anything, until the share filled and the offsite leg began failing — years later, silently. |
+| **SMB transfer encryption: on** | The mount unit uses `seal`; without it the mount is refused. |
+| **Btrfs snapshots: on** (daily, keep 30) | The only defence against the Pi mirroring a corrupt file or its credentials being abused — snapshots are not writable over SMB. |
+
 ### Offsite layer, in one paragraph
 
 `scripts/backup.sh` mirrors each night's `.db` snapshot, logical export and

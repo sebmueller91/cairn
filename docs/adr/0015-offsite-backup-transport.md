@@ -95,7 +95,13 @@ that quietly stopped months ago.
 Makes easy: a dead or stolen Pi is now recoverable, which it simply was not
 before. The cloud leg becomes a NAS-side concern that needs no change here.
 Makes hard: the backup now depends on a mount, so the script carries timeouts
-and a mount-verification guard it did not need before. The NAS copy is
+and a mount-verification guard it did not need before. It also depends on two
+pieces of DSM configuration this repository cannot enforce or even see: the
+share's **Recycle Bin must be off** (or on a deletion schedule), because
+otherwise retention frees nothing — deleted snapshots move to `#recycle` and
+go on consuming the quota until the share fills and the offsite leg starts
+failing; and SMB **transfer encryption must be enabled**, or the `seal` mount
+option is rejected. The NAS copy is
 unencrypted at rest — the one thing to revisit, and the reason to prefer a
 Synology encrypted shared folder if the NAS ever leaves the house or gains
 users. Btrfs snapshots on the shared folder are assumed as the defence against
