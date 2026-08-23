@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ChevronDown } from "lucide-react";
 import { api, getHealth, type DataQualityResponse } from "../../lib/api";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { hoursSince, STALE_OFFSITE_THRESHOLD_HOURS, STALE_THRESHOLD_HOURS } from "./utils";
+import { useIsLoading } from "../../lib/queryState";
 
 type DotState = "fresh" | "stale" | "unknown";
 
@@ -43,7 +44,6 @@ function StatusDot({ label, state }: { label: string; state: DotState }) {
 export function FreshnessStrip() {
   const { t } = useTranslation("overview");
   const [expanded, setExpanded] = useState(false);
-  const isRestoring = useIsRestoring();
 
   const health = useQuery({
     queryKey: ["health", "overview"],
@@ -55,7 +55,7 @@ export function FreshnessStrip() {
     queryFn: () => api.get<DataQualityResponse>("/api/data-quality"),
   });
 
-  const pending = isRestoring || health.isPending || quality.isPending;
+  const pending = useIsLoading(health.isPending, quality.isPending);
 
   if (pending) {
     return (

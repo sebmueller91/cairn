@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
 import { api, type Instrument, type PerformanceResponse } from "../../lib/api";
 import { formatDate, formatNumber, formatPercent } from "../../lib/format";
@@ -10,6 +10,7 @@ import { StatHero } from "../ui/StatHero";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { LineCompareChart } from "../charts/LineCompareChart";
+import { useIsLoading } from "../../lib/queryState";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "inception";
 const PERIODS: Period[] = ["1M", "3M", "YTD", "1Y", "3Y", "5Y", "inception"];
@@ -20,7 +21,6 @@ const BENCHMARK_STORAGE_KEY = "cairn-benchmark";
 
 export function ReturnsTab() {
   const { t, i18n } = useTranslation("performance");
-  const isRestoring = useIsRestoring();
   const [period, setPeriod] = useState<Period>("1Y");
   const [method, setMethod] = useState<Method>("twr");
   const [benchmarkId, setBenchmarkId] = useState<string>(
@@ -60,7 +60,7 @@ export function ReturnsTab() {
       return api.get<PerformanceResponse>(`/api/performance?${params}`);
     },
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   const periodOptions = PERIODS.map((p) => ({ value: p, label: t(`periods.${p}`) }));
   const methodOptions = (["twr", "mwr"] as Method[]).map((m) => ({

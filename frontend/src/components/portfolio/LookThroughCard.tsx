@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { HBarList, type HBarItem } from "../charts/HBarList";
 import { api, type LookThroughResponse } from "../../lib/api";
 import { formatCurrency, formatNumber, formatPercent } from "../../lib/format";
+import { useIsLoading } from "../../lib/queryState";
 
 function useLookThrough(dimension: "region" | "sector") {
   return useQuery({
@@ -16,9 +17,8 @@ function useLookThrough(dimension: "region" | "sector") {
 
 function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const isRestoring = useIsRestoring();
   const { data, isPending, isError } = useLookThrough(dimension);
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   const rows = (data?.rows ?? []).slice().sort(
     (a, b) => Number(b.value_eur) - Number(a.value_eur),

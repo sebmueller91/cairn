@@ -1,11 +1,12 @@
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
 import { StatHero } from "../ui/StatHero";
 import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
 import { closestPoint, fetchHeroNetWorth, HERO_DAYS, netWorthQueryKey } from "./utils";
+import { useIsLoading } from "../../lib/queryState";
 
 /** The hero panel: latest net worth (scope=net, so loans count against it),
  * a sparkline over HERO_DAYS, and a delta chip against the start of that
@@ -13,7 +14,6 @@ import { closestPoint, fetchHeroNetWorth, HERO_DAYS, netWorthQueryKey } from "./
  * one constant, so the curve and the number always cover the same period. */
 export function NetWorthHero() {
   const { t, i18n } = useTranslation("overview");
-  const isRestoring = useIsRestoring();
 
   const { data, isPending, isError } = useQuery({
     queryKey: netWorthQueryKey(),
@@ -24,7 +24,7 @@ export function NetWorthHero() {
   // so isPending alone would read as "done, no data" during that window —
   // isRestoring closes that gap so we skeleton instead of rendering `null`
   // or (worse) the empty-page fallback in Overview.tsx.
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   if (pending) {
     return (

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   api,
   type Account,
@@ -14,6 +14,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 const TRANSACTION_TYPES: TransactionType[] = [
   "BUY",
@@ -36,7 +37,6 @@ const PAGE_SIZE = 50;
  * (spec: the cash-balance modal is the only write action left in the UI). */
 export function LedgerView() {
   const { t, i18n } = useTranslation(["data", "assets", "common"]);
-  const isRestoring = useIsRestoring();
   const [accountId, setAccountId] = useState("");
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
@@ -58,7 +58,7 @@ export function LedgerView() {
       return api.get<Transaction[]>(`/api/transactions?${params}`);
     },
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   const accountName = (id: number | null) =>
     accounts?.find((a) => a.id === id)?.name ?? (id ? `#${id}` : "—");

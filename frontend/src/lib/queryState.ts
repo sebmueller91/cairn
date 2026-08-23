@@ -36,6 +36,18 @@ export function useIsQueryLoading(query: { isPending: boolean }): boolean {
 }
 
 /**
+ * The same rule for callers that already have the `isPending` booleans to
+ * hand — including cards that wait on several queries at once, where the
+ * card is still loading until every one of them has settled.
+ *
+ *   const pending = useIsLoading(positionsPending, loansPending);
+ */
+export function useIsLoading(...pending: boolean[]): boolean {
+  const isRestoring = useIsRestoring();
+  return computeIsQueryLoading(isRestoring, pending.some(Boolean));
+}
+
+/**
  * Pure core of {@link useIsQueryLoading}, split out only so the boolean
  * logic itself has a unit test independent of React/TanStack context.
  * Components should use the hook, not this directly.

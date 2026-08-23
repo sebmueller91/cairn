@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import {
@@ -12,6 +12,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { DonutChart, type DonutSlice } from "../charts/DonutChart";
 import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
 import { isoDaysAgo } from "./utils";
+import { useIsLoading } from "../../lib/queryState";
 
 /** Mini allocation donut for the latest snapshot. LIABILITY is excluded —
  * a donut can't render a negative slice — and shown as a small debt line
@@ -22,7 +23,6 @@ import { isoDaysAgo } from "./utils";
  * hold a number this app routinely shows to the cent. */
 export function ClassMixCard() {
   const { t, i18n } = useTranslation("overview");
-  const isRestoring = useIsRestoring();
 
   // The `from` bound is part of the key (not just the queryFn) for the same
   // reason as netWorthQueryKey — otherwise a cached "fresh" query keeps
@@ -32,7 +32,7 @@ export function ClassMixCard() {
     queryKey: ["allocation-timeseries", "overview", from],
     queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   if (pending) {
     return (

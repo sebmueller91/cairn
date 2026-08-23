@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import {
   api,
@@ -15,6 +15,7 @@ import { SegmentedControl } from "../ui/SegmentedControl";
 import { ProgressArc } from "../ui/ProgressArc";
 import { DataTable, type Column } from "../ui/DataTable";
 import { Skeleton } from "../ui/Skeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 type YearMode = "current" | "last";
 
@@ -27,7 +28,6 @@ const ALLOWANCE_DEBOUNCE_MS = 400;
 
 export function TaxTab() {
   const { t, i18n } = useTranslation(["tax", "common"]);
-  const isRestoring = useIsRestoring();
   const currentYear = new Date().getFullYear();
   const [yearMode, setYearMode] = useState<YearMode>("current");
   // What the user is typing, verbatim — German or English decimal
@@ -69,7 +69,7 @@ export function TaxTab() {
     queryKey: ["tax", year, allowance],
     queryFn: () => api.get<TaxOverviewResponse>(`/api/tax?year=${year}&allowance=${allowance}`),
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   const allowanceEur = Number(data?.saver_allowance.allowance_eur ?? 0);
   const usedEur = Number(data?.saver_allowance.total_eur ?? 0);

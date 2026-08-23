@@ -4,7 +4,7 @@
 // visible range, so the two charts always agree with each other.
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { api, type AttributionResponse } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -15,6 +15,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { BarWaterfall, type WaterfallBar } from "../charts/BarWaterfall";
 import { currencyFormatter } from "../charts/chartTheme";
 import { MonthlyCompositionChart } from "./MonthlyCompositionChart";
+import { useIsLoading } from "../../lib/queryState";
 
 type Granularity = "month" | "year";
 
@@ -35,14 +36,13 @@ const STEPS = [
 
 export function AttributionTab() {
   const { t, i18n } = useTranslation("performance");
-  const isRestoring = useIsRestoring();
   const [granularity, setGranularity] = useState<Granularity>("month");
 
   const { data, isPending, isError } = useQuery({
     queryKey: ["attribution", granularity],
     queryFn: () => api.get<AttributionResponse>(`/api/attribution?granularity=${granularity}`),
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   // Memoized so the waterfall's useMemo below sees a stable reference
   // instead of a fresh `[]` on every render `data` is undefined.

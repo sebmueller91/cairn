@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -8,6 +8,7 @@ import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { useAssetFilter } from "../../lib/assetFilter";
+import { useIsLoading } from "../../lib/queryState";
 
 /** ISO `YYYY-MM-DD` for `days` ago, in *local* time — `toISOString()` would
  * convert to UTC first and misdate anyone in a positive UTC offset during
@@ -27,7 +28,6 @@ function isoDaysAgo(days: number): string {
 export function ClassDistributionCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const { selected } = useAssetFilter();
-  const isRestoring = useIsRestoring();
 
   // Only the latest point is ever read (see `latest` below), but an
   // unbounded `getAllocationTimeseries({})` made the backend load every
@@ -40,7 +40,7 @@ export function ClassDistributionCard() {
     queryKey: ["allocation-timeseries", "latest", from],
     queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
 
   const latest = data && data.length > 0 ? data[data.length - 1] : null;
 

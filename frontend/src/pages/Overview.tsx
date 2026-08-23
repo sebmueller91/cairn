@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -11,6 +11,7 @@ import { NextMilestoneCard } from "../components/overview/NextMilestoneCard";
 import { LastTwelveMonthsCard } from "../components/overview/LastTwelveMonthsCard";
 import { FreshnessStrip } from "../components/overview/FreshnessStrip";
 import { fetchHeroNetWorth, netWorthQueryKey } from "../components/overview/utils";
+import { useIsLoading } from "../lib/queryState";
 
 /** Mission control: the one-glance view of the whole portfolio. Every card
  * below runs its own query, keyed identically to this page-level one where
@@ -19,7 +20,6 @@ import { fetchHeroNetWorth, netWorthQueryKey } from "../components/overview/util
 export function Overview() {
   const { t } = useTranslation("overview");
   const [cashModalOpen, setCashModalOpen] = useState(false);
-  const isRestoring = useIsRestoring();
 
   const { data, isPending, isError } = useQuery({
     queryKey: netWorthQueryKey(),
@@ -30,7 +30,7 @@ export function Overview() {
   // NetWorthHero's comment) — without isRestoring here, a cold start would
   // render this page's EmptyState for the entire restore window instead of
   // waiting to find out whether there's actually anything cached.
-  const pending = isRestoring || isPending;
+  const pending = useIsLoading(isPending);
   const isEmpty = !pending && !isError && (data?.length ?? 0) === 0;
 
   return (

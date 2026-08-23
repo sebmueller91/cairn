@@ -1,6 +1,7 @@
 import { useMemo } from "react";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { api, type Instrument, type Position } from "../../lib/api";
+import { useIsLoading } from "../../lib/queryState";
 
 export interface PositionWithInstrument extends Position {
   instrument: Instrument | undefined;
@@ -21,7 +22,6 @@ export interface PositionWithInstrument extends Position {
  * window and every card renders its empty/error state instead of waiting.
  */
 export function usePositionsWithInstruments() {
-  const isRestoring = useIsRestoring();
   const positions = useQuery({
     queryKey: ["positions", "instrument"],
     queryFn: () => api.get<Position[]>("/api/positions?group_by=instrument"),
@@ -37,9 +37,11 @@ export function usePositionsWithInstruments() {
     return positions.data.map((p) => ({ ...p, instrument: byId.get(p.instrument_id) }));
   }, [positions.data, instruments.data]);
 
+  const pending = useIsLoading(positions.isPending, instruments.isPending);
+
   return {
     rows,
-    isPending: isRestoring || positions.isPending || instruments.isPending,
+    isPending: pending,
     isError: positions.isError || instruments.isError,
   };
 }

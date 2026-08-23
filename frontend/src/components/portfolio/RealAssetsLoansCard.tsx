@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useIsRestoring, useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
@@ -7,6 +7,7 @@ import { api, type Account, type Loan, type LoanStatus } from "../../lib/api";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { usePositionsWithInstruments } from "./usePositionsWithInstruments";
 import { SignedAmount } from "./SignedAmount";
+import { useIsLoading } from "../../lib/queryState";
 
 function LoanRow({ loan, accountName }: { loan: Loan; accountName: string }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
@@ -55,7 +56,6 @@ function LoanRow({ loan, accountName }: { loan: Loan; accountName: string }) {
 /** Section 5 — non-market assets (real estate, vehicles, ...) and outstanding loans. */
 export function RealAssetsLoansCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const isRestoring = useIsRestoring();
   const {
     rows,
     isPending: positionsPending,
@@ -79,7 +79,7 @@ export function RealAssetsLoansCard() {
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
 
-  const pending = isRestoring || positionsPending || loansPending || accountsPending;
+  const pending = useIsLoading(positionsPending, loansPending, accountsPending);
   const isError = positionsError || loansError || accountsError;
 
   const realAssets = (rows ?? []).filter(

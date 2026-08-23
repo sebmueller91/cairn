@@ -22,3 +22,6 @@ inbox/*
 
 # OS
 .DS_Store
+
+# Agent worktrees (transient, created by the Agent tool)
+.claude/worktrees/
