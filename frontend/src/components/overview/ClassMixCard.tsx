@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import {
@@ -22,13 +22,19 @@ import { isoDaysAgo } from "./utils";
  * hold a number this app routinely shows to the cent. */
 export function ClassMixCard() {
   const { t, i18n } = useTranslation("overview");
+  const isRestoring = useIsRestoring();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["allocation-timeseries", "overview"],
-    queryFn: () => getAllocationTimeseries({ from: isoDaysAgo(14), granularity: "day" }),
+  // The `from` bound is part of the key (not just the queryFn) for the same
+  // reason as netWorthQueryKey — otherwise a cached "fresh" query keeps
+  // answering yesterday's 14-day window after local midnight.
+  const from = isoDaysAgo(14);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["allocation-timeseries", "overview", from],
+    queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });
+  const pending = isRestoring || isPending;
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-4 w-28" />

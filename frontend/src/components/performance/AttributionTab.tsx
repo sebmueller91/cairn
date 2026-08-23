@@ -4,7 +4,7 @@
 // visible range, so the two charts always agree with each other.
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { api, type AttributionResponse } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -35,12 +35,14 @@ const STEPS = [
 
 export function AttributionTab() {
   const { t, i18n } = useTranslation("performance");
+  const isRestoring = useIsRestoring();
   const [granularity, setGranularity] = useState<Granularity>("month");
 
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["attribution", granularity],
     queryFn: () => api.get<AttributionResponse>(`/api/attribution?granularity=${granularity}`),
   });
+  const pending = isRestoring || isPending;
 
   // Memoized so the waterfall's useMemo below sees a stable reference
   // instead of a fresh `[]` on every render `data` is undefined.
@@ -89,8 +91,10 @@ export function AttributionTab() {
           <h2 className="font-medium">{t("attribution.composition.title")}</h2>
           <SegmentedControl options={granularityOptions} value={granularity} onChange={setGranularity} />
         </div>
-        {isLoading ? (
+        {pending ? (
           <Skeleton className="h-[280px] w-full" />
+        ) : isError ? (
+          <p className="text-sm text-text-muted">{t("common:status.error")}</p>
         ) : periods.length === 0 ? (
           <EmptyState icon={<BarChart3 className="size-8" aria-hidden />} title={t("noData")} />
         ) : (
@@ -108,8 +112,10 @@ export function AttributionTab() {
             </div>
           )}
         </div>
-        {isLoading ? (
+        {pending ? (
           <Skeleton className="h-[280px] w-full" />
+        ) : isError ? (
+          <p className="text-sm text-text-muted">{t("common:status.error")}</p>
         ) : waterfallBars.length === 0 ? (
           <EmptyState icon={<BarChart3 className="size-8" aria-hidden />} title={t("noData")} />
         ) : (

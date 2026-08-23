@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { api, type Instrument } from "../../lib/api";
 import { ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { DataTable, type Column } from "../ui/DataTable";
@@ -11,12 +11,14 @@ import { TableSkeleton } from "./TableSkeleton";
 
 export function InstrumentsView() {
   const { t } = useTranslation(["data", "common"]);
+  const isRestoring = useIsRestoring();
   const [search, setSearch] = useState("");
 
-  const { data: instruments, isLoading } = useQuery({
+  const { data: instruments, isPending, isError } = useQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
+  const pending = isRestoring || isPending;
 
   const rows = useMemo(() => {
     if (!instruments) return [];
@@ -66,8 +68,10 @@ export function InstrumentsView() {
       <SearchField value={search} onChange={setSearch} placeholder={t("data:search")} />
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:instruments.empty")} />
         ) : (

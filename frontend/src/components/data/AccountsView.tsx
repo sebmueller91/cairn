@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { api, type Account } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -13,14 +13,16 @@ import { TableSkeleton } from "./TableSkeleton";
 
 export function AccountsView() {
   const { t, i18n } = useTranslation(["data", "assets", "common"]);
+  const isRestoring = useIsRestoring();
   const [search, setSearch] = useState("");
   const [cashAccountId, setCashAccountId] = useState<number | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: accounts, isLoading } = useQuery({
+  const { data: accounts, isPending, isError } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
+  const pending = isRestoring || isPending;
 
   const rows = useMemo(() => {
     if (!accounts) return [];
@@ -80,8 +82,10 @@ export function AccountsView() {
       <SearchField value={search} onChange={setSearch} placeholder={t("data:search")} />
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:accounts.empty")} />
         ) : (

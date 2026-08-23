@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import {
   api,
   type Account,
@@ -36,6 +36,7 @@ const PAGE_SIZE = 50;
  * (spec: the cash-balance modal is the only write action left in the UI). */
 export function LedgerView() {
   const { t, i18n } = useTranslation(["data", "assets", "common"]);
+  const isRestoring = useIsRestoring();
   const [accountId, setAccountId] = useState("");
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
@@ -49,7 +50,7 @@ export function LedgerView() {
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions, isPending, isError } = useQuery({
     queryKey: ["transactions", accountId, limit],
     queryFn: () => {
       const params = new URLSearchParams({ limit: String(limit) });
@@ -57,6 +58,7 @@ export function LedgerView() {
       return api.get<Transaction[]>(`/api/transactions?${params}`);
     },
   });
+  const pending = isRestoring || isPending;
 
   const accountName = (id: number | null) =>
     accounts?.find((a) => a.id === id)?.name ?? (id ? `#${id}` : "—");
@@ -164,8 +166,10 @@ export function LedgerView() {
       </div>
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:ledger.empty")} />
         ) : (
