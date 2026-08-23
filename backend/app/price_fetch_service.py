@@ -95,6 +95,18 @@ def fetch_latest_for_instrument(db: Session, instrument: Instrument) -> FetchRes
         if result is None:
             source.last_error = "no data returned"
             continue
+        if result.currency is not None and result.currency != instrument.currency:
+            # Some providers (CoinGecko, Frankfurter) always price in a
+            # fixed currency (EUR). An instrument configured in another
+            # currency would otherwise get that EUR price written under
+            # the wrong label — silently understating/overstating the
+            # position once the snapshot applies its own FX conversion on
+            # top. Refuse rather than mislabel.
+            source.last_error = (
+                f"{source.provider} returned a {result.currency} price but instrument "
+                f"is configured as {instrument.currency}: refusing to write a mislabelled price"
+            )
+            continue
         if not _is_plausible(result.close, previous):
             # Rule 3 (spec 5): a >25% move or a zero price is suspect and
             # is not adopted — try the next source rather than trust it.
@@ -134,6 +146,20 @@ def backfill_for_instrument(
             continue
         if not points:
             source.last_error = "no history returned"
+            continue
+        mismatched = next(
+            (p for p in points if p.currency is not None and p.currency != instrument.currency),
+            None,
+        )
+        if mismatched is not None:
+            # Same rule as fetch_latest_for_instrument: a provider that
+            # always prices in a fixed currency (CoinGecko, Frankfurter)
+            # must not have that price stamped under the instrument's own,
+            # different currency.
+            source.last_error = (
+                f"{source.provider} returned a {mismatched.currency} price but instrument "
+                f"is configured as {instrument.currency}: refusing to write mislabelled history"
+            )
             continue
 
         written = 0
@@ -207,14 +233,26 @@ def backfill_fx_rate(db: Session, currency: str, start: date, end: date) -> Fetc
     return FetchResult(0, "ok", detail=f"{currency}: {written} rates written")
 
 
+def distinct_non_eur_currencies(db: Session) -> list[str]:
+    """Every currency configured on any instrument, excluding EUR (which
+    is always 1:1 and never fetched). Shared by fetch_all_fx_rates,
+    backfill_all_fx_rates and the scheduler's per-currency resilient loop
+    so the selection logic lives in exactly one place."""
+    return sorted(
+        {
+            currency
+            for (currency,) in db.query(Instrument.currency).distinct().all()
+            if currency != "EUR"
+        }
+    )
+
+
 def backfill_all_fx_rates(db: Session, start: date, end: date) -> list[FetchResult]:
     """Every non-EUR currency in use, mirroring fetch_all_fx_rates."""
-    currencies = {
-        currency
-        for (currency,) in db.query(Instrument.currency).distinct().all()
-        if currency != "EUR"
-    }
-    return [backfill_fx_rate(db, currency, start, end) for currency in sorted(currencies)]
+    return [
+        backfill_fx_rate(db, currency, start, end)
+        for currency in distinct_non_eur_currencies(db)
+    ]
 
 
 def fetch_all_fx_rates(db: Session) -> list[FetchResult]:
@@ -224,9 +262,4 @@ def fetch_all_fx_rates(db: Session) -> list[FetchResult]:
     engines silently treat any non-EUR position as worth EUR 0 (fx_series
     lookup misses -> `if fx is None: continue`).
     """
-    currencies = {
-        currency
-        for (currency,) in db.query(Instrument.currency).distinct().all()
-        if currency != "EUR"
-    }
-    return [fetch_fx_rate(db, currency) for currency in sorted(currencies)]
+    return [fetch_fx_rate(db, currency) for currency in distinct_non_eur_currencies(db)]
