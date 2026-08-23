@@ -3,14 +3,16 @@ import { useTranslation } from "react-i18next";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOnlineStatus } from "../lib/online";
 import { formatDateTime } from "../lib/format";
+import { effectiveAsOf } from "../lib/freshness";
 
 const STALE_AFTER_MS = 24 * 60 * 60 * 1000;
 
-// Rolls up the oldest dataUpdatedAt across every currently-mounted query,
-// not just one endpoint — the status bar should reflect the actual data
-// on screen, which may be a mix of ages once IndexedDB-cached pages are
-// visited offline.
-function useOldestDataUpdatedAt(): number | null {
+// Rolls up the oldest effective "as of" time (lib/freshness.ts — not just
+// TanStack's own dataUpdatedAt, see there for why) across every currently-mounted
+// query, not just one endpoint — the status bar should reflect the actual
+// data on screen, which may be a mix of ages once IndexedDB-cached pages
+// are visited offline.
+function useOldestAsOf(): number | null {
   const queryClient = useQueryClient();
   const subscribe = useCallback(
     (onStoreChange: () => void) => queryClient.getQueryCache().subscribe(onStoreChange),
@@ -22,7 +24,7 @@ function useOldestDataUpdatedAt(): number | null {
       .getAll()
       .filter((q) => q.getObserversCount() > 0 && q.state.dataUpdatedAt > 0);
     if (!mounted.length) return null;
-    return Math.min(...mounted.map((q) => q.state.dataUpdatedAt));
+    return Math.min(...mounted.map((q) => effectiveAsOf(q.state.data, q.state.dataUpdatedAt)));
   }, [queryClient]);
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
@@ -31,7 +33,7 @@ function useOldestDataUpdatedAt(): number | null {
 export function FreshnessIndicator() {
   const { t, i18n } = useTranslation("common");
   const online = useOnlineStatus();
-  const oldest = useOldestDataUpdatedAt();
+  const oldest = useOldestAsOf();
 
   if (oldest == null) return null;
   const isStale = Date.now() - oldest > STALE_AFTER_MS;
