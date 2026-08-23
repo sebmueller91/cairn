@@ -2,7 +2,7 @@ from collections import defaultdict
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_scope
@@ -14,6 +14,8 @@ from app.schemas import PositionRead
 from app.valuation_service import current_instrument_value
 
 router = APIRouter(prefix="/api/positions", tags=["positions"])
+
+VALID_GROUP_BY = ("account", "instrument")
 
 
 def _load_events(db: Session, account_id: int | None) -> list[TxnEvent]:
@@ -49,6 +51,11 @@ def get_positions(
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[PositionRead]:
+    if group_by not in VALID_GROUP_BY:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_group_by", "params": {"group_by": group_by}},
+        )
     # SPLIT and TRANSFER touch lots outside a single account's own history
     # (a split is an instrument-wide corporate action; a transfer moves
     # lots between two accounts) — always replay the instrument's full

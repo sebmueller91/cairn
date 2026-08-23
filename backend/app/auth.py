@@ -1,3 +1,4 @@
+import hmac
 from typing import Literal
 
 from fastapi import Cookie, Depends, Header, HTTPException, status
@@ -8,12 +9,19 @@ Scope = Literal["read_only", "full"]
 
 SESSION_COOKIE = "cairn_session"
 
+# A single-user LAN app is still worth timing-attack hygiene: `==` on
+# strings short-circuits at the first mismatched byte, letting a network
+# observer recover the token one character at a time. hmac.compare_digest
+# runs in constant time regardless of where the strings first differ.
+def _tokens_equal(a: str, b: str) -> bool:
+    return hmac.compare_digest(a.encode("utf-8"), b.encode("utf-8"))
+
 
 def _scope_for_token(token: str) -> Scope | None:
     settings = get_settings()
-    if token == settings.api_token:
+    if _tokens_equal(token, settings.api_token):
         return "full"
-    if settings.api_token_readonly and token == settings.api_token_readonly:
+    if settings.api_token_readonly and _tokens_equal(token, settings.api_token_readonly):
         return "read_only"
     return None
 

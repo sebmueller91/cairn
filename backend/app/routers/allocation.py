@@ -24,6 +24,15 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api/allocation", tags=["allocation"])
 
+# Decimal("nan")/Decimal("Infinity") parse without raising InvalidOperation
+# — the exception only surfaces later, from a `contribution <= 0` comparison
+# inside allocation_service.py, outside any try/except there. Reject
+# non-finite values here instead. The upper bound is not a real domain
+# limit, just a guard against 1e100000-style inputs that are nonsensical
+# for a single-user LAN net worth tracker but otherwise parse as valid
+# Decimals and would propagate into downstream arithmetic unchecked.
+MAX_PLAUSIBLE_CONTRIBUTION_EUR = Decimal("1000000000000")  # 1 trillion EUR
+
 
 @router.get("/targets", response_model=dict[str, Decimal])
 def get_target_allocation(
@@ -83,6 +92,14 @@ def get_allocation(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail={"code": "invalid_contribution", "params": {"contribution": contribution}},
             ) from None
+        if (
+            not contribution_amount.is_finite()
+            or contribution_amount.copy_abs() > MAX_PLAUSIBLE_CONTRIBUTION_EUR
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail={"code": "invalid_contribution", "params": {"contribution": contribution}},
+            )
         rebalance_purchases_only = [
             RebalanceProposalRead(asset_class=p.asset_class, amount_eur=p.amount)
             for p in purchases_only_proposal(drift, contribution_amount)
