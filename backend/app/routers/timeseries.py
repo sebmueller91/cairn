@@ -1,7 +1,7 @@
 from datetime import date
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_scope
@@ -12,6 +12,20 @@ from app.schemas import AllocationTimeseriesPoint, NetWorthPoint
 
 router = APIRouter(prefix="/api/timeseries", tags=["timeseries"])
 
+# "day"/"week"/"month" already downsampled correctly; "quarter"/"year" used
+# to fall through _period_key's else-branch (same bucket as "day", i.e. no
+# downsampling at all) and any other string silently did the same — a
+# ?granularity=bogus request returned full daily resolution with a 200,
+# indistinguishable from "no data" at a glance. Both are implemented below
+# rather than rejected: AGENTS.md/ADR 0004 name server-side granularity
+# downsampling as the actual mechanism for wide ranges, and quarter/year
+# are the natural next buckets after week/month.
+VALID_GRANULARITIES = ("day", "week", "month", "quarter", "year")
+# Mirrors the three scope_id values snapshot_service.py actually writes for
+# scope_type="total" (see rebuild_snapshots) — "total" itself is not one of
+# them, despite reading like the obvious name for "everything".
+VALID_NETWORTH_SCOPES = ("investable", "gross", "net")
+
 
 def _period_key(d: date, granularity: str) -> tuple:
     if granularity == "week":
@@ -19,7 +33,27 @@ def _period_key(d: date, granularity: str) -> tuple:
         return (year, week)
     if granularity == "month":
         return (d.year, d.month)
+    if granularity == "quarter":
+        return (d.year, (d.month - 1) // 3)
+    if granularity == "year":
+        return (d.year,)
     return (d.year, d.month, d.day)
+
+
+def _validate_granularity(granularity: str) -> None:
+    if granularity not in VALID_GRANULARITIES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_granularity", "params": {"granularity": granularity}},
+        )
+
+
+def _validate_range(from_: date | None, to: date | None) -> None:
+    if from_ is not None and to is not None and from_ > to:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_range", "params": {"from": str(from_), "to": str(to)}},
+        )
 
 
 @router.get("/networth", response_model=list[NetWorthPoint])
@@ -40,6 +74,14 @@ def get_networth_timeseries(
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[NetWorthPoint]:
+    _validate_granularity(granularity)
+    if scope not in VALID_NETWORTH_SCOPES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_scope", "params": {"scope": scope}},
+        )
+    _validate_range(from_, to)
+
     query = db.query(DailySnapshot).filter(
         DailySnapshot.scope_type == "total", DailySnapshot.scope_id == scope
     )
@@ -81,6 +123,9 @@ def get_allocation_timeseries(
 ) -> list[AllocationTimeseriesPoint]:
     """Net worth decomposed by asset class over time — the per-class
     sibling of /networth (spec's allocation-over-time view)."""
+    _validate_granularity(granularity)
+    _validate_range(from_, to)
+
     query = db.query(DailySnapshot).filter(
         DailySnapshot.scope_type.in_(["position", "cash_account", "loan"])
     )

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app import kv_store
 from app.ledger import compute_positions, txn_to_event
 from app.models import (
     Account,
@@ -53,6 +54,19 @@ STALE_CASH_STATEMENT_DAYS = 90
 # read-only aggregation with no dependency on another router.
 _LAST_SUCCESS_FILE = Path("/backup-status/last_success")
 _LAST_OFFSITE_FILE = Path("/backup-status/last_offsite_success")
+# ADR 0009's named failure mode: price fetch and snapshot rebuild run
+# in-process on a nightly cron (22:30/23:00 Europe/Berlin, scheduler.py),
+# but until now nothing ever judged their kv_store.set() timestamps for
+# staleness — a rebuild that silently stopped running produced no signal
+# anywhere in the app, unlike the two backup markers below which already
+# had issue kinds. 48h (same as the local backup threshold) tolerates one
+# missed night before flagging; these are in-process jobs with no NAS/
+# network dependency, so there's no reason to be as lenient as the
+# offsite backup leg.
+STALE_PRICE_FETCH_HOURS = 48
+STALE_SNAPSHOT_HOURS = 48
+_LAST_PRICE_FETCH_KEY = "last_price_fetch"
+_LAST_SNAPSHOT_KEY = "last_snapshot"
 
 
 @dataclass
@@ -123,6 +137,62 @@ def _offsite_backup_issue(now: datetime) -> DataQualityIssue | None:
     )
 
 
+def _kv_job_issue(
+    db: Session,
+    now: datetime,
+    key: str,
+    threshold_hours: int,
+    missing_kind: str,
+    stale_kind: str,
+    label: str,
+) -> DataQualityIssue | None:
+    """Same aging logic as _marker_issue, but for a scheduler.py job
+    timestamp recorded via kv_store.set() instead of a backup.sh file
+    marker. A missing/unparseable value counts as "never run" — same
+    fail-open-to-a-visible-issue posture as the backup markers."""
+    raw = kv_store.get(db, key)
+    if not raw:
+        return DataQualityIssue(kind=missing_kind, detail=f"No successful {label} recorded yet")
+    try:
+        last = datetime.fromisoformat(raw)
+    except (TypeError, ValueError):
+        return DataQualityIssue(kind=missing_kind, detail=f"No successful {label} recorded yet")
+    if last.tzinfo is None:
+        last = last.replace(tzinfo=timezone.utc)
+    age_hours = (now - last).total_seconds() / 3600
+    if age_hours > threshold_hours:
+        return DataQualityIssue(
+            kind=stale_kind,
+            detail=f"Last successful {label} is {int(age_hours)}h old",
+            age_days=int(age_hours / 24),
+        )
+    return None
+
+
+def _price_fetch_job_issue(db: Session, now: datetime) -> DataQualityIssue | None:
+    return _kv_job_issue(
+        db,
+        now,
+        _LAST_PRICE_FETCH_KEY,
+        STALE_PRICE_FETCH_HOURS,
+        "missing_price_fetch_job",
+        "stale_price_fetch_job",
+        "price fetch run",
+    )
+
+
+def _snapshot_job_issue(db: Session, now: datetime) -> DataQualityIssue | None:
+    return _kv_job_issue(
+        db,
+        now,
+        _LAST_SNAPSHOT_KEY,
+        STALE_SNAPSHOT_HOURS,
+        "missing_snapshot_job",
+        "stale_snapshot_job",
+        "snapshot rebuild",
+    )
+
+
 def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQualityIssue]:
     as_of = as_of or date.today()
     issues: list[DataQualityIssue] = []
@@ -130,6 +200,15 @@ def check_data_quality(db: Session, as_of: date | None = None) -> list[DataQuali
     now = datetime.now(timezone.utc)
     for check in (_backup_issue, _offsite_backup_issue):
         issue = check(now)
+        if issue is not None:
+            issues.append(issue)
+
+    # Independent of the two backup markers above (ADR 0015's independence
+    # requirement is about the two backup legs specifically) — these two
+    # are a different failure mode (an in-process scheduled job, not an
+    # external script) and are additive, never a substitute for either.
+    for job_check in (_price_fetch_job_issue, _snapshot_job_issue):
+        issue = job_check(db, now)
         if issue is not None:
             issues.append(issue)
 

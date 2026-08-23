@@ -1,6 +1,7 @@
 import json
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app import audit
@@ -58,7 +59,22 @@ def create_instrument(
         tags_json=json.dumps(body.tags),
     )
     db.add(instrument)
-    db.flush()  # assigns instrument.id, needed for the audit record
+    try:
+        # The INSERT (and so the unique-isin constraint check) actually
+        # happens here, not at commit — models.py declares isin unique,
+        # and the only other unique column (external_id) belongs to Txn,
+        # not Instrument, so a duplicate isin is the one constraint this
+        # insert can actually hit.
+        db.flush()  # assigns instrument.id, needed for the audit record
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "instrument_isin_exists",
+                "params": {"isin": body.isin},
+            },
+        ) from None
     # This router has no source field to distinguish agent vs. manual UI
     # use — both arrive over the same bearer/cookie auth — so every write
     # here is logged as TxnSource.AGENT, same as transactions.py's
