@@ -11,6 +11,7 @@ from app.supersede_service import (
     DEFAULT_QUANTITY_TOLERANCE,
     run_supersede,
 )
+from app.txn_service import TxnValidationError, validate_holdings_replay
 
 router = APIRouter(prefix="/api/import-batches", tags=["import-batches"])
 
@@ -29,6 +30,7 @@ def rollback_import_batch(
         )
     txns = db.query(Txn).filter(Txn.import_batch_id == batch_id).all()
     deleted_ids = [t.id for t in txns]
+    instrument_ids = {t.instrument_id for t in txns if t.instrument_id is not None}
     for txn in txns:
         db.delete(txn)
     # No ORM relationship() is declared between Txn and ImportBatch (there
@@ -36,6 +38,22 @@ def rollback_import_batch(
     # dependency sort doesn't know to delete child rows before the parent
     # — flush explicitly first or the FK constraint fails.
     db.flush()
+
+    # A batch's BUYs can be consumed by SELLs booked later in a *different*
+    # batch — rolling the whole batch back would silently leave those
+    # SELLs unsatisfiable (ledger unreplayable, every read endpoint 500s
+    # from then on). Replay each affected instrument before committing and
+    # reject the rollback if it breaks the history.
+    for instrument_id in instrument_ids:
+        try:
+            validate_holdings_replay(db, instrument_id, "delete_breaks_holdings")
+        except TxnValidationError as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": e.code, "params": e.params},
+            )
+
     db.delete(batch)
     audit.record(
         db,
