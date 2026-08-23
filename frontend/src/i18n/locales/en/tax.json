@@ -5,6 +5,7 @@
   "thisYear": "This year",
   "lastYear": "Last year",
   "allowance": "Saver's allowance (€)",
+  "allowanceInvalid": "Invalid amount.",
   "ofAllowance": "of allowance",
   "realizedGains": "Realized gains",
   "investmentIncome": "Investment income",

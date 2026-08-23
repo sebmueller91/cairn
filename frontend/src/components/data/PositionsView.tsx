@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { api, type Account, type Instrument, type Position } from "../../lib/api";
 import { formatCurrency, formatNumber } from "../../lib/format";
 import { DataTable, type Column } from "../ui/DataTable";
@@ -15,13 +15,15 @@ type GroupBy = "account" | "instrument";
 
 export function PositionsView() {
   const { t, i18n } = useTranslation(["data", "common"]);
+  const isRestoring = useIsRestoring();
   const [groupBy, setGroupBy] = useState<GroupBy>("account");
   const [search, setSearch] = useState("");
 
-  const { data: positions, isLoading } = useQuery({
+  const { data: positions, isPending, isError } = useQuery({
     queryKey: ["positions", groupBy],
     queryFn: () => api.get<Position[]>(`/api/positions?group_by=${groupBy}`),
   });
+  const pending = isRestoring || isPending;
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
@@ -126,8 +128,10 @@ export function PositionsView() {
       </div>
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:positions.empty")} />
         ) : (

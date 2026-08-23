@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -72,10 +72,12 @@ function DriftRowView({
 /** Section 4 — target vs. actual allocation per asset class. */
 export function TargetVsActualCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { data, isLoading, isError } = useQuery({
+  const isRestoring = useIsRestoring();
+  const { data, isPending, isError } = useQuery({
     queryKey: ["allocation"],
     queryFn: () => api.get<AllocationResponse>("/api/allocation"),
   });
+  const pending = isRestoring || isPending;
 
   const [editing, setEditing] = useState(false);
   const [grown, setGrown] = useState(false);
@@ -109,7 +111,7 @@ export function TargetVsActualCard() {
           rebalancing endpoint only counts tradeable positions, so a house
           shows as 0% here while it dominates the allocation chart. */}
       <p className="mb-4 mt-1 text-xs text-text-muted">{t("targetVsActual.scopeNote")}</p>
-      {isLoading ? (
+      {pending ? (
         <div className="space-y-4">
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />

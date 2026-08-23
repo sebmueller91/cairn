@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -16,7 +16,9 @@ function useLookThrough(dimension: "region" | "sector") {
 
 function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { data, isLoading, isError } = useLookThrough(dimension);
+  const isRestoring = useIsRestoring();
+  const { data, isPending, isError } = useLookThrough(dimension);
+  const pending = isRestoring || isPending;
 
   const rows = (data?.rows ?? []).slice().sort(
     (a, b) => Number(b.value_eur) - Number(a.value_eur),
@@ -66,7 +68,7 @@ function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
           </span>
         )}
       </h3>
-      {isLoading ? (
+      {pending ? (
         <div className="space-y-3">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -10,7 +10,7 @@ import { ClassMixCard } from "../components/overview/ClassMixCard";
 import { NextMilestoneCard } from "../components/overview/NextMilestoneCard";
 import { LastTwelveMonthsCard } from "../components/overview/LastTwelveMonthsCard";
 import { FreshnessStrip } from "../components/overview/FreshnessStrip";
-import { fetchHeroNetWorth, NET_WORTH_QUERY_KEY } from "../components/overview/utils";
+import { fetchHeroNetWorth, netWorthQueryKey } from "../components/overview/utils";
 
 /** Mission control: the one-glance view of the whole portfolio. Every card
  * below runs its own query, keyed identically to this page-level one where
@@ -19,13 +19,19 @@ import { fetchHeroNetWorth, NET_WORTH_QUERY_KEY } from "../components/overview/u
 export function Overview() {
   const { t } = useTranslation("overview");
   const [cashModalOpen, setCashModalOpen] = useState(false);
+  const isRestoring = useIsRestoring();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: NET_WORTH_QUERY_KEY,
+  const { data, isPending, isError } = useQuery({
+    queryKey: netWorthQueryKey(),
     queryFn: fetchHeroNetWorth,
   });
 
-  const isEmpty = !isLoading && !isError && (data?.length ?? 0) === 0;
+  // During the IndexedDB restore every query reports isPending: false (see
+  // NetWorthHero's comment) — without isRestoring here, a cold start would
+  // render this page's EmptyState for the entire restore window instead of
+  // waiting to find out whether there's actually anything cached.
+  const pending = isRestoring || isPending;
+  const isEmpty = !pending && !isError && (data?.length ?? 0) === 0;
 
   return (
     <div className="space-y-4 md:space-y-5">

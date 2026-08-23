@@ -31,7 +31,7 @@ const NAMED_SLICES = SERIES_COLORS.length;
  */
 export function EquityBreakdownCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { rows, isLoading, isError } = usePositionsWithInstruments();
+  const { rows, isPending, isError } = usePositionsWithInstruments();
 
   const holdings = useMemo(
     () =>
@@ -91,7 +91,7 @@ export function EquityBreakdownCard() {
   const toLegend = (slices: DonutSlice[]): LegendItem[] =>
     slices.map((s) => ({ key: s.name, label: s.name, color: s.color, value: s.value }));
 
-  if (isLoading) {
+  if (isPending) {
     return (
       <GlassCard>
         <Skeleton className="h-5 w-48" />

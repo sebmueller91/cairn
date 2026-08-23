@@ -23,6 +23,7 @@
   "benchmark": "Vergleichsindex",
   "mwrNoCurve": "MWR ist eine einzelne annualisierte Rendite, kein Kurvenverlauf.",
   "noData": "Noch keine Daten für diesen Zeitraum.",
+  "noReturnFigure": "Für diesen Zeitraum liegt noch keine Renditezahl vor.",
   "attribution": {
     "start": "Start",
     "end": "Ende",

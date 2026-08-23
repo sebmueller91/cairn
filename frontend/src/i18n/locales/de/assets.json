@@ -23,7 +23,9 @@
       "TRANSFER": "Übertrag",
       "SPLIT": "Split",
       "OPENING_BALANCE": "Eröffnungsbestand",
-      "BALANCE_STATEMENT": "Kontostand"
+      "BALANCE_STATEMENT": "Kontostand",
+      "LOAN_PAYMENT": "Kreditrate",
+      "EXTRA_REPAYMENT": "Sondertilgung"
     }
   }
 }

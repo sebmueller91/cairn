@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useIsRestoring, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -30,11 +30,13 @@ export function EtfSplitCard() {
   const { t, i18n } = useTranslation(["portfolio", "common", "errors"]);
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
+  const isRestoring = useIsRestoring();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["etf-split"],
     queryFn: getEtfSplit,
   });
+  const pending = isRestoring || isPending;
 
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
@@ -78,7 +80,7 @@ export function EtfSplitCard() {
     save.mutate();
   }
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-5 w-56" />

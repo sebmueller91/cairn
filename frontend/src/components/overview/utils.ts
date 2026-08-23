@@ -4,12 +4,24 @@
 
 import { api, type NetWorthPoint } from "../../lib/api";
 
+/** `YYYY-MM-DD` for a `Date`, read from its *local* fields. `toISOString()`
+ * converts to UTC first, which silently steps back a day for anyone in a
+ * positive UTC offset (all of Central Europe) during the early hours of
+ * the local day — before ~01:00 CET / ~02:00 CEST, "today" would come out
+ * as yesterday. */
+function localISODate(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 /** ISO `YYYY-MM-DD` for `days` ago, in local time — matches the `from`
  * query params the timeseries/attribution endpoints expect. */
 export function isoDaysAgo(days: number): string {
   const d = new Date();
   d.setDate(d.getDate() - days);
-  return d.toISOString().slice(0, 10);
+  return localISODate(d);
 }
 
 /** The point in `points` whose `date` is nearest to `target` — used to find
@@ -72,4 +84,13 @@ export function fetchHeroNetWorth(): Promise<NetWorthPoint[]> {
   return api.get<NetWorthPoint[]>(`/api/timeseries/networth?${params}`);
 }
 
-export const NET_WORTH_QUERY_KEY = ["networth", "overview"] as const;
+/** A function, not a constant: the window's `from` bound moves by a day
+ * every local midnight, but a plain array literal would freeze it at
+ * whatever it was when the module first loaded. Since the bound wasn't
+ * part of the key, a query considered "fresh" (within staleTime) kept
+ * serving yesterday's HERO_DAYS window after midnight — same request,
+ * same key, so TanStack Query never knew to refetch. Including today's
+ * local date makes the key itself roll over. */
+export function netWorthQueryKey(): readonly [string, string, string] {
+  return ["networth", "overview", isoDaysAgo(0)] as const;
+}

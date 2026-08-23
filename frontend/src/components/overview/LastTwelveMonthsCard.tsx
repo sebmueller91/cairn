@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { getContributions } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
@@ -24,13 +24,15 @@ import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
  */
 export function LastTwelveMonthsCard() {
   const { t, i18n } = useTranslation("overview");
+  const isRestoring = useIsRestoring();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["contributions", "overview-12m"],
     queryFn: () => getContributions(),
   });
+  const pending = isRestoring || isPending;
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard className="space-y-3">
         <Skeleton className="h-4 w-32" />

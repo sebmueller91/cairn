@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useIsRestoring, useQuery } from "@tanstack/react-query";
 import { api, type MilestoneResponse } from "../../lib/api";
 import { formatCurrency, formatDate, formatPercent } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
@@ -14,13 +14,15 @@ import { Skeleton } from "../ui/Skeleton";
  * have room to be read. */
 export function NextMilestoneCard() {
   const { t, i18n } = useTranslation("overview");
+  const isRestoring = useIsRestoring();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["milestones", "overview"],
     queryFn: () => api.get<MilestoneResponse>("/api/milestones?scope=net"),
   });
+  const pending = isRestoring || isPending;
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-4 w-32" />
