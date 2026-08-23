@@ -27,8 +27,17 @@ class YahooFinanceProvider:
             data = response.json()
         except httpx.HTTPError as e:
             raise ProviderError(f"yahoo request failed for {symbol}: {e}") from e
+        except ValueError as e:
+            # response.json() raises json.JSONDecodeError (a ValueError
+            # subclass) on a 200 that isn't actually JSON — e.g. an HTML
+            # rate-limit or consent page. That's not an httpx.HTTPError, so
+            # it would otherwise escape uncaught.
+            raise ProviderError(f"yahoo returned invalid JSON for {symbol}: {e}") from e
 
-        result = data.get("chart", {}).get("result")
+        try:
+            result = data.get("chart", {}).get("result")
+        except AttributeError as e:
+            raise ProviderError(f"yahoo returned an unexpected shape for {symbol}: {e}") from e
         if not result:
             return {}
         return result[0]
@@ -37,8 +46,16 @@ class YahooFinanceProvider:
         chart = self._fetch_chart(symbol, {"range": "5d", "interval": "1d"})
         if not chart:
             return None
-        timestamps = chart.get("timestamp") or []
-        closes = chart.get("indicators", {}).get("quote", [{}])[0].get("close") or []
+        try:
+            timestamps = chart.get("timestamp") or []
+            # `.get("quote", [{}])` only supplies the fallback when the key
+            # is ABSENT. Yahoo returns "quote": [] for a delisted or
+            # unknown symbol, and [][0] raises IndexError. `or [{}]`
+            # catches both "missing" and "present but empty".
+            quote_list = chart.get("indicators", {}).get("quote") or [{}]
+            closes = quote_list[0].get("close") or []
+        except (AttributeError, TypeError, IndexError) as e:
+            raise ProviderError(f"yahoo returned an unexpected shape for {symbol}: {e}") from e
         for ts, close in reversed(list(zip(timestamps, closes))):
             if close is None:
                 continue
@@ -58,8 +75,12 @@ class YahooFinanceProvider:
         )
         if not chart:
             return []
-        timestamps = chart.get("timestamp") or []
-        closes = chart.get("indicators", {}).get("quote", [{}])[0].get("close") or []
+        try:
+            timestamps = chart.get("timestamp") or []
+            quote_list = chart.get("indicators", {}).get("quote") or [{}]
+            closes = quote_list[0].get("close") or []
+        except (AttributeError, TypeError, IndexError) as e:
+            raise ProviderError(f"yahoo returned an unexpected shape for {symbol}: {e}") from e
 
         results = []
         for ts, close in zip(timestamps, closes):
