@@ -167,6 +167,8 @@ def rebuild_snapshots(db: Session) -> int:
             start_date=loan.start_date,
             monthly_payment=loan.monthly_payment,
             extra_repayments=extra_repayments,
+            payment_day=loan.payment_day,
+            fixed_until=loan.fixed_until,
         )
 
     all_dates = list(snapshot_dates)

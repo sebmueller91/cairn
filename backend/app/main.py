@@ -6,6 +6,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.config import get_settings
+from app.ledger import InsufficientHoldingError
 from app.routers import (
     accounts,
     admin,
@@ -148,6 +149,36 @@ async def validation_exception_handler(
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={"detail": {"code": code, "params": params}},
+    )
+
+
+@app.exception_handler(InsufficientHoldingError)
+async def insufficient_holding_handler(
+    request: Request, exc: InsufficientHoldingError
+) -> JSONResponse:
+    # The write paths now refuse to create an unreplayable ledger, but a
+    # database poisoned *before* those guards existed — by the old PATCH,
+    # DELETE or batch rollback — still raises this on every read that
+    # replays the ledger (positions, tax, look-through, data-quality, the
+    # nightly rebuild). Guarding writes does not heal existing data.
+    #
+    # Without this, all of those are an opaque 500 and the operator has no
+    # way to know which row to correct. Naming the account, instrument and
+    # the shortfall turns "the app is broken" into "this sale is larger
+    # than the holding it draws on".
+    return JSONResponse(
+        status_code=status.HTTP_409_CONFLICT,
+        content={
+            "detail": {
+                "code": "ledger_unreplayable",
+                "params": {
+                    "account_id": exc.account_id,
+                    "instrument_id": exc.instrument_id,
+                    "requested": str(exc.requested),
+                    "available": str(exc.available),
+                },
+            }
+        },
     )
 
 
