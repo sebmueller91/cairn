@@ -216,11 +216,29 @@ def flow_events(
     MARKET-position universe from untracked settlement cash). TRANSFER
     only matters relative to a single account or instrument scope — at
     scope=total it nets to zero (quantity just moves between two of the
-    household's own buckets), so it's not even queried for there."""
+    household's own buckets), so it's not even queried for there.
+
+    OPENING_BALANCE is a flow too (bug fix): it's ledger.py's other
+    lot-creating event besides BUY (`_QUANTITY_BEARING_TYPES`), used by
+    spec 2.5's backfill workflow to register a position's value without
+    a real trade. It moves V exactly like a BUY does — money the return
+    math has no other record of "entering" the scope — so omitting it
+    here misreported every backfill as market gain (a 500.00 opening
+    balance dropped into an already-1000.00 portfolio used to read as a
+    +50% return; it's a contribution, worth 0% on its own).
+
+    Window semantics: `start`/`end` are both inclusive here, matching
+    `value_series`'s own [start, end] range. That means a flow dated
+    exactly on `start` is included — callers computing an MWR-style
+    "opening balance" from the value *on* `start` must not also add
+    that same-day flow again (see routers/performance.py's start_value,
+    which sources the pre-flow value from the day *before* `start`
+    instead, to keep this function's inclusive convention consistent
+    for both TWR and MWR without needing two different flow windows)."""
     if start > end:
         return []
     market_ids = _market_instrument_ids(db)
-    types = [TransactionType.BUY, TransactionType.SELL]
+    types = [TransactionType.BUY, TransactionType.SELL, TransactionType.OPENING_BALANCE]
     if scope.account_id is not None:
         types.append(TransactionType.TRANSFER)
 
@@ -242,7 +260,7 @@ def flow_events(
     for t in query.all():
         if t.instrument_id not in market_ids:
             continue
-        if t.type == TransactionType.BUY:
+        if t.type in (TransactionType.BUY, TransactionType.OPENING_BALANCE):
             flows.append(FlowEvent(t.date, t.amount_eur))
         elif t.type == TransactionType.SELL:
             flows.append(FlowEvent(t.date, -t.amount_eur))

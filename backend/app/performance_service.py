@@ -117,16 +117,40 @@ def shadow_value_series(
     already be carry-forward resolved (one entry per date in `dates`,
     or missing where truly unpriced). The result is a plain value
     series — feed it through `daily_returns`/`cumulative_index` the same
-    way as the real portfolio's V(t) for a directly overlayable curve."""
+    way as the real portfolio's V(t) for a directly overlayable curve.
+
+    Bug fix: a flow landing on a date with no known benchmark price used
+    to buy zero units and vanish permanently — reported thereafter as
+    benchmark *return* (a lower shadow value that was never actually
+    invested) rather than as a data gap. `benchmark_price_series`'s own
+    carry-forward means a gap here can only be a *leading* one (no price
+    has ever existed yet for this instrument, not a hole in the middle —
+    once a date is priced, every later date is too), so there's no
+    "last known price" to fall back on for buying units on those dates.
+    Instead the flow is deferred: held in `pending_flow` and invested at
+    the first price that does become available, exactly as if the
+    contribution had been sitting in cash waiting for the benchmark to
+    exist. A date with no price at all still reports a value of 0 —
+    genuinely unknown, not carried forward — leaving the convention
+    `test_shadow_value_series_missing_price_reads_as_zero` already
+    covers unchanged; that test has no flow landing on its missing-price
+    date, so it wasn't exercising this bug and needed no update."""
     flow_map = _flows_by_date(flows)
     units = Decimal(0)
+    pending_flow = Decimal(0)
     out: list[tuple[date, Decimal]] = []
     for d in dates:
         price = benchmark_price.get(d)
-        flow = flow_map.get(d)
-        if flow and price:
-            units += flow / price
-        value = units * price if price is not None else Decimal(0)
+        flow = flow_map.get(d, Decimal(0))
+        if price is not None:
+            total_flow = pending_flow + flow
+            if total_flow:
+                units += total_flow / price
+            pending_flow = Decimal(0)
+            value = units * price
+        else:
+            pending_flow += flow
+            value = Decimal(0)
         out.append((d, value))
     return out
 
@@ -207,7 +231,17 @@ def mwr(
     """XIRR over a period: the starting value is an implicit outflow (money
     "invested" at the start of the window), each flow in between keeps its
     own sign, and the ending value is an implicit inflow (what it's worth
-    now). Same reasoning as `twr` for what counts as a flow."""
+    now). Same reasoning as `twr` for what counts as a flow.
+
+    Convention (bug fix): `start_value` must represent the position
+    *before* any of `flows` happened — i.e. as of the day before
+    `start_date`, or zero if nothing existed yet. `flow_events` treats
+    its own `start`/`end` window inclusively, so a flow dated exactly on
+    `start_date` is expected to already be present in `flows`; passing a
+    `start_value` that *also* reflects that same-day flow (e.g. the
+    value on `start_date` itself, taken straight from a snapshot) double
+    -counts it as two separate outflows. See routers/performance.py's
+    `start_value` computation for the caller side of this contract."""
     cashflows: list[tuple[date, Decimal]] = []
     if start_value != 0:
         cashflows.append((start_date, -start_value))
