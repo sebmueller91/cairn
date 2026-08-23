@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -104,7 +104,22 @@ def get_performance(
             benchmark_curve=benchmark_curve,
         )
 
-    start_value = values[0][1] if values else None
+    # Bug fix: `flow_events` treats `start` inclusively (same convention
+    # TWR needs, see its docstring there), so any flow dated exactly on
+    # `start` — e.g. `period="inception"` resolving to the very first
+    # transaction's own date, which is *every* inception window — shows
+    # up both here (if start_value came from `values[0]`, the snapshot
+    # ON `start`, which already reflects that day's trade) AND again in
+    # `flows` below, double-counting day one's investment as two
+    # separate outflows. `mwr()`'s contract is that `start_value` is the
+    # implicit outflow that funded the position *before* any of `flows`
+    # happened — so it must come from the day *before* `start`, not from
+    # `start` itself. At true inception that's zero (nothing existed
+    # yet), which is exactly right: the whole opening position then
+    # enters once, correctly, via the first flow.
+    pre_start = start - timedelta(days=1)
+    pre_start_values = value_series(db, scope_filter, pre_start, pre_start)
+    start_value = pre_start_values[0][1] if pre_start_values else None
     end_value = values[-1][1] if values else None
     if start_value is None or end_value is None:
         return PerformanceResponse(
