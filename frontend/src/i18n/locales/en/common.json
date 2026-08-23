@@ -15,7 +15,9 @@
     "hideAmounts": "Hide amounts",
     "showAmounts": "Show amounts",
     "cancel": "Cancel",
-    "save": "Save"
+    "save": "Save",
+    "retry": "Try again",
+    "backToOverview": "Back to overview"
   },
   "assetClass": {
     "EQUITY": "Stocks & ETFs",
@@ -48,5 +50,15 @@
     "depot": "Investments",
     "equityOnly": "Equities only",
     "property": "Property & loan"
+  },
+  "errorBoundary": {
+    "pageTitle": "Something went wrong",
+    "pageBody": "This view couldn't be displayed. Your data isn't affected — it's a display error.",
+    "cardBody": "This card couldn't be displayed."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "body": "There's nothing here.",
+    "cta": "Back to overview"
   }
 }

@@ -15,7 +15,9 @@
     "hideAmounts": "Beträge verbergen",
     "showAmounts": "Beträge anzeigen",
     "cancel": "Abbrechen",
-    "save": "Speichern"
+    "save": "Speichern",
+    "retry": "Erneut versuchen",
+    "backToOverview": "Zur Übersicht"
   },
   "assetClass": {
     "EQUITY": "Aktien & ETFs",
@@ -48,5 +50,15 @@
     "depot": "Depot",
     "equityOnly": "Nur Aktien",
     "property": "Haus & Kredit"
+  },
+  "errorBoundary": {
+    "pageTitle": "Da ist etwas schiefgelaufen",
+    "pageBody": "Die Ansicht konnte nicht dargestellt werden. Deine Daten sind davon nicht betroffen — es ist ein Anzeigefehler.",
+    "cardBody": "Diese Kachel konnte nicht dargestellt werden."
+  },
+  "notFound": {
+    "title": "Seite nicht gefunden",
+    "body": "Hier gibt es nichts.",
+    "cta": "Zur Übersicht"
   }
 }
