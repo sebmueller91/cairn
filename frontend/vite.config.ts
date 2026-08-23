@@ -92,9 +92,18 @@ export default defineConfig({
             // iOS PWA restore a "logged in" shell from Cache Storage after
             // the real session is long gone: nav renders, some cards 401.
             // Auth state must always be a live network answer.
+            //
+            // /api/health is excluded for the same class of reason: it is
+            // what lib/online.ts probes to decide whether the Pi is
+            // actually reachable (navigator.onLine is useless for a
+            // LAN-only app — it reads true on cellular, miles from home).
+            // A cached 200 would answer that probe without a single packet
+            // reaching the Pi, so the app would report itself online while
+            // the server is down, and re-enable the write forms.
             urlPattern: ({ url, request }) =>
               url.pathname.startsWith('/api/') &&
               !url.pathname.startsWith('/api/auth/') &&
+              url.pathname !== '/api/health' &&
               request.method === 'GET',
             handler: 'NetworkFirst',
             options: {
