@@ -29,6 +29,14 @@ from app.schemas import (
 
 router = APIRouter(prefix="/api", tags=["look-through"])
 
+# look_through_service.compute_look_through falls back to instrument.region
+# for dimension=="region" and instrument.sector for *anything else* when an
+# instrument has no explicit composition rows — so an unrecognized
+# dimension used to silently behave exactly like "sector" while echoing the
+# bogus name back in the response, rather than surfacing that no such
+# dimension exists.
+VALID_DIMENSIONS = ("region", "sector")
+
 
 @router.put("/instruments/{instrument_id}/composition", response_model=list[EtfCompositionRow])
 def set_composition(
@@ -97,6 +105,11 @@ def get_look_through(
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> LookThroughResponse:
+    if dimension not in VALID_DIMENSIONS:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_dimension", "params": {"dimension": dimension}},
+        )
     rows = compute_look_through(db, dimension, as_of=as_of)
     label, benchmark = get_benchmark(db, dimension)
 

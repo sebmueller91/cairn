@@ -178,6 +178,31 @@ def validate_references(db: Session, payload: TransactionCreate) -> None:
             {"account_id": payload.account_id, "type": payload.type.value},
         )
 
+    # A non-positive quantity is nonsensical for anything that moves units
+    # through the FIFO queue: a BUY/OPENING_BALANCE with quantity<=0 would
+    # push a negative or empty lot straight into the ledger, and a
+    # SELL/TRANSFER of <=0 units isn't a real disposal. Checked here
+    # (payload-shape validation) rather than in compute_amount_eur, which
+    # only ever sees quantity as "present or not".
+    if (
+        payload.type in (TransactionType.BUY, TransactionType.SELL, TransactionType.TRANSFER)
+        and payload.quantity is not None
+        and payload.quantity <= 0
+    ):
+        raise TxnValidationError(
+            "invalid_quantity",
+            {"quantity": str(payload.quantity), "type": payload.type.value},
+        )
+
+    # split_ratio has to be strictly positive: ledger.py divides by it, and
+    # a zero or negative ratio corrupts every lot for the instrument (a
+    # zero ratio DivisionByZeros the very next position/tax read, forever).
+    if payload.type == TransactionType.SPLIT and payload.split_ratio is not None:
+        if payload.split_ratio <= 0:
+            raise TxnValidationError(
+                "invalid_split_ratio", {"split_ratio": str(payload.split_ratio)}
+            )
+
 
 def check_holdings(db: Session, payload: TransactionCreate) -> None:
     """Replays existing history plus this candidate transaction to catch
@@ -221,6 +246,112 @@ def check_holdings(db: Session, payload: TransactionCreate) -> None:
                 "available": str(e.available),
             },
         )
+
+
+def validate_holdings_replay(db: Session, instrument_id: int, error_code: str) -> None:
+    """Replays every non-voided txn for this instrument, across every
+    account, and raises `error_code` if the resulting history is
+    unreplayable. Call after an edit/delete has been applied in-session
+    (post-flush, pre-commit): unlike check_holdings (which only asks "is
+    *this* candidate row valid against what came before it"), this
+    catches the case where editing or deleting an earlier BUY/TRANSFER
+    starves a *later* SELL/TRANSFER for the same instrument — the class
+    of bug that otherwise leaves the ledger unreplayable and 500s every
+    read endpoint from then on.
+    """
+    existing = (
+        db.query(Txn)
+        .filter(Txn.instrument_id == instrument_id, Txn.voided_at.is_(None))
+        .all()
+    )
+    events = [txn_to_event(t) for t in existing]
+    try:
+        compute_positions(events)
+    except InsufficientHoldingError as e:
+        raise TxnValidationError(
+            error_code,
+            {
+                "account_id": e.account_id,
+                "instrument_id": e.instrument_id,
+                "requested": str(e.requested),
+                "available": str(e.available),
+            },
+        )
+
+
+def build_payload_from_txn(txn: Txn) -> TransactionCreate:
+    """Reconstructs a TransactionCreate-shaped view of a Txn row (as it
+    stands right now — including an in-session, not-yet-committed patch)
+    so a PATCH can run through the exact same validate_references /
+    compute_amount_eur the create path uses, instead of a second,
+    driftable copy of that logic. `amount` is never reconstructed — only
+    the derived `amount_eur` is stored, and no patchable field needs the
+    raw native-currency `amount` back.
+    """
+    return TransactionCreate(
+        external_id=txn.external_id,
+        date=txn.date,
+        date_precision=txn.date_precision,
+        type=txn.type,
+        account_id=txn.account_id,
+        instrument_id=txn.instrument_id,
+        counter_account_id=txn.counter_account_id,
+        quantity=txn.quantity,
+        price=txn.price,
+        price_mode=txn.price_mode,
+        amount=None,
+        currency=txn.currency,
+        fx_rate=txn.fx_rate,
+        fees=txn.fees,
+        tax=txn.tax,
+        split_ratio=txn.split_ratio,
+        provisional=txn.provisional,
+        note=txn.note,
+        source=txn.source,
+    )
+
+
+# The subset of TransactionUpdate's fields (schemas.py) that feed
+# compute_amount_eur — a patch that touches none of these can't change
+# amount_eur no matter the transaction type.
+_AMOUNT_AFFECTING_FIELDS = {"quantity", "price", "fees", "tax"}
+
+# amount_eur for every other patchable type is either fixed (SPLIT is
+# always 0) or derived from the raw `amount` field, which was never
+# stored and isn't patchable — so there's nothing to recompute for them.
+_AMOUNT_RECOMPUTABLE_TYPES = {
+    TransactionType.BUY,
+    TransactionType.SELL,
+    TransactionType.TRANSFER,
+}
+
+
+def apply_transaction_patch(db: Session, txn: Txn, changed_fields: set[str]) -> None:
+    """Everything a PATCH needs beyond the plain attribute assignment.
+
+    Call this after the `setattr` loop has applied the patch to `txn`,
+    before commit:
+    - revalidates the row exactly as create does, so PATCH can't bypass
+      e.g. the future-date check;
+    - recomputes amount_eur — the only field the ledger reads for cost —
+      whenever a field it depends on changed;
+    - replays the full ledger for this instrument to confirm the edit
+      hasn't starved a later SELL/TRANSFER.
+
+    Raises TxnValidationError on any failure; the caller must roll back.
+    """
+    payload = build_payload_from_txn(txn)
+    validate_references(db, payload)
+
+    if (
+        changed_fields & _AMOUNT_AFFECTING_FIELDS
+        and txn.type in _AMOUNT_RECOMPUTABLE_TYPES
+    ):
+        fx_rate = txn.fx_rate if txn.currency != "EUR" else Decimal(1)
+        txn.amount_eur = compute_amount_eur(payload, fx_rate)
+
+    if txn.instrument_id is not None:
+        validate_holdings_replay(db, txn.instrument_id, "edit_breaks_holdings")
 
 
 def payload_hash(payload: TransactionCreate) -> str:

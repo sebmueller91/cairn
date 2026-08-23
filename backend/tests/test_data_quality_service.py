@@ -228,12 +228,20 @@ def test_stale_house_valuation_is_flagged(client, auth_headers, db_session):
 
 def test_data_quality_endpoint_end_to_end(client, auth_headers):
     # No positions -> no per-instrument issues, but neither backup-status
-    # file exists in a test environment either, so those two issues are
-    # expected rather than a fully empty list.
+    # file exists in a test environment either, and the price-fetch/
+    # snapshot-rebuild scheduler jobs have never run in this test DB
+    # either, so those four issues are expected rather than a fully empty
+    # list (bug fix: data_quality_service previously had no issue kind at
+    # all for a dead price-fetch or snapshot-rebuild job).
     resp = client.get("/api/data-quality", headers=auth_headers)
     assert resp.status_code == 200
     issues = resp.json()["issues"]
-    assert [i["kind"] for i in issues] == ["missing_backup", "missing_offsite_backup"]
+    assert [i["kind"] for i in issues] == [
+        "missing_backup",
+        "missing_offsite_backup",
+        "missing_price_fetch_job",
+        "missing_snapshot_job",
+    ]
 
 
 def test_data_quality_endpoint_requires_auth(client):

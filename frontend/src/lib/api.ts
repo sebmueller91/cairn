@@ -16,6 +16,55 @@ export class ApiError extends Error {
   }
 }
 
+// Fired whenever any request comes back 401, so there's one place that
+// reacts to an expired session instead of every card failing silently on
+// its own (auth.tsx listens and clears the cached scope, which sends
+// App.tsx back to the login screen). A dedicated EventTarget rather than
+// `window` — keeps this decoupled from the DOM (testable without one) and
+// from the auth module, which api.ts must not import (auth.tsx already
+// imports api.ts; the other direction would be circular).
+export const authEvents = new EventTarget();
+export const UNAUTHORIZED_EVENT = "unauthorized";
+
+/** Server-generation time for the exact response body object last handed
+ * back by `request()`, read from the HTTP `Date` header rather than
+ * derived from when the fetch happened to resolve.
+ *
+ * Exists because the service worker's `NetworkFirst` route (vite.config.ts)
+ * can satisfy a `fetch()` from a cached response that's a week old — and
+ * TanStack Query's own `dataUpdatedAt` is stamped at promise-resolution
+ * time, so a stale cached body looks exactly as fresh as a live one to
+ * anything reading it. A `Response` served out of the Cache API keeps the
+ * `Date` header it was captured with, so it survives that fallback and
+ * still names the moment the server actually generated it.
+ *
+ * Keyed by the parsed body's object identity (a fresh object per call, and
+ * exactly the reference TanStack Query stores as `query.state.data`) rather
+ * than by URL, so two in-flight requests to the same path can't clobber
+ * each other's timestamp. Data that never passed through `request()` (e.g.
+ * written via `setQueryData`, or hydrated from the IndexedDB persister on a
+ * cold start) simply has no entry — callers should fall back to
+ * `dataUpdatedAt` in that case, which is accurate for both of those.
+ */
+export const responseTimestamps = new WeakMap<object, number>();
+
+function isTransientStatus(status: number): boolean {
+  // 5xx (server/proxy trouble) and 0 (network failure — fetch rejects
+  // before a status exists, handled by the caller) are worth one retry.
+  // Any 4xx means the request itself was rejected as-is; retrying an
+  // unauthenticated, forbidden, not-found, or invalid request just repeats
+  // the same failure and delays the user seeing it.
+  return status >= 500;
+}
+
+/** Whether a query's `retry` option should attempt again. Used as the
+ * global `retry` in main.tsx so a 401/403/404/422 fails once instead of
+ * twice, while a transient 5xx or network error still gets one retry. */
+export function shouldRetry(failureCount: number, error: unknown): boolean {
+  if (error instanceof ApiError && !isTransientStatus(error.status)) return false;
+  return failureCount < 1;
+}
+
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   const response = await fetch(path, {
     ...options,
@@ -27,22 +76,56 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   });
 
   if (!response.ok) {
+    if (response.status === 401) {
+      authEvents.dispatchEvent(new Event(UNAUTHORIZED_EVENT));
+    }
+
     let code = "generic";
     let params: Record<string, unknown> = {};
     try {
       const body = await response.json();
-      if (body?.detail?.code) {
-        code = body.detail.code;
-        params = body.detail.params ?? {};
+      const detail = body?.detail;
+      if (
+        detail &&
+        typeof detail === "object" &&
+        !Array.isArray(detail) &&
+        typeof detail.code === "string"
+      ) {
+        // The backend's own {"code", "params"} contract.
+        code = detail.code;
+        params = detail.params ?? {};
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        // FastAPI/Pydantic's own validation error shape — surfaces before
+        // any endpoint handler runs (e.g. a malformed request body), so it
+        // never goes through the backend's {code, params} translation and
+        // has to be read here instead:
+        // {"detail": [{"loc": [...], "msg": "...", "type": "..."}, ...]}
+        const first = detail[0] as { loc?: unknown[] } | undefined;
+        const field =
+          Array.isArray(first?.loc) && first.loc.length > 0
+            ? String(first.loc[first.loc.length - 1])
+            : "input";
+        code = "validation_error";
+        params = { field };
       }
+      // Any other shape (unrecognized JSON body) falls through as "generic".
     } catch {
-      // non-JSON error body — fall through with the generic code
+      // Non-JSON error body — e.g. an unhandled 500's plain-text
+      // "Internal Server Error" — response.json() throws. Nothing
+      // structured to extract; fall through with the generic code.
     }
     throw new ApiError(response.status, code, params);
   }
 
   if (response.status === 204) return undefined as T;
-  return response.json() as Promise<T>;
+
+  const data = (await response.json()) as T;
+  const dateHeader = response.headers.get("date");
+  const serverTime = dateHeader ? Date.parse(dateHeader) : NaN;
+  if (data !== null && typeof data === "object" && !Number.isNaN(serverTime)) {
+    responseTimestamps.set(data as object, serverTime);
+  }
+  return data;
 }
 
 export const api = {

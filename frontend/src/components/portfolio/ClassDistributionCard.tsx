@@ -8,16 +8,39 @@ import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { useAssetFilter } from "../../lib/assetFilter";
+import { useIsLoading } from "../../lib/queryState";
+
+/** ISO `YYYY-MM-DD` for `days` ago, in *local* time — `toISOString()` would
+ * convert to UTC first and misdate anyone in a positive UTC offset during
+ * the early hours of the local day (see the identical helper and comment
+ * in overview/utils.ts, which this intentionally does not import — that
+ * module is kept local to the Overview page by design). */
+function isoDaysAgo(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() - days);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 /** Section 1 — today's allocation by asset class, as a donut + legend. */
 export function ClassDistributionCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const { selected } = useAssetFilter();
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ["allocation-timeseries", "latest"],
-    queryFn: () => getAllocationTimeseries({}),
+  // Only the latest point is ever read (see `latest` below), but an
+  // unbounded `getAllocationTimeseries({})` made the backend load every
+  // daily_snapshot row since inception, join every instrument, and bucket
+  // all of it — the slowest request in the app, on the Pi. `ClassMixCard`
+  // asks for the same shape of data correctly with a `from` bound; two
+  // weeks is more than enough to guarantee at least one point.
+  const from = isoDaysAgo(14);
+  const { data, isPending, isError } = useQuery({
+    queryKey: ["allocation-timeseries", "latest", from],
+    queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });
+  const pending = useIsLoading(isPending);
 
   const latest = data && data.length > 0 ? data[data.length - 1] : null;
 
@@ -42,7 +65,7 @@ export function ClassDistributionCard() {
   return (
     <GlassCard glow>
       <h2 className="mb-4 font-medium">{t("classDistribution.title")}</h2>
-      {isLoading ? (
+      {pending ? (
         <div className="space-y-4">
           <Skeleton className="mx-auto h-60 w-60 rounded-full" />
           <Skeleton className="h-4 w-full" />

@@ -6,17 +6,29 @@ import { api, getHealth, type DataQualityResponse } from "../../lib/api";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { hoursSince, STALE_OFFSITE_THRESHOLD_HOURS, STALE_THRESHOLD_HOURS } from "./utils";
+import { useIsLoading } from "../../lib/queryState";
 
-function StatusDot({ label, fresh }: { label: string; fresh: boolean }) {
+type DotState = "fresh" | "stale" | "unknown";
+
+// "Unknown" (health failed to load) reads as neutral/muted rather than the
+// alarming amber "stale" — ADR 0015's whole point is that the backup and
+// NAS signals must not lie about each other, and asserting "stale" for all
+// four dots from an /api/health 500 would be exactly that kind of lie.
+function StatusDot({ label, state }: { label: string; state: DotState }) {
+  const color =
+    state === "fresh" ? "bg-positive" : state === "stale" ? "bg-warning" : "bg-text-muted";
   return (
     <div className="flex items-center gap-1.5">
       <span
         aria-hidden
-        className={`size-2 shrink-0 rounded-full ${fresh ? "bg-positive" : "bg-warning"}`}
+        className={`size-2 shrink-0 rounded-full ${color}`}
         style={{
-          boxShadow: fresh
-            ? "var(--glow-positive)"
-            : "0 0 6px color-mix(in srgb, var(--warning) 45%, transparent)",
+          boxShadow:
+            state === "fresh"
+              ? "var(--glow-positive)"
+              : state === "stale"
+                ? "0 0 6px color-mix(in srgb, var(--warning) 45%, transparent)"
+                : "none",
         }}
       />
       <span className="text-text-muted">{label}</span>
@@ -43,7 +55,9 @@ export function FreshnessStrip() {
     queryFn: () => api.get<DataQualityResponse>("/api/data-quality"),
   });
 
-  if (health.isLoading || quality.isLoading) {
+  const pending = useIsLoading(health.isPending, quality.isPending);
+
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-4 w-full max-w-md" />
@@ -53,22 +67,29 @@ export function FreshnessStrip() {
 
   const issues = quality.data?.issues ?? [];
   const qualityKnown = !quality.isError;
+  // Same guard as qualityKnown above, previously missing here — a failed
+  // /api/health was falling through to isFresh(undefined) === false for
+  // all four dots, i.e. "everything is stale", which is a stronger and
+  // false claim ("unknown" is not "confirmed stale").
+  const healthKnown = !health.isError;
 
   const isFresh = (iso: string | null | undefined, threshold = STALE_THRESHOLD_HOURS) => {
     const hours = hoursSince(iso);
     return hours !== null && hours <= threshold;
   };
+  const dotState = (iso: string | null | undefined, threshold = STALE_THRESHOLD_HOURS): DotState =>
+    !healthKnown ? "unknown" : isFresh(iso, threshold) ? "fresh" : "stale";
 
   return (
     <GlassCard>
       <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <StatusDot label={t("freshness.prices")} fresh={isFresh(health.data?.last_price_fetch)} />
-          <StatusDot label={t("freshness.snapshot")} fresh={isFresh(health.data?.last_snapshot)} />
-          <StatusDot label={t("freshness.backup")} fresh={isFresh(health.data?.last_backup)} />
+          <StatusDot label={t("freshness.prices")} state={dotState(health.data?.last_price_fetch)} />
+          <StatusDot label={t("freshness.snapshot")} state={dotState(health.data?.last_snapshot)} />
+          <StatusDot label={t("freshness.backup")} state={dotState(health.data?.last_backup)} />
           <StatusDot
             label={t("freshness.offsite")}
-            fresh={isFresh(health.data?.last_offsite_backup, STALE_OFFSITE_THRESHOLD_HOURS)}
+            state={dotState(health.data?.last_offsite_backup, STALE_OFFSITE_THRESHOLD_HOURS)}
           />
         </div>
         <button

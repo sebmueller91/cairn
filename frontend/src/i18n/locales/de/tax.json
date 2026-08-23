@@ -5,6 +5,7 @@
   "thisYear": "Dieses Jahr",
   "lastYear": "Letztes Jahr",
   "allowance": "Sparerpauschbetrag (€)",
+  "allowanceInvalid": "Ungültiger Betrag.",
   "ofAllowance": "des Freibetrags",
   "realizedGains": "Realisierte Gewinne",
   "investmentIncome": "Kapitalerträge",

@@ -15,6 +15,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { BarWaterfall, type WaterfallBar } from "../charts/BarWaterfall";
 import { currencyFormatter } from "../charts/chartTheme";
 import { MonthlyCompositionChart } from "./MonthlyCompositionChart";
+import { useIsLoading } from "../../lib/queryState";
 
 type Granularity = "month" | "year";
 
@@ -37,10 +38,11 @@ export function AttributionTab() {
   const { t, i18n } = useTranslation("performance");
   const [granularity, setGranularity] = useState<Granularity>("month");
 
-  const { data, isLoading } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["attribution", granularity],
     queryFn: () => api.get<AttributionResponse>(`/api/attribution?granularity=${granularity}`),
   });
+  const pending = useIsLoading(isPending);
 
   // Memoized so the waterfall's useMemo below sees a stable reference
   // instead of a fresh `[]` on every render `data` is undefined.
@@ -89,8 +91,10 @@ export function AttributionTab() {
           <h2 className="font-medium">{t("attribution.composition.title")}</h2>
           <SegmentedControl options={granularityOptions} value={granularity} onChange={setGranularity} />
         </div>
-        {isLoading ? (
+        {pending ? (
           <Skeleton className="h-[280px] w-full" />
+        ) : isError ? (
+          <p className="text-sm text-text-muted">{t("common:status.error")}</p>
         ) : periods.length === 0 ? (
           <EmptyState icon={<BarChart3 className="size-8" aria-hidden />} title={t("noData")} />
         ) : (
@@ -108,8 +112,10 @@ export function AttributionTab() {
             </div>
           )}
         </div>
-        {isLoading ? (
+        {pending ? (
           <Skeleton className="h-[280px] w-full" />
+        ) : isError ? (
+          <p className="text-sm text-text-muted">{t("common:status.error")}</p>
         ) : waterfallBars.length === 0 ? (
           <EmptyState icon={<BarChart3 className="size-8" aria-hidden />} title={t("noData")} />
         ) : (

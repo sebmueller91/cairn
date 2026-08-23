@@ -5,7 +5,8 @@ import { GlassCard } from "../ui/GlassCard";
 import { StatHero } from "../ui/StatHero";
 import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
-import { closestPoint, fetchHeroNetWorth, HERO_DAYS, NET_WORTH_QUERY_KEY } from "./utils";
+import { closestPoint, fetchHeroNetWorth, HERO_DAYS, netWorthQueryKey } from "./utils";
+import { useIsLoading } from "../../lib/queryState";
 
 /** The hero panel: latest net worth (scope=net, so loans count against it),
  * a sparkline over HERO_DAYS, and a delta chip against the start of that
@@ -14,12 +15,18 @@ import { closestPoint, fetchHeroNetWorth, HERO_DAYS, NET_WORTH_QUERY_KEY } from 
 export function NetWorthHero() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: NET_WORTH_QUERY_KEY,
+  const { data, isPending, isError } = useQuery({
+    queryKey: netWorthQueryKey(),
     queryFn: fetchHeroNetWorth,
   });
 
-  if (isLoading) {
+  // The IndexedDB cache restore forces every query into fetchStatus "idle",
+  // so isPending alone would read as "done, no data" during that window —
+  // isRestoring closes that gap so we skeleton instead of rendering `null`
+  // or (worse) the empty-page fallback in Overview.tsx.
+  const pending = useIsLoading(isPending);
+
+  if (pending) {
     return (
       <GlassCard glow className="md:p-6">
         <Skeleton className="h-4 w-32" />

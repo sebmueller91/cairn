@@ -10,6 +10,7 @@ import { GlassCard } from "../ui/GlassCard";
 import { CashBalanceModal } from "../CashBalanceModal";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 export function AccountsView() {
   const { t, i18n } = useTranslation(["data", "assets", "common"]);
@@ -17,10 +18,11 @@ export function AccountsView() {
   const [cashAccountId, setCashAccountId] = useState<number | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: accounts, isLoading } = useQuery({
+  const { data: accounts, isPending, isError } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
+  const pending = useIsLoading(isPending);
 
   const rows = useMemo(() => {
     if (!accounts) return [];
@@ -80,8 +82,10 @@ export function AccountsView() {
       <SearchField value={search} onChange={setSearch} placeholder={t("data:search")} />
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:accounts.empty")} />
         ) : (

@@ -10,6 +10,7 @@ import { StatHero } from "../ui/StatHero";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { LineCompareChart } from "../charts/LineCompareChart";
+import { useIsLoading } from "../../lib/queryState";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "inception";
 const PERIODS: Period[] = ["1M", "3M", "YTD", "1Y", "3Y", "5Y", "inception"];
@@ -37,7 +38,21 @@ export function ReturnsTab() {
   const marketInstruments = (instruments ?? []).filter((i) => i.valuation_mode === "MARKET");
   const benchmarkName = instruments?.find((i) => String(i.id) === benchmarkId)?.name;
 
-  const { data: perf, isLoading } = useQuery({
+  // A benchmark instrument that gets deleted after being picked here stays
+  // pinned in localStorage forever (BENCHMARK_STORAGE_KEY), so the curve
+  // silently stops carrying `benchmark_curve` on every future reload with
+  // no indication why. Once the instrument list has actually loaded, drop
+  // a benchmark id that isn't in it. Guarded on `instruments` being present
+  // (not merely "not pending") so a transient fetch failure can't be
+  // mistaken for "the instrument is gone" and wipe a valid preference.
+  useEffect(() => {
+    if (!instruments) return;
+    if (benchmarkId && !instruments.some((i) => String(i.id) === benchmarkId)) {
+      setBenchmarkId("");
+    }
+  }, [instruments, benchmarkId]);
+
+  const { data: perf, isPending, isError } = useQuery({
     queryKey: ["performance", period, method, benchmarkId],
     queryFn: () => {
       const params = new URLSearchParams({ scope: "total", period, method });
@@ -45,6 +60,7 @@ export function ReturnsTab() {
       return api.get<PerformanceResponse>(`/api/performance?${params}`);
     },
   });
+  const pending = useIsLoading(isPending);
 
   const periodOptions = PERIODS.map((p) => ({ value: p, label: t(`periods.${p}`) }));
   const methodOptions = (["twr", "mwr"] as Method[]).map((m) => ({
@@ -78,28 +94,49 @@ export function ReturnsTab() {
         </div>
       </GlassCard>
 
-      {isLoading ? (
+      {pending ? (
         <GlassCard>
           <Skeleton className="h-4 w-32" />
           <Skeleton className="mt-3 h-12 w-48" />
           <Skeleton className="mt-6 h-64 w-full" />
         </GlassCard>
-      ) : !perf || perf.return_pct == null ? (
+      ) : isError ? (
+        <GlassCard>
+          <p className="text-sm text-text-muted">{t("common:status.error")}</p>
+        </GlassCard>
+      ) : !perf || (perf.return_pct == null && curveData.length === 0) ? (
+        // Genuinely nothing for this window — not just "no return_pct".
+        // The backend returns return_pct: None whenever the window has no
+        // daily returns, but `curve` can still be populated (e.g. picking
+        // 1M when the last nightly snapshot is older than a month) — that
+        // used to hide the whole card instead of the one figure it lacks.
         <GlassCard>
           <EmptyState icon={<TrendingUp className="size-8" aria-hidden />} title={t("noData")} />
         </GlassCard>
       ) : (
-        <GlassCard className={perf.return_pct >= 0 ? "shadow-glow-positive" : "shadow-glow-negative"}>
-          <StatHero
-            label={`${t(`periods.${period}`)} · ${t(`methods.${method}`)}`}
-            value={perf.return_pct}
-            format={(n) => formatPercent(n, i18n.language, { signDisplay: "always" })}
-            className={perf.return_pct >= 0 ? "text-positive" : "text-negative"}
-          >
-            <div className="text-xs text-text-muted">
-              {formatDate(perf.start_date, i18n.language)} – {formatDate(perf.end_date, i18n.language)}
-            </div>
-          </StatHero>
+        <GlassCard
+          className={
+            perf.return_pct == null
+              ? undefined
+              : perf.return_pct >= 0
+                ? "shadow-glow-positive"
+                : "shadow-glow-negative"
+          }
+        >
+          {perf.return_pct != null ? (
+            <StatHero
+              label={`${t(`periods.${period}`)} · ${t(`methods.${method}`)}`}
+              value={perf.return_pct}
+              format={(n) => formatPercent(n, i18n.language, { signDisplay: "always" })}
+              className={perf.return_pct >= 0 ? "text-positive" : "text-negative"}
+            >
+              <div className="text-xs text-text-muted">
+                {formatDate(perf.start_date, i18n.language)} – {formatDate(perf.end_date, i18n.language)}
+              </div>
+            </StatHero>
+          ) : (
+            <p className="text-sm text-text-muted">{t("noReturnFigure")}</p>
+          )}
 
           <div className="mt-6">
             {method === "mwr" ? (

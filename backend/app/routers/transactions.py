@@ -18,12 +18,14 @@ from app.schemas import (
 )
 from app.txn_service import (
     TxnValidationError,
+    apply_transaction_patch,
     build_txn,
     check_holdings,
     compute_amount_eur,
     payload_hash,
     resolve_fx_rate,
     resolve_price,
+    validate_holdings_replay,
     validate_references,
 )
 
@@ -43,7 +45,11 @@ def list_transactions(
     to: str | None = None,
     date_from: str | None = None,
     date_to: str | None = None,
-    limit: int = 100,
+    # SQLite treats a negative LIMIT as "unlimited" — without a floor this
+    # turned limit=-1 into an accidental full-table dump. 1000 as a
+    # ceiling is generous for a single-household ledger and keeps a
+    # careless caller from forcing a huge response.
+    limit: int = Query(default=100, ge=1, le=1000),
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> list[TransactionRead]:
@@ -245,8 +251,24 @@ def update_transaction(
         "provisional": txn.provisional,
     }
     updates = body.model_dump(exclude_unset=True, mode="json")
+    changed_fields = set(body.model_dump(exclude_unset=True).keys())
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(txn, field, value)
+
+    try:
+        # Recomputes amount_eur when a patched field feeds it (the only
+        # field the ledger reads for cost), re-runs the same validation
+        # the create path runs (including the future-date check a plain
+        # setattr loop bypasses), and confirms the edit hasn't starved a
+        # later SELL/TRANSFER for the same instrument.
+        apply_transaction_patch(db, txn, changed_fields)
+    except TxnValidationError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail={"code": e.code, "params": e.params},
+        )
+
     audit.record(
         db,
         actor=TxnSource.AGENT,
@@ -269,16 +291,35 @@ def delete_transaction(
 ) -> None:
     txn = _get_txn_or_404(db, txn_id)
     batch_id = txn.import_batch_id
+    instrument_id = txn.instrument_id
+    txn_id_value = txn.id
+    txn_payload_hash = txn.payload_hash
+
+    db.delete(txn)
+    db.flush()
+
+    # A hard delete of e.g. a BUY can starve a later SELL/TRANSFER for the
+    # same instrument, which would otherwise leave the ledger unreplayable
+    # (500s on every read endpoint from then on) — replay before
+    # committing and reject the delete if it breaks the history.
+    if instrument_id is not None:
+        try:
+            validate_holdings_replay(db, instrument_id, "delete_breaks_holdings")
+        except TxnValidationError as e:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail={"code": e.code, "params": e.params},
+            )
+
     audit.record(
         db,
         actor=TxnSource.AGENT,
         action="delete",
         entity="txn",
-        entity_id=txn.id,
-        payload_hash=txn.payload_hash,
+        entity_id=txn_id_value,
+        payload_hash=txn_payload_hash,
     )
-    db.delete(txn)
-    db.flush()
     # A batch left with zero transactions (the common case: single manual
     # entries each get their own batch of one, per docs/data-model.md
     # invariant 4) is just clutter — remove it rather than let empty

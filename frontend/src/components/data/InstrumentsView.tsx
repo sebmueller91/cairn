@@ -8,15 +8,17 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 export function InstrumentsView() {
   const { t } = useTranslation(["data", "common"]);
   const [search, setSearch] = useState("");
 
-  const { data: instruments, isLoading } = useQuery({
+  const { data: instruments, isPending, isError } = useQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
+  const pending = useIsLoading(isPending);
 
   const rows = useMemo(() => {
     if (!instruments) return [];
@@ -66,8 +68,10 @@ export function InstrumentsView() {
       <SearchField value={search} onChange={setSearch} placeholder={t("data:search")} />
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:instruments.empty")} />
         ) : (

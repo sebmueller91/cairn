@@ -6,6 +6,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { HBarList, type HBarItem } from "../charts/HBarList";
 import { api, type LookThroughResponse } from "../../lib/api";
 import { formatCurrency, formatNumber, formatPercent } from "../../lib/format";
+import { useIsLoading } from "../../lib/queryState";
 
 function useLookThrough(dimension: "region" | "sector") {
   return useQuery({
@@ -16,7 +17,8 @@ function useLookThrough(dimension: "region" | "sector") {
 
 function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { data, isLoading, isError } = useLookThrough(dimension);
+  const { data, isPending, isError } = useLookThrough(dimension);
+  const pending = useIsLoading(isPending);
 
   const rows = (data?.rows ?? []).slice().sort(
     (a, b) => Number(b.value_eur) - Number(a.value_eur),
@@ -66,7 +68,7 @@ function LookThroughColumn({ dimension }: { dimension: "region" | "sector" }) {
           </span>
         )}
       </h3>
-      {isLoading ? (
+      {pending ? (
         <div className="space-y-3">
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-full" />

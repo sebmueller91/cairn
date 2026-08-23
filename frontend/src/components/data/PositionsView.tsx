@@ -10,6 +10,7 @@ import { SegmentedControl } from "../ui/SegmentedControl";
 import { SearchField } from "./SearchField";
 import { SignedAmount } from "./SignedAmount";
 import { TableSkeleton } from "./TableSkeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 type GroupBy = "account" | "instrument";
 
@@ -18,10 +19,11 @@ export function PositionsView() {
   const [groupBy, setGroupBy] = useState<GroupBy>("account");
   const [search, setSearch] = useState("");
 
-  const { data: positions, isLoading } = useQuery({
+  const { data: positions, isPending, isError } = useQuery({
     queryKey: ["positions", groupBy],
     queryFn: () => api.get<Position[]>(`/api/positions?group_by=${groupBy}`),
   });
+  const pending = useIsLoading(isPending);
   const { data: accounts } = useQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
@@ -126,8 +128,10 @@ export function PositionsView() {
       </div>
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:positions.empty")} />
         ) : (

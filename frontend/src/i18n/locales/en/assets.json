@@ -23,7 +23,9 @@
       "TRANSFER": "Transfer",
       "SPLIT": "Split",
       "OPENING_BALANCE": "Opening balance",
-      "BALANCE_STATEMENT": "Balance statement"
+      "BALANCE_STATEMENT": "Balance statement",
+      "LOAN_PAYMENT": "Loan payment",
+      "EXTRA_REPAYMENT": "Extra repayment"
     }
   }
 }

@@ -23,6 +23,7 @@
   "benchmark": "Benchmark",
   "mwrNoCurve": "MWR is a single annualised return, not a curve.",
   "noData": "No data yet for this period.",
+  "noReturnFigure": "No return figure yet for this period.",
   "attribution": {
     "start": "Start",
     "end": "End",

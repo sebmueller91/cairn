@@ -21,6 +21,15 @@ DB_FILE="$DATA_DIR/cairn.db"
 TODAY=$(date +%F)
 RETENTION_DAYS=14
 
+# Content plausibility floor for the "content" leg of layer 1's integrity
+# check (see below). Deliberately schema-agnostic (>=1, not tied to the
+# app's current table count) so this doesn't need updating every time a
+# migration adds a table: an empty-but-structurally-valid database — which
+# is exactly what `sqlite3 "$DB_FILE" ".backup ..."` silently produces when
+# $DB_FILE doesn't exist yet — has zero tables. Any real database, migrated
+# or not, has at least one.
+MIN_TABLE_COUNT=1
+
 # The SMB share (ADR 0015). NAS_MOUNT is the mountpoint itself; everything
 # this script writes lives under NAS_DIR so the share can hold other things
 # without this script's retention ever looking at them.
@@ -43,8 +52,29 @@ mkdir -p "$BACKUP_DIR"
 
 backup_ok=false
 integrity_ok=false
+content_ok=false
 export_ok=false
 offsite_ok=false
+
+# --- Pre-flight: refuse to "back up" a database that isn't there --------
+#
+# `sqlite3 "$DB_FILE" ".backup ..."` CREATES $DB_FILE if it does not
+# exist — e.g. because the /srv/cairn/data bind mount failed to come up
+# after a reboot — and the resulting empty 4096-byte database passes
+# PRAGMA integrity_check (an empty database IS structurally valid). Every
+# guard below checks *structure*, not *content*, so without this check
+# backup_ok and integrity_ok both go true, both success markers get
+# written, and the empty file mirrors to the NAS where it passes the
+# NAS-side integrity check too. Reproduced end to end against an empty
+# data dir. Must run before the `.backup` call, not after.
+if [ ! -f "$DB_FILE" ]; then
+  echo "backup: $DB_FILE does not exist — refusing to back up (this would silently create an empty DB)" >&2
+  exit 1
+fi
+if [ ! -s "$DB_FILE" ]; then
+  echo "backup: $DB_FILE exists but is empty — refusing to back up" >&2
+  exit 1
+fi
 
 if sqlite3 "$DB_FILE" ".backup '$BACKUP_DIR/cairn-$TODAY.db'"; then
   backup_ok=true
@@ -54,12 +84,28 @@ if sqlite3 "$DB_FILE" ".backup '$BACKUP_DIR/cairn-$TODAY.db'"; then
   fi
 fi
 
+# Content plausibility, on top of the pre-flight check above: the source
+# could still be swapped out for an empty-but-otherwise-fine database
+# between the pre-flight check and `.backup` running (or the pre-flight
+# check alone doesn't prove the *backup* isn't degenerate) — this checks
+# the thing that was actually produced, not just the thing it was read
+# from.
+if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
+  table_count=$(sqlite3 "$BACKUP_DIR/cairn-$TODAY.db" \
+    "SELECT count(*) FROM sqlite_master WHERE type='table';")
+  if [ "$table_count" -ge "$MIN_TABLE_COUNT" ]; then
+    content_ok=true
+  else
+    echo "backup: cairn-$TODAY.db has only $table_count tables (floor: $MIN_TABLE_COUNT) — treating as a failed backup" >&2
+  fi
+fi
+
 # shellcheck disable=SC1090
 set -a
 source "$ENV_FILE"
 set +a
 
-if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
+if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$content_ok" = true ]; then
   # Caddy's site blocks are matched by Host/SNI, not by which local
   # address the connection came in on — a request to "localhost" (or any
   # other name not in the Caddyfile's site list) doesn't match anything
@@ -67,10 +113,15 @@ if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
   # live: `curl -f` alone treated that as success. Must be one of the
   # actual configured names, and the body must be positively checked too,
   # not just the HTTP status.
+  #
+  # The token is passed via `-K -` (a config file read from stdin) rather
+  # than `-H "Authorization: Bearer $API_TOKEN"` on the command line —
+  # command-line arguments are readable via `ps auxww` by any local user
+  # for the duration of the request. `-K -`'s "header" directive achieves
+  # the same header without it ever appearing in argv.
   export_zip="$BACKUP_DIR/cairn-export-$TODAY.zip"
-  if curl -sf -o "$export_zip" \
-      -H "Authorization: Bearer $API_TOKEN" \
-      "$EXPORT_URL" --insecure \
+  if printf 'header = "Authorization: Bearer %s"\n' "$API_TOKEN" \
+      | curl -sf -K - -o "$export_zip" "$EXPORT_URL" --insecure \
       && [ -s "$export_zip" ] \
       && python3 -c "import zipfile,sys; sys.exit(0 if zipfile.is_zipfile(sys.argv[1]) else 1)" "$export_zip"; then
     export_ok=true
@@ -84,7 +135,7 @@ fi
 # backup. Every command that touches the mount is wrapped in `timeout`:
 # this runs from cron at 03:00 under `set -e`, and a wedged CIFS mount
 # would otherwise hang the job indefinitely rather than fail it.
-if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ]; then
+if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$content_ok" = true ]; then
   # Reading the path is what triggers the automount; `mountpoint` alone
   # would prove nothing, because with an automount unit in place
   # /srv/cairn/nas is an autofs mountpoint whether or not the NAS is
@@ -154,7 +205,7 @@ fi
 
 timestamp=$(date -Iseconds)
 cat > "$BACKUP_DIR/latest_run.json" <<EOF
-{"timestamp": "$timestamp", "backup_ok": $backup_ok, "integrity_ok": $integrity_ok, "export_ok": $export_ok, "offsite_ok": $offsite_ok}
+{"timestamp": "$timestamp", "backup_ok": $backup_ok, "integrity_ok": $integrity_ok, "content_ok": $content_ok, "export_ok": $export_ok, "offsite_ok": $offsite_ok}
 EOF
 
 # Only updated on a fully clean run — this file's own timestamp going
@@ -168,16 +219,30 @@ EOF
 # must not make the dashboard claim there is no backup at all, when the
 # local one is fine. The offsite leg gets its own independent marker
 # below so that neither can mask the other (ADR 0015).
-if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$export_ok" = true ]; then
+local_run_ok=false
+if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$content_ok" = true ] && [ "$export_ok" = true ]; then
   echo "$timestamp" > "$BACKUP_DIR/last_success"
+  local_run_ok=true
 fi
 
 if [ "$offsite_ok" = true ]; then
   echo "$timestamp" > "$BACKUP_DIR/last_offsite_success"
 fi
 
-find "$BACKUP_DIR" -maxdepth 1 -name 'cairn-*.db' -mtime "+$RETENTION_DAYS" -delete
-find "$BACKUP_DIR" -maxdepth 1 -name 'cairn-export-*.zip' -mtime "+$RETENTION_DAYS" -delete
+# Guarded on a fully successful local run, mirroring the NAS retention
+# guard below — unlike the NAS side, these two lines used to run
+# unconditionally on every invocation, success or not. A failed run
+# (export_ok=false, or the pre-flight/content check above rejecting an
+# empty source) would still reach here under the old code and prune
+# perfectly good backups purely by mtime, with nothing to show for it:
+# fifteen consecutive failed nights would delete the last good local
+# backup. `|| true` for the same reason the NAS retention lines have it —
+# a transient permission error here must not abort the script after the
+# markers above were already written.
+if [ "$local_run_ok" = true ]; then
+  find "$BACKUP_DIR" -maxdepth 1 -name 'cairn-*.db' -mtime "+$RETENTION_DAYS" -delete || true
+  find "$BACKUP_DIR" -maxdepth 1 -name 'cairn-export-*.zip' -mtime "+$RETENTION_DAYS" -delete || true
+fi
 
 # Offsite retention. Note what is *not* here: the logical exports are
 # never pruned. They are the smallest files and the only layer that
@@ -206,9 +271,9 @@ if [ "$offsite_ok" = true ]; then
     \( -name '*.db-wal' -o -name '*.db-shm' \) -delete || true
 fi
 
-if [ "$backup_ok" = true ] && [ "$integrity_ok" = true ] && [ "$export_ok" = true ] && [ "$offsite_ok" = true ]; then
+if [ "$local_run_ok" = true ] && [ "$offsite_ok" = true ]; then
   echo "backup ok: $timestamp"
 else
-  echo "backup FAILED: backup_ok=$backup_ok integrity_ok=$integrity_ok export_ok=$export_ok offsite_ok=$offsite_ok" >&2
+  echo "backup FAILED: backup_ok=$backup_ok integrity_ok=$integrity_ok content_ok=$content_ok export_ok=$export_ok offsite_ok=$offsite_ok" >&2
   exit 1
 fi

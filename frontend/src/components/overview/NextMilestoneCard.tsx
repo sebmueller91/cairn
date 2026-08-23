@@ -5,6 +5,7 @@ import { formatCurrency, formatDate, formatPercent } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
 import { ProgressArc } from "../ui/ProgressArc";
 import { Skeleton } from "../ui/Skeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 /** Progress toward the next round-number milestone (scope=net).
  *
@@ -15,12 +16,13 @@ import { Skeleton } from "../ui/Skeleton";
 export function NextMilestoneCard() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["milestones", "overview"],
     queryFn: () => api.get<MilestoneResponse>("/api/milestones?scope=net"),
   });
+  const pending = useIsLoading(isPending);
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-4 w-32" />

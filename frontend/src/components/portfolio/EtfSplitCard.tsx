@@ -9,6 +9,7 @@ import { formatCurrency, formatPercent } from "../../lib/format";
 import { parseDecimalInput } from "../../lib/decimalInput";
 import { useOnlineStatus } from "../../lib/online";
 import { SERIES_COLORS } from "../charts/chartTheme";
+import { useIsLoading } from "../../lib/queryState";
 
 const DEVELOPED_COLOR = SERIES_COLORS[0];
 const EMERGING_COLOR = SERIES_COLORS[1];
@@ -31,10 +32,11 @@ export function EtfSplitCard() {
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["etf-split"],
     queryFn: getEtfSplit,
   });
+  const pending = useIsLoading(isPending);
 
   const [draft, setDraft] = useState("");
   const [editing, setEditing] = useState(false);
@@ -78,7 +80,7 @@ export function EtfSplitCard() {
     save.mutate();
   }
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard>
         <Skeleton className="h-5 w-56" />

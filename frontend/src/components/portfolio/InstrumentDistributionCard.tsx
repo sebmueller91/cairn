@@ -21,7 +21,7 @@ const VISIBLE_CAP = 15;
 export function InstrumentDistributionCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const { selected } = useAssetFilter();
-  const { rows, isLoading, isError } = usePositionsWithInstruments();
+  const { rows, isPending, isError } = usePositionsWithInstruments();
   const [expanded, setExpanded] = useState(false);
 
   const filtered = useMemo(() => {
@@ -107,7 +107,7 @@ export function InstrumentDistributionCard() {
   return (
     <GlassCard>
       <h2 className="mb-4 font-medium">{t("instrumentDistribution.title")}</h2>
-      {isLoading ? (
+      {isPending ? (
         <div className="space-y-4">
           <Skeleton className="mx-auto h-56 w-56 rounded-full" />
           <Skeleton className="h-4 w-full" />

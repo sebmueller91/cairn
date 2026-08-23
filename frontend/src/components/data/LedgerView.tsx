@@ -14,6 +14,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
+import { useIsLoading } from "../../lib/queryState";
 
 const TRANSACTION_TYPES: TransactionType[] = [
   "BUY",
@@ -49,7 +50,7 @@ export function LedgerView() {
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
-  const { data: transactions, isLoading } = useQuery({
+  const { data: transactions, isPending, isError } = useQuery({
     queryKey: ["transactions", accountId, limit],
     queryFn: () => {
       const params = new URLSearchParams({ limit: String(limit) });
@@ -57,6 +58,7 @@ export function LedgerView() {
       return api.get<Transaction[]>(`/api/transactions?${params}`);
     },
   });
+  const pending = useIsLoading(isPending);
 
   const accountName = (id: number | null) =>
     accounts?.find((a) => a.id === id)?.name ?? (id ? `#${id}` : "—");
@@ -164,8 +166,10 @@ export function LedgerView() {
       </div>
 
       <GlassCard className="p-0">
-        {isLoading ? (
+        {pending ? (
           <TableSkeleton />
+        ) : isError ? (
+          <p className="p-4 text-sm text-text-muted">{t("common:status.error")}</p>
         ) : !rows.length ? (
           <EmptyState title={t("data:ledger.empty")} />
         ) : (

@@ -7,6 +7,7 @@ import type { AssetClass } from "../../lib/assetClasses";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
+import { useIsLoading } from "../../lib/queryState";
 
 /**
  * What actually went in over the trailing year: money invested per asset
@@ -25,12 +26,13 @@ import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
 export function LastTwelveMonthsCard() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["contributions", "overview-12m"],
     queryFn: () => getContributions(),
   });
+  const pending = useIsLoading(isPending);
 
-  if (isLoading) {
+  if (pending) {
     return (
       <GlassCard className="space-y-3">
         <Skeleton className="h-4 w-32" />

@@ -6,7 +6,16 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, ApiError } from "./api";
+import { useQueryClient } from "@tanstack/react-query";
+import { api, ApiError, authEvents, UNAUTHORIZED_EVENT } from "./api";
+import { persister } from "./persister";
+
+// Name of the Workbox `NetworkFirst` cache for `/api/*` GETs
+// (vite.config.ts, cacheName: 'api-cache') — kept in sync with that file by
+// hand since this module can't import it. Cleared on logout alongside the
+// query cache so a shared device doesn't keep serving the previous
+// session's figures from the Cache API after sign-out.
+const SW_API_CACHE_NAME = "api-cache";
 
 type Scope = "full" | "read_only";
 
@@ -34,6 +43,21 @@ function readCachedScope(): Scope | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [scope, setScope] = useState<Scope | null>(readCachedScope);
   const [checking, setChecking] = useState(true);
+  const queryClient = useQueryClient();
+
+  // Single place that reacts to a 401 from *any* request, not just the
+  // initial /api/auth/me check below. Without this, an expired session
+  // cookie left the shell looking logged in (scope restored from
+  // localStorage) while every individual card 401'd on its own query —
+  // a second, independent cause of "some elements can not load".
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setScope(null);
+      localStorage.removeItem(SCOPE_STORAGE_KEY);
+    };
+    authEvents.addEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+    return () => authEvents.removeEventListener(UNAUTHORIZED_EVENT, handleUnauthorized);
+  }, []);
 
   useEffect(() => {
     api
@@ -63,10 +87,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await api.post("/api/auth/logout");
-    setScope(null);
-    localStorage.removeItem(SCOPE_STORAGE_KEY);
-  }, []);
+    try {
+      await api.post("/api/auth/logout");
+    } finally {
+      // Clear local state even if the network call failed — the user still
+      // wants to be logged out on this device. Every net-worth figure,
+      // position and transaction lives in the query cache (IndexedDB,
+      // `maxAge: Infinity` per persister.ts) and the service worker's own
+      // `api-cache`; clearing only the scope flag left both fully
+      // populated for whoever opens the app next.
+      setScope(null);
+      localStorage.removeItem(SCOPE_STORAGE_KEY);
+      queryClient.clear();
+      await persister.removeClient();
+      if (typeof caches !== "undefined") {
+        await caches.delete(SW_API_CACHE_NAME);
+      }
+    }
+  }, [queryClient]);
 
   return (
     <AuthContext.Provider value={{ scope, checking, login, logout }}>

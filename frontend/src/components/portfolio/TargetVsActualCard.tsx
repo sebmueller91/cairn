@@ -8,6 +8,7 @@ import { api, type AllocationResponse } from "../../lib/api";
 import { formatPercent } from "../../lib/format";
 import { ASSET_CLASS_COLORS, assetClassLabelKey, type AssetClass } from "../../lib/assetClasses";
 import { TargetAllocationModal } from "./TargetAllocationModal";
+import { useIsLoading } from "../../lib/queryState";
 
 function DriftBadge({ driftPp, lang }: { driftPp: number; lang: string }) {
   const cls = driftPp > 0 ? "text-positive" : driftPp < 0 ? "text-negative" : "text-text-muted";
@@ -72,10 +73,11 @@ function DriftRowView({
 /** Section 4 — target vs. actual allocation per asset class. */
 export function TargetVsActualCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { data, isLoading, isError } = useQuery({
+  const { data, isPending, isError } = useQuery({
     queryKey: ["allocation"],
     queryFn: () => api.get<AllocationResponse>("/api/allocation"),
   });
+  const pending = useIsLoading(isPending);
 
   const [editing, setEditing] = useState(false);
   const [grown, setGrown] = useState(false);
@@ -109,7 +111,7 @@ export function TargetVsActualCard() {
           rebalancing endpoint only counts tradeable positions, so a house
           shows as 0% here while it dominates the allocation chart. */}
       <p className="mb-4 mt-1 text-xs text-text-muted">{t("targetVsActual.scopeNote")}</p>
-      {isLoading ? (
+      {pending ? (
         <div className="space-y-4">
           <Skeleton className="h-6 w-full" />
           <Skeleton className="h-6 w-full" />

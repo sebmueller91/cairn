@@ -19,6 +19,10 @@ from app.models import FxRate, HousePriceIndexPoint, Instrument, PricePoint, Val
 
 
 def _market_value(db: Session, instrument: Instrument, as_of: date) -> Decimal | None:
+    """Value of one unit of `quantity` — one share's price in EUR, or (when
+    `fine_weight_g` is set) one physical piece's EUR value. Callers
+    multiply this by `quantity` for the total, so both cases keep the same
+    contract."""
     price_point = (
         db.query(PricePoint)
         .filter(PricePoint.instrument_id == instrument.id, PricePoint.date <= as_of)
@@ -39,7 +43,18 @@ def _market_value(db: Session, instrument: Instrument, as_of: date) -> Decimal |
         if fx_row is None:
             return None
         fx = fx_row.eur_rate
-    return price_point.close * fx
+    spot_eur = price_point.close * fx
+    if instrument.fine_weight_g is not None:
+        # Physical metals (spec 3.2): the instrument is a physical unit,
+        # not a spot-priced share. value = fine_weight_grams x
+        # spot_eur_per_gram, where fine weight = quantity (pieces) x
+        # fine_weight_g (grams per piece) — applied here per piece so the
+        # x quantity multiplication callers already do still yields the
+        # full holding's value. `price_point.close` must be sourced per
+        # gram, in `instrument.currency`, for this to be correct — that is
+        # not enforced here, only assumed once fine_weight_g is set.
+        return instrument.fine_weight_g * spot_eur
+    return spot_eur
 
 
 def _anchored_value(db: Session, instrument: Instrument, as_of: date) -> Decimal | None:

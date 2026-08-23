@@ -159,6 +159,8 @@ def get_loan_status(
         start_date=loan.start_date,
         monthly_payment=loan.monthly_payment,
         extra_repayments=extra_repayments,
+        payment_day=loan.payment_day,
+        fixed_until=loan.fixed_until,
     )
     balance = quantize_money(loan_balance(config, as_of))
 
