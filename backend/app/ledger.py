@@ -11,7 +11,7 @@ turns a transaction history into a quantity + cost basis, on demand.
 from collections import deque
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from typing import TYPE_CHECKING
 
 from app.models import TransactionType
@@ -54,11 +54,34 @@ class TxnEvent:
     split_ratio: Decimal | None = None
 
 
+# Matches db_types.Quantity.MAX_DECIMAL_PLACES (8dp, BTC precision) — the
+# DailySnapshot.quantity column this feeds cannot hold more, so a lot's
+# quantity is quantized here rather than letting a full-precision SPLIT
+# multiplication reach the DB boundary and raise there instead.
+_QUANTITY_QUANTUM = Decimal("0.00000001")
+
+
 @dataclass
 class Lot:
     quantity: Decimal
-    unit_cost_eur: Decimal
+    # The lot's total cost, carried exactly through BUY/SPLIT/adjustments —
+    # never derived by multiplying a stored per-unit cost back out. A split
+    # with a ratio that doesn't divide evenly in base 10 (3, 7, ...) has no
+    # finite per-unit cost that reconstructs the original total exactly, so
+    # anything computed by repeatedly dividing and re-multiplying drifts by
+    # a tiny but real amount. Tracking the total directly avoids that: a
+    # SPLIT changes quantity, never total_cost_eur (bug: split cost basis
+    # drift).
+    total_cost_eur: Decimal
     acquired_date: date
+
+    @property
+    def unit_cost_eur(self) -> Decimal:
+        """Derived display/consumption convenience only — nothing in this
+        module reconstructs a total from this value."""
+        if self.quantity == 0:
+            return Decimal(0)
+        return self.total_cost_eur / self.quantity
 
 
 @dataclass
@@ -98,6 +121,19 @@ _QUANTITY_BEARING_TYPES = {
 }
 
 
+def _insert_by_acquired_date(queue: "deque[Lot]", lot: Lot) -> None:
+    """Inserts `lot` into `queue` keeping it ordered by acquired_date so
+    FIFO consumption follows acquisition date rather than arrival order.
+    Stable: a lot lands after every existing lot with an equal-or-earlier
+    date, so ties keep the order they already had in the queue."""
+    index = len(queue)
+    for i, existing in enumerate(queue):
+        if existing.acquired_date > lot.acquired_date:
+            index = i
+            break
+    queue.insert(index, lot)
+
+
 def _adjust_cost_basis(queue: "deque[Lot]", amount_eur: Decimal) -> None:
     """Spreads a cost-only correction across the lots currently held.
 
@@ -109,16 +145,16 @@ def _adjust_cost_basis(queue: "deque[Lot]", amount_eur: Decimal) -> None:
     """
     if not queue or amount_eur == 0:
         return
-    total_cost = sum((lot.quantity * lot.unit_cost_eur for lot in queue), Decimal(0))
+    total_cost = sum((lot.total_cost_eur for lot in queue), Decimal(0))
     total_qty = sum((lot.quantity for lot in queue), Decimal(0))
     for lot in queue:
         if total_cost != 0:
-            share = (lot.quantity * lot.unit_cost_eur) / total_cost
+            share = lot.total_cost_eur / total_cost
         elif total_qty != 0:
             share = lot.quantity / total_qty
         else:
             return
-        lot.unit_cost_eur += (amount_eur * share) / lot.quantity
+        lot.total_cost_eur += amount_eur * share
 
 
 def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]:
@@ -159,13 +195,19 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
                 remaining -= lot.quantity
                 queue.popleft()
             else:
+                fragment_cost = remaining * lot.unit_cost_eur
                 consumed.append(
                     Lot(
                         quantity=remaining,
-                        unit_cost_eur=lot.unit_cost_eur,
+                        total_cost_eur=fragment_cost,
                         acquired_date=lot.acquired_date,
                     )
                 )
+                # Subtracting (rather than independently recomputing the
+                # remainder's own total) guarantees fragment + remainder
+                # sum back to the lot's original total exactly, regardless
+                # of whether unit_cost_eur itself divided evenly.
+                lot.total_cost_eur -= fragment_cost
                 lot.quantity -= remaining
                 remaining = Decimal(0)
         return consumed
@@ -189,7 +231,7 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
             queue.append(
                 Lot(
                     quantity=event.quantity,
-                    unit_cost_eur=event.amount_eur / event.quantity,
+                    total_cost_eur=event.amount_eur,
                     acquired_date=event.date,
                 )
             )
@@ -199,9 +241,7 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
             consumed = _consume_fifo(
                 event.account_id, event.instrument_id, event.quantity
             )
-            cost_of_sold = sum(
-                (lot.quantity * lot.unit_cost_eur for lot in consumed), Decimal(0)
-            )
+            cost_of_sold = sum((lot.total_cost_eur for lot in consumed), Decimal(0))
             key = (event.account_id, event.instrument_id)
             realized_pl[key] += event.amount_eur - cost_of_sold
 
@@ -216,7 +256,11 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
             )
             dest_queue = _queue(event.counter_account_id, event.instrument_id)
             for lot in consumed:
-                dest_queue.append(lot)
+                # Insert by acquired_date (stable for ties) rather than
+                # appending — a transfer must not let its own arrival order
+                # jump the destination's existing FIFO queue ahead of an
+                # older lot that happens to arrive later.
+                _insert_by_acquired_date(dest_queue, lot)
 
         elif event.type == TransactionType.SPLIT:
             assert event.instrument_id is not None and event.split_ratio is not None
@@ -224,15 +268,28 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
                 if key[1] != event.instrument_id:
                     continue
                 for lot in queue:
-                    lot.quantity *= event.split_ratio
-                    lot.unit_cost_eur /= event.split_ratio
+                    # total_cost_eur is left untouched: a split changes
+                    # quantity and (derived) unit cost, never the total.
+                    # Only quantize when the multiplication actually
+                    # overflows what the DailySnapshot column can store
+                    # (8dp) — an exact result (e.g. an integer ratio
+                    # applied to a whole-share quantity) is left with its
+                    # natural precision instead of being padded with
+                    # trailing zeros it never had.
+                    new_quantity = lot.quantity * event.split_ratio
+                    exponent = new_quantity.as_tuple().exponent
+                    if isinstance(exponent, int) and exponent < -8:
+                        new_quantity = new_quantity.quantize(
+                            _QUANTITY_QUANTUM, rounding=ROUND_HALF_UP
+                        )
+                    lot.quantity = new_quantity
 
     positions: dict[tuple[int, int], Position] = {}
     for key, queue in lots.items():
         account_id, instrument_id = key
         quantity = sum((lot.quantity for lot in queue), Decimal(0))
         cost_basis = sum(
-            (lot.quantity * lot.unit_cost_eur for lot in queue), Decimal(0)
+            (lot.total_cost_eur for lot in queue), Decimal(0)
         )
         if quantity == 0 and realized_pl[key] == 0:
             continue
