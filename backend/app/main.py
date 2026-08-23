@@ -36,6 +36,15 @@ from app.routers import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Unconditionally, and before anything else: uvicorn's LOGGING_CONFIG
+    # only configures its own `uvicorn*` loggers and leaves root at WARNING
+    # with no handler, so without this every `logger.info` under `app.*` is
+    # dropped — including the one line that says the nightly jobs ran. Not
+    # gated on enable_scheduler: the request path logs too.
+    from app.scheduler import configure_app_logging
+
+    configure_app_logging()
+
     scheduler = None
     if get_settings().enable_scheduler:
         from app.scheduler import create_scheduler
