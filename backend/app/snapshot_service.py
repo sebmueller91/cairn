@@ -103,7 +103,27 @@ def rebuild_snapshots(db: Session) -> int:
     cash_accounts = (
         db.query(Account).filter(Account.type == AccountType.CASH).all()
     )
-    known_deposits = [(d.date, d.amount_eur) for d in all_known_deposits(db)]
+    # Deposits are derived purely from each *portfolio's* own settlement
+    # balance (spec 3.6: "for a portfolio, a deposit is always external
+    # regardless of which account it came from") — nothing in the data
+    # model records which CASH account actually funded a given one. Handing
+    # the same list to every cash account's interpolation smeared a
+    # withdrawal that happened in one account onto every other cash
+    # account too: an account that never funded anything would show a
+    # phantom rise-then-drop around the deposit's date, self-healing at
+    # the next statement and so easy to miss.
+    #
+    # The one case this can be resolved unambiguously is a single cash
+    # account — nothing else could have funded it. With more than one, we
+    # deliberately withhold the correction (each account falls back to
+    # plain linear interpolation between its own statements) rather than
+    # guess which one it was; see the fix's report for the open gap this
+    # leaves in the true funding account's mid-period shape.
+    known_deposits = (
+        [(d.date, d.amount_eur) for d in all_known_deposits(db)]
+        if len(cash_accounts) == 1
+        else []
+    )
     cash_daily: dict[int, dict[date, Decimal]] = {}
     # Last interpolated day per cash account, and the balance there — see
     # the carry-forward in the snapshot loop below.
@@ -186,18 +206,51 @@ def rebuild_snapshots(db: Session) -> int:
             if instrument.valuation_mode == ValuationMode.MARKET:
                 prices = price_series.get(instrument_id)
                 if not prices:
+                    # No price has ever been recorded for this instrument —
+                    # genuinely missing (data_quality_service's own
+                    # "missing_price" check already flags this on its own,
+                    # independent of what we do here), not a gap to paper
+                    # over: there is nothing anywhere to value it with.
                     continue
                 price = _lookup_carry_forward(prices, day, idx_cache)
                 if price is None:
-                    continue
+                    # Before this instrument's very first price point —
+                    # e.g. bought a few days before the price feed/backfill
+                    # caught up to it. _lookup_carry_forward already
+                    # carries the latest known price forward through any
+                    # *later* gap (that's its whole job); this is the one
+                    # stretch it can't cover, since there is nothing
+                    # earlier to carry. Reading it as zero would both
+                    # understate net worth for those days and corrupt the
+                    # return series with a phantom loss-then-gain the
+                    # moment the first real price lands, while the BUY's
+                    # own flow is already counted. Fall back to the
+                    # earliest price this instrument will ever have — the
+                    # same "absence of a snapshot is absence of news"
+                    # principle the cash-balance carry-forward below
+                    # applies, run in the only direction available before
+                    # any data exists at all.
+                    price = prices[0][1]
                 if instrument.currency == "EUR":
                     fx = Decimal(1)
                 else:
                     rates = fx_series.get(instrument.currency)
-                    fx = _lookup_carry_forward(rates, day, idx_cache) if rates else None
-                    if fx is None:
+                    if not rates:
                         continue
-                value_eur = pos.quantity * price * fx
+                    fx = _lookup_carry_forward(rates, day, idx_cache)
+                    if fx is None:
+                        fx = rates[0][1]
+                if instrument.fine_weight_g is not None:
+                    # Physical metals (spec 3.2): the instrument is a
+                    # physical unit, not a spot-priced share.
+                    # value = fine weight (g) x spot(EUR/gram). Fine
+                    # weight = quantity (pieces) x fine_weight_g (g per
+                    # piece); `price` must be sourced per gram for this to
+                    # be correct — the instrument's own price series is
+                    # trusted as-is, whatever unit it was entered in.
+                    value_eur = pos.quantity * instrument.fine_weight_g * price * fx
+                else:
+                    value_eur = pos.quantity * price * fx
                 investable_value += value_eur
             elif instrument.valuation_mode in (ValuationMode.ANCHORED, ValuationMode.MODELED):
                 value_eur = current_instrument_value(db, instrument_id, day)
