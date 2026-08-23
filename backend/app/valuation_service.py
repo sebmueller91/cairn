@@ -19,10 +19,8 @@ from app.models import FxRate, HousePriceIndexPoint, Instrument, PricePoint, Val
 
 
 def _market_value(db: Session, instrument: Instrument, as_of: date) -> Decimal | None:
-    """Value of one unit of `quantity` — one share's price in EUR, or (when
-    `fine_weight_g` is set) one physical piece's EUR value. Callers
-    multiply this by `quantity` for the total, so both cases keep the same
-    contract."""
+    """Value of one unit of `quantity`, in EUR. Callers multiply by
+    `quantity` for the total."""
     price_point = (
         db.query(PricePoint)
         .filter(PricePoint.instrument_id == instrument.id, PricePoint.date <= as_of)
@@ -43,18 +41,17 @@ def _market_value(db: Session, instrument: Instrument, as_of: date) -> Decimal |
         if fx_row is None:
             return None
         fx = fx_row.eur_rate
-    spot_eur = price_point.close * fx
-    if instrument.fine_weight_g is not None:
-        # Physical metals (spec 3.2): the instrument is a physical unit,
-        # not a spot-priced share. value = fine_weight_grams x
-        # spot_eur_per_gram, where fine weight = quantity (pieces) x
-        # fine_weight_g (grams per piece) — applied here per piece so the
-        # x quantity multiplication callers already do still yields the
-        # full holding's value. `price_point.close` must be sourced per
-        # gram, in `instrument.currency`, for this to be correct — that is
-        # not enforced here, only assumed once fine_weight_g is set.
-        return instrument.fine_weight_g * spot_eur
-    return spot_eur
+    # NOT applying spec 3.2's fine_weight_grams x spot_eur_per_gram here.
+    # That formula assumes the price series is quoted PER GRAM. The live
+    # data is quoted per troy ounce with `quantity` already in ounces and
+    # `fine_weight_g` = 31.1035 as descriptive metadata, so applying it
+    # would multiply those holdings by ~31.1. `quantity x close x fx` is
+    # correct for how the price sources are actually configured.
+    #
+    # Making spec 3.2 real needs the unit to be explicit rather than
+    # assumed — a per-gram price source, or a unit field on the instrument.
+    # Until then this stays a no-op. See the audit follow-up.
+    return price_point.close * fx
 
 
 def _anchored_value(db: Session, instrument: Instrument, as_of: date) -> Decimal | None:

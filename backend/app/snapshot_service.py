@@ -242,17 +242,15 @@ def rebuild_snapshots(db: Session) -> int:
                     fx = _lookup_carry_forward(rates, day, idx_cache)
                     if fx is None:
                         fx = rates[0][1]
-                if instrument.fine_weight_g is not None:
-                    # Physical metals (spec 3.2): the instrument is a
-                    # physical unit, not a spot-priced share.
-                    # value = fine weight (g) x spot(EUR/gram). Fine
-                    # weight = quantity (pieces) x fine_weight_g (g per
-                    # piece); `price` must be sourced per gram for this to
-                    # be correct — the instrument's own price series is
-                    # trusted as-is, whatever unit it was entered in.
-                    value_eur = pos.quantity * instrument.fine_weight_g * price * fx
-                else:
-                    value_eur = pos.quantity * price * fx
+                # Deliberately NOT applying spec 3.2's fine_weight_grams x
+                # spot_eur_per_gram: that assumes a per-gram price series,
+                # and the live metal instruments are quoted per troy ounce
+                # with `quantity` already in ounces (fine_weight_g =
+                # 31.1035 is descriptive metadata there, not a factor).
+                # Multiplying by it would inflate those holdings ~31.1x.
+                # See _market_value in valuation_service.py for the same
+                # reasoning and what making spec 3.2 real would require.
+                value_eur = pos.quantity * price * fx
                 investable_value += value_eur
             elif instrument.valuation_mode in (ValuationMode.ANCHORED, ValuationMode.MODELED):
                 value_eur = current_instrument_value(db, instrument_id, day)
