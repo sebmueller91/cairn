@@ -22,8 +22,36 @@ raspberrypi5:443, <pi-fqdn>:443, <pi-lan-ip>:443 {
 		reverse_proxy api:8000
 	}
 
+	# Scoped separately from the catch-all below so a miss here is an
+	# honest 404 from file_server, not a `try_files` fallback to
+	# index.html. Every asset URL is content-hashed by Vite, so a request
+	# for one that isn't on disk (old bundle after a deploy replaced it,
+	# typo, whatever) is never something the SPA shell can usefully answer
+	# for — serving index.html as a 200 there used to produce
+	# `Uncaught SyntaxError: Unexpected token '<'` with no 404 anywhere in
+	# the logs, and worse, let Workbox precache HTML under a JS asset's
+	# URL when it fell back to the network for a missing precache entry.
+	# Long, immutable cache lifetime is safe precisely because the
+	# filename changes whenever the content does — a stale cached asset
+	# under an old hash is simply never requested again.
+	handle /assets/* {
+		root * /srv/frontend
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
 	handle {
 		root * /srv/frontend
+		# The exact inversion of /assets/* above: index.html's filename
+		# never changes between deploys, so without this a client not
+		# currently SW-controlled can apply heuristic freshness (Safari:
+		# ~10% of time since Last-Modified) and keep serving a stale index
+		# after a deploy — one that references a bundle `rsync --delete`
+		# already removed on the server. `no-cache` still lets the browser
+		# keep a copy, but forces revalidation (Etag/Last-Modified, which
+		# file_server already sends) on every load instead of trusting it
+		# blindly.
+		header Cache-Control "no-cache"
 		try_files {path} /index.html
 		file_server
 	}
