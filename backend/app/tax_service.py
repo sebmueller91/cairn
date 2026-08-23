@@ -12,7 +12,7 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.ledger import compute_positions, txn_to_event
+from app.ledger import InsufficientHoldingError, compute_positions, txn_to_event
 from app.models import Instrument, Txn, TransactionType, ValuationMode
 from app.valuation_service import current_instrument_value
 
@@ -32,6 +32,30 @@ class RealizedGain:
     gain_eur: Decimal
 
 
+def _adjust_cost_basis(queue: "deque", amount_eur: Decimal) -> None:
+    """Mirrors app.ledger._adjust_cost_basis on this module's own
+    [quantity, unit_cost] lot representation — a zero-quantity BUY /
+    OPENING_BALANCE is a pure cost-basis correction (supersede emits
+    exactly this when a backfill explains every share but not the full
+    cost basis), not a lot with a per-unit cost to divide out. Spread the
+    amount across the lots on hand: proportionally to cost where there is
+    any, by quantity where the lots carry no cost at all, and drop it when
+    there is nothing on hand to attach it to."""
+    if not queue or amount_eur == 0:
+        return
+    total_cost = sum((qty * cost for qty, cost in queue), Decimal(0))
+    total_qty = sum((qty for qty, cost in queue), Decimal(0))
+    for lot in queue:
+        qty, cost = lot
+        if total_cost != 0:
+            share = (qty * cost) / total_cost
+        elif total_qty != 0:
+            share = qty / total_qty
+        else:
+            return
+        lot[1] = cost + (amount_eur * share) / qty
+
+
 def realized_gains(db: Session) -> list[RealizedGain]:
     """Replays BUY/SELL/TRANSFER/SPLIT in ledger order — the same FIFO
     rule as app.ledger — but records each SELL's own realized gain dated
@@ -39,7 +63,17 @@ def realized_gains(db: Session) -> list[RealizedGain]:
     lifetime total per (account, instrument), not one broken out by
     year, which the saver's-allowance check needs; kept as a separate
     small replay here rather than changing that function's return shape,
-    which several other modules already depend on."""
+    which several other modules already depend on.
+
+    This is a second, independent FIFO implementation of the same
+    ledger, which is a real problem in its own right (see the fix
+    report) — kept only safe here, not unified with app.ledger, which is
+    a larger refactor owned elsewhere. An oversell raises the same
+    InsufficientHoldingError app.ledger raises, rather than silently
+    truncating and returning a gain computed against a partial cost —
+    txn_service.check_holdings prevents this at write time, so hitting it
+    here means the two replays have diverged, and that must not pass as
+    a quiet wrong number."""
     txns = (
         db.query(Txn)
         .filter(Txn.voided_at.is_(None), Txn.instrument_id.isnot(None))
@@ -54,10 +88,19 @@ def realized_gains(db: Session) -> list[RealizedGain]:
 
     for t in txns:
         if t.type in (TransactionType.BUY, TransactionType.OPENING_BALANCE):
-            queue(t.account_id, t.instrument_id).append([t.quantity, t.amount_eur / t.quantity])
+            q = queue(t.account_id, t.instrument_id)
+            if t.quantity == 0:
+                _adjust_cost_basis(q, t.amount_eur)
+            else:
+                q.append([t.quantity, t.amount_eur / t.quantity])
 
         elif t.type == TransactionType.SELL:
             q = queue(t.account_id, t.instrument_id)
+            available = sum((lot_qty for lot_qty, _ in q), Decimal(0))
+            if t.quantity > available:
+                raise InsufficientHoldingError(
+                    t.account_id, t.instrument_id, t.quantity, available
+                )
             remaining = t.quantity
             cost = Decimal(0)
             while remaining > 0 and q:
@@ -82,6 +125,11 @@ def realized_gains(db: Session) -> list[RealizedGain]:
         elif t.type == TransactionType.TRANSFER:
             src = queue(t.account_id, t.instrument_id)
             dst = queue(t.counter_account_id, t.instrument_id)
+            available = sum((lot_qty for lot_qty, _ in src), Decimal(0))
+            if t.quantity > available:
+                raise InsufficientHoldingError(
+                    t.account_id, t.instrument_id, t.quantity, available
+                )
             remaining = t.quantity
             while remaining > 0 and src:
                 lot_qty, lot_unit_cost = src[0]

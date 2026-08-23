@@ -59,19 +59,31 @@ def _total_on(db: Session, scope_type: str, scope_id: str | None, d: date) -> De
     if as_of is None:
         return Decimal(0)
 
-    q = db.query(func.sum(DailySnapshot.value_eur)).filter(
+    # Deliberately NOT func.sum(): the Money TypeDecorator stores exact
+    # decimal text, but SQLite has no decimal SUM — it casts every row to
+    # a REAL and adds in binary floating point, then the result processor
+    # wraps that already-corrupted float in a Decimal that merely *looks*
+    # exact (Decimal(a_float) reproduces the float's full binary noise,
+    # e.g. 3940.0399999999999636202119290828704833984375 instead of
+    # 3940.04). Fetching the rows and summing in Python — the same
+    # Decimal(0)-seeded pattern every other aggregation in this codebase
+    # already uses — keeps each value's exact text round-trip intact.
+    q = db.query(DailySnapshot.value_eur).filter(
         DailySnapshot.scope_type == scope_type, DailySnapshot.date == as_of
     )
     if scope_id is not None:
         q = q.filter(DailySnapshot.scope_id == scope_id)
-    return Decimal(str(q.scalar() or 0))
+    return sum((v for (v,) in q.all()), Decimal(0))
 
 
 def compute_contributions(db: Session, start: date, end: date) -> Contributions:
     result = Contributions(start_date=start, end_date=end)
 
+    # Same reasoning as _total_on above: fetch each txn's own amount_eur
+    # (an exact Decimal via the Money TypeDecorator) and sum in Python,
+    # rather than letting SQLite's func.sum() coerce through REAL first.
     rows = (
-        db.query(Instrument.asset_class, Txn.type, func.sum(Txn.amount_eur))
+        db.query(Instrument.asset_class, Txn.type, Txn.amount_eur)
         .join(Txn, Txn.instrument_id == Instrument.id)
         .filter(
             Txn.voided_at.is_(None),
@@ -79,14 +91,13 @@ def compute_contributions(db: Session, start: date, end: date) -> Contributions:
             Txn.date <= end,
             Txn.type.in_([TransactionType.BUY, TransactionType.SELL]),
         )
-        .group_by(Instrument.asset_class, Txn.type)
         .all()
     )
     totals: dict[str, Decimal] = {}
     for asset_class, txn_type, amount in rows:
         sign = 1 if txn_type == TransactionType.BUY else -1
         key = asset_class.value if hasattr(asset_class, "value") else str(asset_class)
-        totals[key] = totals.get(key, Decimal(0)) + sign * Decimal(str(amount or 0))
+        totals[key] = totals.get(key, Decimal(0)) + sign * (amount or Decimal(0))
 
     result.by_asset_class = {k: v for k, v in totals.items() if v != 0}
     result.total_invested = sum(result.by_asset_class.values(), Decimal(0))

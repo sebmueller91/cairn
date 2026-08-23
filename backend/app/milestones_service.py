@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.attribution_service import _buy_sell_delta, _cash_delta
 from app.models import DailySnapshot
+from app.performance_query import latest_snapshot_date
 
 _STEP_MULTIPLIERS = (Decimal(1), Decimal(2), Decimal(5))
 
@@ -70,8 +71,22 @@ def trailing_12mo_savings_rate(db: Session, as_of: date | None = None) -> Decima
     """Average monthly net contribution over the trailing 12 months —
     the same flow definition attribution_service.py uses (cash-account
     deltas + BUY/SELL into MARKET positions), reused rather than
-    redefined a third time in this codebase."""
+    redefined a third time in this codebase.
+
+    Clamped to the latest date the snapshot engine has actually
+    materialized, the same way contributions_service._total_on and
+    routers/performance.py + routers/attribution.py all do. The nightly
+    rebuild only catches up hours after midnight, so for most of the day
+    there is no row yet for "today" — and _cash_delta/_buy_sell_delta go
+    through attribution_service._snapshot_value, an *exact*-date lookup
+    that reads a miss as Decimal(0). Left unclamped, that turned a flat,
+    unchanged cash balance into "the account emptied out today", and a
+    -1,666.67/month savings rate for a household that saved nothing and
+    lost nothing, every single morning."""
     as_of = as_of or date.today()
+    latest = latest_snapshot_date(db)
+    if latest is not None and as_of > latest:
+        as_of = latest
     start = as_of - timedelta(days=365)
     total_flow = _cash_delta(db, start, as_of) + _buy_sell_delta(db, start, as_of)
     return total_flow / Decimal(12)
