@@ -41,43 +41,60 @@ export type WaterfallBar = {
   color: string;
 };
 
-/** Attribution waterfall: what moved the number, component by component. */
+/** Height per category row, and the room the value axis needs below them. */
+const ROW_HEIGHT = 34;
+const VALUE_AXIS_HEIGHT = 28;
+/** Width reserved for the category labels. "Marktgewinne/-verluste" is the
+ *  longest of them and needs about this much at 11px. */
+const CATEGORY_AXIS_WIDTH = 148;
+
+/** Attribution waterfall: what moved the number, component by component.
+ *
+ * Laid out horizontally — categories down the left, value along the
+ * bottom. Vertically it could not work: the buckets are long German
+ * compounds ("Bewertungsänderungen", "Marktgewinne/-verluste") and eight
+ * of them across a card's width leaves roughly 100px each, so the labels
+ * had to be rotated, and rotated they still overlapped their neighbours
+ * by ~25px and overflowed the SVG's own height by 7px, clipping the
+ * descenders. Steeper angles and a taller axis only move the width at
+ * which that starts; on a phone nothing fits at all. Horizontal rows
+ * read straight, cannot collide, and behave the same at every width.
+ */
 export function BarWaterfall({
   data,
-  height = 280,
   formatValue,
 }: {
   data: WaterfallBar[];
-  height?: number;
   formatValue: (n: number) => string;
 }) {
   const { i18n } = useTranslation();
+  const height = data.length * ROW_HEIGHT + VALUE_AXIS_HEIGHT;
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={CHART_MARGINS}>
-        <CartesianGrid {...gridProps} />
-        {/* Every bar must keep its label (interval 0), but the category
-            names are whole words — "Bewertungsänderungen" — so they only
-            fit on an angle. The extra height is the axis's own, leaving
-            CHART_MARGINS untouched. */}
+      <BarChart data={data} layout="vertical" margin={CHART_MARGINS}>
+        {/* Grid lines now run with the value axis, which is horizontal. */}
+        <CartesianGrid {...gridProps} horizontal={false} vertical />
         <XAxis
-          dataKey="name"
+          type="number"
           {...axisProps}
-          interval={0}
-          angle={-30}
-          textAnchor="end"
-          height={72}
-          fontSize={11}
+          // Money moved to this axis with the layout flip, and privacy
+          // mode has to follow it: leaving `sensitive` on the category
+          // axis would blur the harmless bucket names and print the
+          // amounts in the clear.
+          tick={{ className: "sensitive", fill: "var(--text-muted)", fontSize: 12 }}
+          height={VALUE_AXIS_HEIGHT}
+          tickFormatter={compactTickFormatter(i18n.language)}
         />
         <YAxis
+          type="category"
+          dataKey="name"
           {...axisProps}
-          // Money on the value axis, so privacy mode blurs the ticks too;
-          // an unblurred axis would give the hidden figures away.
-          tick={{ className: "sensitive", fill: "var(--text-muted)", fontSize: 12 }}
-          orientation="right"
-          width={56}
-          tickFormatter={compactTickFormatter(i18n.language)}
+          // Every bucket keeps its label; a waterfall with a step missing
+          // does not add up on screen even though the numbers do.
+          interval={0}
+          width={CATEGORY_AXIS_WIDTH}
+          fontSize={11}
         />
         <Tooltip
           cursor={{ fill: "var(--border)", fillOpacity: 0.4 }}
@@ -86,7 +103,7 @@ export function BarWaterfall({
           }
         />
         <Bar dataKey="base" stackId="w" fill="transparent" isAnimationActive={false} />
-        <Bar dataKey="delta" stackId="w" radius={[4, 4, 0, 0]} isAnimationActive={shouldAnimateCharts()}>
+        <Bar dataKey="delta" stackId="w" radius={[0, 4, 4, 0]} isAnimationActive={shouldAnimateCharts()}>
           {data.map((bar) => (
             <Cell key={bar.name} fill={bar.color} />
           ))}
