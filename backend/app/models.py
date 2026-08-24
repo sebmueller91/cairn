@@ -427,12 +427,15 @@ class EtfComposition(Base):
 class VorabpauschaleEntry(Base):
     """The advance lump sum actually debited by the broker, entered by
     hand — same manual-entry pattern as CpiIndexPoint and
-    HousePriceIndexPoint, and for the same reason: it depends on an
-    external figure (the BMF's annual Basiszins) plus per-fund
-    attributes (accumulating or distributing, Teilfreistellung class)
-    that this app has no source for. The broker's January statement
-    states the resulting amount exactly, so it is recorded rather than
-    reconstructed.
+    HousePriceIndexPoint.
+
+    The Basiszins is *not* the obstacle: § 18 Abs. 4 InvStG has the BMF
+    publish it every year, one scalar, and entering it would be no
+    different from entering a CPI point. What is missing is per-fund:
+    the Teilfreistellung class (30% equity / 15% mixed / 0%) and whether
+    a fund accumulates at all — neither is modelled on Instrument. The
+    broker's January statement already has the resulting amount with
+    all of that applied, so it is recorded rather than reconstructed.
 
     `year` is the year the amount counts *against the saver's
     allowance*, i.e. the year it was debited — not the year it accrued

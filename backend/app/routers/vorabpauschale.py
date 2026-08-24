@@ -1,9 +1,14 @@
 """Manual entry for the Vorabpauschale (advance lump sum) actually
 debited by the broker — same pattern and same reason as cpi.py and
-house_index.py: the figure depends on the BMF's annually published
-Basiszins plus each fund's Teilfreistellung class, neither of which
-Cairn has a source for. The January statement states the resulting
-amount exactly, so it is recorded rather than reconstructed.
+house_index.py — an externally determined annual figure entered by
+hand.
+
+To be precise about why it is not computed: the Basiszins is public
+(the BMF publishes it every January under § 18 Abs. 4 InvStG) and could
+simply be entered. The gap is per-fund — the Teilfreistellung class and
+whether the fund accumulates — which Instrument does not model. The
+January statement states the resulting amount with all of that already
+applied, so it is recorded rather than reconstructed.
 
 It matters because it is deemed §20 investment income charged in the
 first days of January: for a portfolio of accumulating funds it can

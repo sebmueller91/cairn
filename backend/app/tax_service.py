@@ -475,9 +475,10 @@ def liquidation_summary(
 def vorabpauschale_reminder(db: Session, as_of: date | None = None) -> str | None:
     """spec 4.6: "a reminder about the January advance lump sum".
 
-    Cairn still does not calculate it — the amount needs the BMF's annual
-    Basiszins plus each fund's Teilfreistellung class, neither of which
-    this app has a source for. What changed is that there is now
+    Cairn still does not calculate it. Not for want of the Basiszins —
+    the BMF publishes that annually under § 18 Abs. 4 InvStG — but
+    because the amount also turns on each fund's Teilfreistellung class,
+    which is not modelled here. What changed is that there is now
     somewhere to *put* the figure once the broker states it
     (`vorabpauschale_entry`), so the reminder points at a specific
     action instead of trailing off. Shown in January, and only while
@@ -505,7 +506,8 @@ def vorabpauschale_reminder(db: Session, as_of: date | None = None) -> str | Non
     return (
         "January: your broker debits the Vorabpauschale (advance lump sum) for "
         "accumulating funds now (" + ", ".join(names) + ") and it consumes this "
-        "year's saver's allowance before any sale does. Cairn cannot calculate it "
-        "(it needs the BMF Basiszins) — enter the amount from your statement so "
-        "the allowance figures below are right."
+        "year's saver's allowance before any sale does. Cairn doesn't calculate it "
+        "(the amount depends on each fund's Teilfreistellung, which isn't tracked "
+        "here) — enter the figure from your statement, which is exact, so the "
+        "allowance numbers below are right."
     )

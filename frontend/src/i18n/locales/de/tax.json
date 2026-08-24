@@ -51,7 +51,7 @@
   },
   "vorabpauschale": {
     "title": "Vorabpauschale {{year}}",
-    "hint": "Wird Anfang Januar von der Bank belastet und verbraucht den Sparerpauschbetrag, bevor irgendein Verkauf das tut. Cairn kann sie nicht berechnen (dafür fehlt der BMF-Basiszins) — trag den Betrag aus der Abrechnung ein.",
+    "hint": "Wird Anfang Januar von der Bank belastet und verbraucht den Sparerpauschbetrag, bevor irgendein Verkauf das tut. Cairn berechnet sie nicht — nicht wegen des Basiszinses (den veröffentlicht das BMF jedes Jahr), sondern weil die Teilfreistellung je Fonds hier nicht erfasst ist. Trag den Betrag aus der Abrechnung ein, der ist exakt.",
     "amount": "Betrag (€)",
     "save": "Speichern",
     "saved": "Gespeichert.",

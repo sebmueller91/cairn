@@ -440,11 +440,13 @@ the code.
   is its share of its regime's bill, so the rows sum to the headline
   figure and a position at a loss carries none.
 
-- **Vorabpauschale**: recorded, not calculated. The amount needs the
-  BMF's annual Basiszins and each fund's Teilfreistellung class, neither
-  of which this app has a source for (same story as CPI and the house
-  index) — so the broker's January figure is entered by hand into
-  `vorabpauschale_entry`. It matters because it is deemed §20 income
+- **Vorabpauschale**: recorded, not calculated — entered by hand into
+  `vorabpauschale_entry`, same as CPI and the house index. The Basiszins
+  is not the obstacle: the BMF publishes it annually under § 18 Abs. 4
+  InvStG and it is one scalar per year. The gap is per-fund — the
+  Teilfreistellung class (30% equity / 15% mixed / 0%) and whether the
+  fund accumulates — which `instrument` does not model. The broker's
+  January figure already has all of it applied. It matters because it is deemed §20 income
   debited in the first days of January and can consume the entire
   Sparerpauschbetrag before any sale does; an estimate that ignores it
   hands itself headroom that was already spent.

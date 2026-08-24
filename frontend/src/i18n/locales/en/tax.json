@@ -51,7 +51,7 @@
   },
   "vorabpauschale": {
     "title": "Advance lump sum {{year}}",
-    "hint": "Debited by your broker in early January, and it consumes the saver's allowance before any sale does. Cairn cannot calculate it (that needs the BMF Basiszins) — enter the amount from your statement.",
+    "hint": "Debited by your broker in early January, and it consumes the saver's allowance before any sale does. Cairn doesn't calculate it — not for want of the Basiszins, which the BMF publishes every year, but because each fund's Teilfreistellung isn't tracked here. Enter the figure from your statement; it's exact.",
     "amount": "Amount (€)",
     "save": "Save",
     "saved": "Saved.",

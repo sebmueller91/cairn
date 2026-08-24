@@ -44,9 +44,9 @@ instrument(
   tags_json, notes
 )
 
--- The advance lump sum the broker actually debited, entered by hand —
--- it needs the BMF Basiszins and per-fund Teilfreistellung, which this
--- app cannot fetch (same as cpi_index_point). `year` is the year it
+-- The advance lump sum the broker actually debited, entered by hand
+-- (same as cpi_index_point). Not computed: the Basiszins is public, but
+-- the per-fund Teilfreistellung class is not modelled. `year` is the year it
 -- counts against the saver's allowance, i.e. the year it was debited:
 -- the Vorabpauschale accruing on 31 Dec N flows on the first working
 -- day of N+1 and so eats the N+1 allowance.

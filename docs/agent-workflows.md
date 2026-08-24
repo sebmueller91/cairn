@@ -146,10 +146,14 @@ corrects it rather than duplicating.
 
 `year` is the year it was **debited**, not the year it accrued for: the
 Vorabpauschale for 2025 flows in the first days of 2026 and eats the
-**2026** Sparerpauschbetrag. Cairn cannot calculate the amount (it needs
-the BMF's annual Basiszins plus each fund's Teilfreistellung class), and
-without it every "tax if I sold today" figure is too low, because the
-estimate keeps allowance headroom that January already spent.
+**2026** Sparerpauschbetrag. Watch this offset — the Basiszins that
+produced a January 2026 debit is the one published for 2 January *2025*.
+
+Cairn does not calculate the amount. The Basiszins is public (BMF, § 18
+Abs. 4 InvStG), but the per-fund Teilfreistellung class is not modelled,
+and the statement figure already has it applied. Without an entry every
+"tax if I sold today" figure is too low, because the estimate keeps
+allowance headroom that January already spent.
 
 ---
 
