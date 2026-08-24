@@ -39,9 +39,18 @@ instrument(
   valuation_mode,                 -- MARKET|ANCHORED|MODELED|AMORTIZING_LIABILITY|NOMINAL
   currency, region, sector, liquidity_tier, ter_pct,
   fine_weight_g,                  -- metals only
+  tax_treatment,                  -- CAPITAL_GAINS|PRIVATE_SALE|NONE, NULL = derive from asset_class
   valuation_config_json,          -- MODELED/ANCHORED parameters, see ambiguity (b)
   tags_json, notes
 )
+
+-- The advance lump sum the broker actually debited, entered by hand —
+-- it needs the BMF Basiszins and per-fund Teilfreistellung, which this
+-- app cannot fetch (same as cpi_index_point). `year` is the year it
+-- counts against the saver's allowance, i.e. the year it was debited:
+-- the Vorabpauschale accruing on 31 Dec N flows on the first working
+-- day of N+1 and so eats the N+1 allowance.
+vorabpauschale_entry(year PRIMARY KEY, amount_eur, note, updated_at)
 
 price_source(id, instrument_id, provider, provider_symbol, priority, enabled,
              last_fetch_at, last_error)

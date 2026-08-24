@@ -410,7 +410,44 @@ the code.
   expenses roughly) — the classic FIRE metric, optional
 - **Tax-informational** (explicitly non-binding): usage of the annual saver's
   allowance, FIFO cost basis per position, unrealised P/L with an estimated tax
-  charge on sale, a reminder about the January advance lump sum
+  charge on sale, a reminder about the January advance lump sum.
+
+  Two regimes, kept apart because they behave differently:
+  - **§20 EStG** (shares, ETFs, bonds, dividends, interest) — flat
+    Abgeltungsteuer + Soli, holding period irrelevant, offset against the
+    *Sparerpauschbetrag*, a real allowance where only the excess is taxed.
+  - **§23 EStG** (crypto, physical precious metals; property at ten years)
+    — **tax-free once held beyond the speculation period of one year**.
+    Inside it, taxed at the *personal* income tax rate against a separate
+    *Freigrenze*: a cliff, so reaching the limit makes the whole gain
+    taxable, not just the excess.
+
+  The regime comes from `instrument.asset_class`, overridable per
+  instrument via `tax_treatment` — asset class cannot distinguish a
+  physically-backed gold ETC (§23) from a swap-based one (§20), and
+  guessing would be inventing a domain rule.
+
+  Holding period is decided per FIFO lot against today's price, not by
+  splitting a position's aggregate gain pro rata — those disagree
+  whenever the lots were bought at different prices, which is the normal
+  case for anyone buying monthly.
+
+- **"If I sold everything now"**: one figure for the whole portfolio —
+  value, cost basis, unrealised P/L, tax per regime and net proceeds —
+  with positions listed most-tax-first. Computed regime-wide rather than
+  position-by-position, because allowances, the Freigrenze and loss
+  offsetting are all properties of the year's total. Each position's tax
+  is its share of its regime's bill, so the rows sum to the headline
+  figure and a position at a loss carries none.
+
+- **Vorabpauschale**: recorded, not calculated. The amount needs the
+  BMF's annual Basiszins and each fund's Teilfreistellung class, neither
+  of which this app has a source for (same story as CPI and the house
+  index) — so the broker's January figure is entered by hand into
+  `vorabpauschale_entry`. It matters because it is deemed §20 income
+  debited in the first days of January and can consume the entire
+  Sparerpauschbetrag before any sale does; an estimate that ignores it
+  hands itself headroom that was already spent.
 - **Data quality panel:** which valuation is how old, which price is stale, which
   position has no cost basis — prevents silent trust in outdated figures
 

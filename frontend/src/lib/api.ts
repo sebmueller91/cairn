@@ -196,6 +196,7 @@ export interface Instrument {
   liquidity_tier: string | null;
   ter_pct: string | null;
   fine_weight_g: string | null;
+  tax_treatment: TaxTreatment | null;
   valuation_config: Record<string, unknown>;
   tags: string[];
   notes: string | null;
@@ -418,28 +419,93 @@ export interface DataQualityResponse {
   issues: DataQualityIssue[];
 }
 
+/** Which German tax regime a disposal falls under. CAPITAL_GAINS is
+ *  §20 EStG (flat rate, holding period irrelevant); PRIVATE_SALE is §23
+ *  (tax-free past the speculation period, personal rate inside it);
+ *  NONE is what Cairn deliberately puts no number on. */
+export type TaxTreatment = "CAPITAL_GAINS" | "PRIVATE_SALE" | "NONE";
+
+/** §20 Sparerpauschbetrag — a true allowance, only the excess is taxed. */
 export interface SaverAllowanceUsage {
   year: number;
   allowance_eur: string;
   realized_gains_eur: string;
   investment_income_eur: string;
+  vorabpauschale_eur: string;
   total_eur: string;
   remaining_eur: string;
+}
+
+/** §23 Freigrenze — a cliff. `limit_exceeded` is a field of its own
+ *  rather than something to infer from `remaining_eur`, because crossing
+ *  it makes the *whole* gain taxable, not just the excess. */
+export interface PrivateSaleAllowanceUsage {
+  year: number;
+  exemption_limit_eur: string;
+  realized_taxable_eur: string;
+  realized_exempt_eur: string;
+  remaining_eur: string;
+  limit_exceeded: boolean;
+}
+
+export interface RegimeLiquidation {
+  gross_gain_eur: string;
+  losses_eur: string;
+  net_gain_eur: string;
+  allowance_applied_eur: string;
+  taxable_eur: string;
+  tax_eur: string;
+  tax_free_gain_eur: string;
+}
+
+export interface LiquidationSummary {
+  as_of: string;
+  total_current_value_eur: string;
+  total_cost_basis_eur: string;
+  total_unrealized_pl_eur: string;
+  capital_gains: RegimeLiquidation;
+  private_sale: RegimeLiquidation;
+  total_tax_eur: string;
+  net_proceeds_eur: string;
+  excluded_position_count: number;
 }
 
 export interface UnrealizedTaxEstimate {
   account_id: number;
   instrument_id: number;
+  tax_treatment: TaxTreatment;
   quantity: string;
   cost_basis_eur: string;
   current_value_eur: string;
   unrealized_pl_eur: string;
+  /** The part of the gain sitting in lots already past the speculation
+   *  period. Always "0" under §20. */
+  tax_free_gain_eur: string;
+  /** What a sale today would actually expose, before allowances. */
+  exposed_gain_eur: string;
+  tax_free_quantity: string;
+  /** When the earliest still-locked lot clears the period, or null when
+   *  nothing is locked. */
+  next_tax_free_date: string | null;
   estimated_tax_eur: string;
+}
+
+export interface VorabpauschaleEntry {
+  /** The year the amount counts against the allowance — the year it was
+   *  debited, not the year it accrued for. */
+  year: number;
+  amount_eur: string;
+  note: string | null;
+  updated_at: string | null;
 }
 
 export interface TaxOverviewResponse {
   saver_allowance: SaverAllowanceUsage;
+  private_sale_allowance: PrivateSaleAllowanceUsage;
+  liquidation: LiquidationSummary;
+  /** Already sorted by estimated tax, most owed first. */
   unrealized: UnrealizedTaxEstimate[];
+  vorabpauschale: VorabpauschaleEntry | null;
   vorabpauschale_reminder: string | null;
 }
 

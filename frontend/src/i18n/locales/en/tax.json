@@ -1,21 +1,78 @@
 {
   "title": "Tax",
-  "disclaimer": "For orientation only, not tax advice. Flat assumptions (25% capital gains tax + 5.5% solidarity surcharge), no church tax, no loss offsetting across accounts.",
+  "disclaimer": "For orientation only, not tax advice. Gains and losses are netted in one pot per regime (the real share-specific Verlusttopf is narrower), no church tax, no solidarity surcharge on §23 gains, no partial-sale optimisation.",
   "year": "Year",
   "thisYear": "This year",
   "lastYear": "Last year",
-  "allowance": "Saver's allowance (€)",
   "allowanceInvalid": "Invalid amount.",
-  "ofAllowance": "of allowance",
-  "realizedGains": "Realized gains",
-  "investmentIncome": "Investment income",
-  "used": "Used",
-  "remaining": "Remaining",
+  "liquidation": {
+    "title": "If I sold everything now",
+    "subtitle": "As of {{date}}",
+    "currentValue": "Current value",
+    "costBasis": "Cost basis",
+    "unrealized": "Unrealized",
+    "totalTax": "Total tax",
+    "netProceeds": "Net after tax",
+    "effectiveRate": "{{pct}} of the gain",
+    "taxFree": "Of which tax-free",
+    "taxFreeHint": "Gains on positions that have passed the speculation period",
+    "excluded_one": "{{count}} position without a market price is not included.",
+    "excluded_other": "{{count}} positions without a market price are not included.",
+    "capitalGains": "Capital income (§20)",
+    "privateSale": "Private sale (§23)",
+    "grossGain": "Gains",
+    "losses": "Losses",
+    "netGain": "Net",
+    "allowanceApplied": "Exempted",
+    "taxable": "Taxable",
+    "tax": "Tax"
+  },
+  "capitalGains": {
+    "title": "Saver's allowance (§20)",
+    "hint": "A true allowance: only what exceeds it is taxed. Applies to shares, ETFs, bonds, dividends and interest — holding period is irrelevant.",
+    "allowance": "Saver's allowance (€)",
+    "realizedGains": "Realized gains",
+    "investmentIncome": "Investment income",
+    "vorabpauschale": "Advance lump sum",
+    "used": "Used",
+    "remaining": "Remaining",
+    "ofAllowance": "of allowance"
+  },
+  "privateSale": {
+    "title": "Exemption limit (§23)",
+    "hint": "A Freigrenze, not an allowance: reach it and the entire gain becomes taxable, not just the part above it. Applies to crypto and physical precious metals — and only while they have been held for less than a year.",
+    "limit": "Exemption limit (€)",
+    "taxableRealized": "Realized, taxable",
+    "exemptRealized": "Realized, tax-free",
+    "remaining": "Remaining",
+    "exceeded": "Exceeded — the entire amount is taxable.",
+    "personalRate": "Personal tax rate (%)",
+    "personalRateHint": "§23 gains are taxed at your personal income tax rate, not at 25%."
+  },
+  "vorabpauschale": {
+    "title": "Advance lump sum {{year}}",
+    "hint": "Debited by your broker in early January, and it consumes the saver's allowance before any sale does. Cairn cannot calculate it (that needs the BMF Basiszins) — enter the amount from your statement.",
+    "amount": "Amount (€)",
+    "save": "Save",
+    "saved": "Saved.",
+    "notEntered": "Not entered yet",
+    "yearHint": "The year it was debited — the advance lump sum for {{prev}} flows in early {{year}}."
+  },
   "unrealized": {
-    "title": "Unrealized gains/losses",
+    "title": "Positions, most tax first",
     "costBasis": "Cost basis",
     "currentValue": "Current value",
     "unrealizedPl": "Unrealized",
-    "estimatedTax": "Estimated tax"
+    "taxFreeGain": "Tax-free",
+    "exposedGain": "Taxable",
+    "estimatedTax": "Estimated tax",
+    "treatment": "Regime",
+    "nextTaxFree": "Free from",
+    "fullyFree": "Fully free",
+    "treatments": {
+      "CAPITAL_GAINS": "§20",
+      "PRIVATE_SALE": "§23",
+      "NONE": "—"
+    }
   }
 }

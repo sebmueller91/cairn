@@ -45,6 +45,28 @@ class LiquidityTier(str, enum.Enum):
     T3 = "T3"
 
 
+class TaxTreatment(str, enum.Enum):
+    """Which German tax regime a disposal of this instrument falls under.
+
+    CAPITAL_GAINS is §20 EStG (Kapitalvermögen): shares, ETFs, bonds,
+    interest, dividends. Flat Abgeltungsteuer, holding period
+    irrelevant, offset against the Sparerpauschbetrag.
+
+    PRIVATE_SALE is §23 EStG (Privatveräußerungsgeschäft): crypto,
+    physical precious metals, property. Tax-free once held beyond the
+    speculation period, otherwise taxed at the personal income tax rate
+    against a separate Freigrenze.
+
+    NONE covers what this app does not model a disposal gain for at all
+    (cash, liabilities, vehicles). Not a claim that a sale can never be
+    taxable — a claim that Cairn will not put a number on it.
+    """
+
+    CAPITAL_GAINS = "CAPITAL_GAINS"
+    PRIVATE_SALE = "PRIVATE_SALE"
+    NONE = "NONE"
+
+
 class TransactionType(str, enum.Enum):
     BUY = "BUY"
     SELL = "SELL"
@@ -142,6 +164,16 @@ class Instrument(Base):
     # Physical units only (metals): grams of fine metal per one unit of
     # `quantity` — e.g. 31.1035 for a one-troy-ounce coin (spec 3.2).
     fine_weight_g: Mapped[Quantity | None] = mapped_column(Quantity, nullable=True)
+    # Override for the tax regime derived from asset_class. NULL means
+    # "use the default for this asset class" (tax_service.tax_treatment_of),
+    # which is right for the common cases and wrong for exactly the ones
+    # asset_class cannot distinguish: a physically-backed gold ETC with a
+    # delivery claim is a §23 private sale, a swap-based one on the same
+    # metal is §20. Neither the ISIN nor the asset class tells them apart,
+    # so this stays a human decision rather than a guess.
+    tax_treatment: Mapped["TaxTreatment | None"] = mapped_column(
+        Enum(TaxTreatment), nullable=True
+    )
     # MODELED/ANCHORED parameters (car depreciation inputs, house index
     # series choice) — see docs/data-model.md, resolved ambiguity (b): a
     # JSON blob rather than a dedicated table, since these are set once at
@@ -390,3 +422,31 @@ class EtfComposition(Base):
     # means "entered before this was tracked", which reads as unknown age
     # rather than as fresh.
     updated_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
+class VorabpauschaleEntry(Base):
+    """The advance lump sum actually debited by the broker, entered by
+    hand — same manual-entry pattern as CpiIndexPoint and
+    HousePriceIndexPoint, and for the same reason: it depends on an
+    external figure (the BMF's annual Basiszins) plus per-fund
+    attributes (accumulating or distributing, Teilfreistellung class)
+    that this app has no source for. The broker's January statement
+    states the resulting amount exactly, so it is recorded rather than
+    reconstructed.
+
+    `year` is the year the amount counts *against the saver's
+    allowance*, i.e. the year it was debited — not the year it accrued
+    for. The Vorabpauschale for calendar year N accrues on 31 December N
+    but is deemed to flow on the first working day of N+1, so it eats
+    the N+1 Sparerpauschbetrag. Storing the year it is charged is what
+    saver_allowance_usage needs and removes the off-by-one entirely.
+    """
+
+    __tablename__ = "vorabpauschale_entry"
+
+    year: Mapped[int] = mapped_column(Integer, primary_key=True)
+    amount_eur: Mapped[Money] = mapped_column(Money, nullable=False)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )

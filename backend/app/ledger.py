@@ -61,6 +61,29 @@ class TxnEvent:
 _QUANTITY_QUANTUM = Decimal("0.00000001")
 
 
+def add_years(start: date, years: int) -> date:
+    """`start` shifted by whole calendar years, clamping 29 February to
+    28 February in a non-leap target year. Written out rather than
+    pulled from dateutil — one call site, no new dependency."""
+    try:
+        return start.replace(year=start.year + years)
+    except ValueError:
+        return start.replace(year=start.year + years, month=2, day=28)
+
+
+def holding_period_elapsed(
+    acquired: date, disposed: date, years: int
+) -> bool:
+    """True when `disposed` falls after the speculation period expired.
+
+    German §23 EStG counts the period between acquisition and sale and
+    requires it to *exceed* the term, so a sale exactly one year to the
+    day after purchase is still taxable — hence the strict `>`. Day
+    counting (`>= 365`) is deliberately not used: it disagrees with the
+    statute across leap years."""
+    return disposed > add_years(acquired, years)
+
+
 @dataclass
 class Lot:
     quantity: Decimal
@@ -92,6 +115,76 @@ class Position:
     cost_basis_eur: Decimal = Decimal(0)
     realized_pl_eur: Decimal = Decimal(0)
     lots: list[Lot] = field(default_factory=list)
+
+
+@dataclass
+class RealizedSale:
+    """One SELL, with the FIFO lots it actually consumed.
+
+    `realized_pl_eur` on Position is a lifetime total per (account,
+    instrument) and cannot answer "which gains fell in 2025" or "how
+    much of this gain came from lots held over a year" — both of which
+    the German tax view needs (§20 saver's allowance is per calendar
+    year, §23 exempts anything held longer than the speculation
+    period). Emitting the individual sales here is what let
+    tax_service drop its own second FIFO replay of the same ledger.
+
+    `consumed_lots` are fragments owned by this record — `_consume_fifo`
+    either hands over a lot it removed from the queue or builds a fresh
+    partial one, so nothing here aliases a lot still being mutated.
+    """
+
+    date: date
+    order: int
+    account_id: int
+    instrument_id: int
+    quantity: Decimal
+    proceeds_eur: Decimal
+    cost_basis_eur: Decimal
+    consumed_lots: list[Lot] = field(default_factory=list)
+
+    @property
+    def gain_eur(self) -> Decimal:
+        return self.proceeds_eur - self.cost_basis_eur
+
+    def gain_split_by_holding_period(
+        self, holding_period_years: int
+    ) -> tuple[Decimal, Decimal]:
+        """Splits this sale's gain into (long_held, short_held) by
+        apportioning proceeds across the consumed lots by quantity.
+
+        A sale's proceeds arrive as one figure for the whole quantity;
+        there is no per-lot sale price to use, so quantity is the only
+        defensible key. Cost is taken from each lot directly rather than
+        apportioned, so the two parts always sum back to gain_eur
+        exactly (the last lot absorbs any division remainder).
+        """
+        total_qty = sum((lot.quantity for lot in self.consumed_lots), Decimal(0))
+        if total_qty == 0:
+            return Decimal(0), Decimal(0)
+        long_held = Decimal(0)
+        short_held = Decimal(0)
+        assigned_proceeds = Decimal(0)
+        for index, lot in enumerate(self.consumed_lots):
+            if index == len(self.consumed_lots) - 1:
+                share = self.proceeds_eur - assigned_proceeds
+            else:
+                share = self.proceeds_eur * lot.quantity / total_qty
+                assigned_proceeds += share
+            gain = share - lot.total_cost_eur
+            if holding_period_elapsed(
+                lot.acquired_date, self.date, holding_period_years
+            ):
+                long_held += gain
+            else:
+                short_held += gain
+        return long_held, short_held
+
+
+@dataclass
+class LedgerResult:
+    positions: dict[tuple[int, int], Position]
+    sales: list[RealizedSale]
 
 
 def txn_to_event(txn: "Txn") -> TxnEvent:
@@ -157,15 +250,21 @@ def _adjust_cost_basis(queue: "deque[Lot]", amount_eur: Decimal) -> None:
         lot.total_cost_eur += amount_eur * share
 
 
-def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]:
+def replay(events: list[TxnEvent]) -> LedgerResult:
     """Replays events in (date, order) sequence and returns the resulting
-    position per (account_id, instrument_id). Only events that actually
-    move quantity or cost basis participate (BUY/SELL/TRANSFER/SPLIT/
-    OPENING_BALANCE) — everything else (DIVIDEND, FEE, BALANCE_STATEMENT,
-    ...) is a no-op here by design."""
+    position per (account_id, instrument_id) plus the individual sales
+    that happened along the way. Only events that actually move quantity
+    or cost basis participate (BUY/SELL/TRANSFER/SPLIT/OPENING_BALANCE)
+    — everything else (DIVIDEND, FEE, BALANCE_STATEMENT, ...) is a no-op
+    here by design.
+
+    Most callers only want the positions and should keep using
+    compute_positions(); the sales log exists for the tax view, which
+    needs gains broken out by date and holding period."""
 
     lots: dict[tuple[int, int], deque[Lot]] = {}
     realized_pl: dict[tuple[int, int], Decimal] = {}
+    sales: list[RealizedSale] = []
 
     def _queue(account_id: int, instrument_id: int) -> deque[Lot]:
         key = (account_id, instrument_id)
@@ -244,6 +343,18 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
             cost_of_sold = sum((lot.total_cost_eur for lot in consumed), Decimal(0))
             key = (event.account_id, event.instrument_id)
             realized_pl[key] += event.amount_eur - cost_of_sold
+            sales.append(
+                RealizedSale(
+                    date=event.date,
+                    order=event.order,
+                    account_id=event.account_id,
+                    instrument_id=event.instrument_id,
+                    quantity=event.quantity,
+                    proceeds_eur=event.amount_eur,
+                    cost_basis_eur=cost_of_sold,
+                    consumed_lots=consumed,
+                )
+            )
 
         elif event.type == TransactionType.TRANSFER:
             assert (
@@ -301,4 +412,10 @@ def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]
             realized_pl_eur=realized_pl[key],
             lots=list(queue),
         )
-    return positions
+    return LedgerResult(positions=positions, sales=sales)
+
+
+def compute_positions(events: list[TxnEvent]) -> dict[tuple[int, int], Position]:
+    """Positions only — the shape every caller outside the tax view
+    expects. See replay() for the full result."""
+    return replay(events).positions

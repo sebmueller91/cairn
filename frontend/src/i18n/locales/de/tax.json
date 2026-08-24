@@ -1,21 +1,78 @@
 {
   "title": "Steuern",
-  "disclaimer": "Nur zur Orientierung, keine Steuerberatung. Pauschalannahmen (25% Kapitalertragsteuer + 5,5% Solidaritätszuschlag), keine Kirchensteuer, keine Verlustverrechnung über Depots hinweg.",
+  "disclaimer": "Nur zur Orientierung, keine Steuerberatung. Gewinne und Verluste werden je Regime in einem Topf verrechnet (der echte Aktien-Verlusttopf ist enger), keine Kirchensteuer, kein Solidaritätszuschlag auf §23-Gewinne, keine Optimierung durch Teilverkäufe.",
   "year": "Jahr",
   "thisYear": "Dieses Jahr",
   "lastYear": "Letztes Jahr",
-  "allowance": "Sparerpauschbetrag (€)",
   "allowanceInvalid": "Ungültiger Betrag.",
-  "ofAllowance": "des Freibetrags",
-  "realizedGains": "Realisierte Gewinne",
-  "investmentIncome": "Kapitalerträge",
-  "used": "Ausgeschöpft",
-  "remaining": "Verbleibend",
+  "liquidation": {
+    "title": "Wenn ich jetzt alles verkaufe",
+    "subtitle": "Stand {{date}}",
+    "currentValue": "Aktueller Wert",
+    "costBasis": "Anschaffungskosten",
+    "unrealized": "Unrealisiert",
+    "totalTax": "Steuer gesamt",
+    "netProceeds": "Netto nach Steuern",
+    "effectiveRate": "{{pct}} des Gewinns",
+    "taxFree": "Davon steuerfrei",
+    "taxFreeHint": "Gewinne aus Positionen, die die Spekulationsfrist überschritten haben",
+    "excluded_one": "{{count}} Position ohne Marktpreis ist nicht enthalten.",
+    "excluded_other": "{{count}} Positionen ohne Marktpreis sind nicht enthalten.",
+    "capitalGains": "Kapitalvermögen (§20)",
+    "privateSale": "Privatveräußerung (§23)",
+    "grossGain": "Gewinne",
+    "losses": "Verluste",
+    "netGain": "Saldo",
+    "allowanceApplied": "Freistellung",
+    "taxable": "Steuerpflichtig",
+    "tax": "Steuer"
+  },
+  "capitalGains": {
+    "title": "Sparerpauschbetrag (§20)",
+    "hint": "Echter Freibetrag: nur was darüber liegt, wird versteuert. Gilt für Aktien, ETFs, Anleihen, Dividenden und Zinsen — unabhängig von der Haltedauer.",
+    "allowance": "Sparerpauschbetrag (€)",
+    "realizedGains": "Realisierte Gewinne",
+    "investmentIncome": "Kapitalerträge",
+    "vorabpauschale": "Vorabpauschale",
+    "used": "Ausgeschöpft",
+    "remaining": "Verbleibend",
+    "ofAllowance": "des Freibetrags"
+  },
+  "privateSale": {
+    "title": "Freigrenze (§23)",
+    "hint": "Freigrenze, kein Freibetrag: Wird sie erreicht, ist der gesamte Gewinn steuerpflichtig, nicht nur der Teil darüber. Gilt für Krypto und physische Edelmetalle — und nur, solange die Haltedauer unter einem Jahr liegt.",
+    "limit": "Freigrenze (€)",
+    "taxableRealized": "Realisiert, steuerpflichtig",
+    "exemptRealized": "Realisiert, steuerfrei",
+    "remaining": "Verbleibend",
+    "exceeded": "Überschritten — der gesamte Betrag ist steuerpflichtig.",
+    "personalRate": "Persönlicher Steuersatz (%)",
+    "personalRateHint": "§23-Gewinne werden mit dem persönlichen Einkommensteuersatz versteuert, nicht mit 25%."
+  },
+  "vorabpauschale": {
+    "title": "Vorabpauschale {{year}}",
+    "hint": "Wird Anfang Januar von der Bank belastet und verbraucht den Sparerpauschbetrag, bevor irgendein Verkauf das tut. Cairn kann sie nicht berechnen (dafür fehlt der BMF-Basiszins) — trag den Betrag aus der Abrechnung ein.",
+    "amount": "Betrag (€)",
+    "save": "Speichern",
+    "saved": "Gespeichert.",
+    "notEntered": "Noch nicht eingetragen",
+    "yearHint": "Das Jahr, in dem sie belastet wurde — die Vorabpauschale für {{prev}} fließt Anfang {{year}} zu."
+  },
   "unrealized": {
-    "title": "Unrealisierte Gewinne/Verluste",
+    "title": "Positionen, nach Steuerlast sortiert",
     "costBasis": "Anschaffungskosten",
     "currentValue": "Aktueller Wert",
     "unrealizedPl": "Unrealisiert",
-    "estimatedTax": "Geschätzte Steuer"
+    "taxFreeGain": "Steuerfrei",
+    "exposedGain": "Steuerpflichtig",
+    "estimatedTax": "Geschätzte Steuer",
+    "treatment": "Regime",
+    "nextTaxFree": "Frei ab",
+    "fullyFree": "Vollständig frei",
+    "treatments": {
+      "CAPITAL_GAINS": "§20",
+      "PRIVATE_SALE": "§23",
+      "NONE": "—"
+    }
   }
 }
