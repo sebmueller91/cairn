@@ -124,6 +124,33 @@ Getting the ticker mapping right is manual and one-off per instrument.
 Verify the first fetched price (`POST /api/prices/refresh`) against a
 public quote before booking anything against it.
 
+**Tax regime.** `asset_class` decides it by default — EQUITY/BOND are
+§20 (Abgeltungsteuer), CRYPTO/COMMODITY/REAL_ESTATE are §23 (tax-free
+past the speculation period). Set `tax_treatment` explicitly only where
+the asset class genuinely cannot decide: a physically-backed gold ETC
+with a delivery claim is §23, a swap-based ETC on the same metal is §20,
+and nothing in the instrument data tells them apart. Getting this wrong
+silently mis-states every tax figure for that holding, so when a
+factsheet does not make it obvious, ask rather than pick.
+
+---
+
+## 3b. Record the Vorabpauschale
+
+Once a year, from the broker's January statement:
+```jsonc
+{ "year": 2026, "amount_eur": "312.40", "note": "DKB Jahressteuerbescheinigung" }
+```
+`POST /api/vorabpauschale` — upsert, so re-posting the same year
+corrects it rather than duplicating.
+
+`year` is the year it was **debited**, not the year it accrued for: the
+Vorabpauschale for 2025 flows in the first days of 2026 and eats the
+**2026** Sparerpauschbetrag. Cairn cannot calculate the amount (it needs
+the BMF's annual Basiszins plus each fund's Teilfreistellung class), and
+without it every "tax if I sold today" figure is too low, because the
+estimate keeps allowance headroom that January already spent.
+
 ---
 
 ## 4. Book account balances (cash)

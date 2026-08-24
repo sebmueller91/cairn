@@ -158,10 +158,18 @@ async def create_instrument(
     currency: str = "EUR",
     isin: str | None = None,
     ticker: str | None = None,
+    tax_treatment: str | None = None,
 ) -> dict:
     """Create an instrument. asset_class: EQUITY, BOND, COMMODITY, CRYPTO,
     REAL_ESTATE, VEHICLE, CASH, LIABILITY. valuation_mode: MARKET (priced
-    instrument), ANCHORED (house), MODELED (car), NOMINAL (cash)."""
+    instrument), ANCHORED (house), MODELED (car), NOMINAL (cash).
+
+    tax_treatment (CAPITAL_GAINS = German §20, PRIVATE_SALE = §23, NONE)
+    overrides the regime derived from asset_class. Leave it unset unless
+    the asset class genuinely cannot decide — a physically-backed gold
+    ETC with a delivery claim is §23, a swap-based ETC on the same metal
+    is §20. Guessing mis-states every tax figure for the holding, so ask
+    rather than pick."""
     return await _post(
         "/api/instruments",
         {
@@ -171,6 +179,7 @@ async def create_instrument(
             "currency": currency,
             "isin": isin,
             "ticker": ticker,
+            "tax_treatment": tax_treatment,
         },
     )
 

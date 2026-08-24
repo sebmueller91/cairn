@@ -33,6 +33,7 @@ from app.routers import (
     timeseries,
     transactions,
     valuations,
+    vorabpauschale,
 )
 
 @asynccontextmanager
@@ -218,5 +219,6 @@ app.include_router(attribution.router)
 app.include_router(contributions.router)
 app.include_router(allocation.router)
 app.include_router(tax.router)
+app.include_router(vorabpauschale.router)
 app.include_router(look_through.router)
 app.include_router(milestones.router)

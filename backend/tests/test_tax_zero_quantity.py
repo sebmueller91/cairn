@@ -1,17 +1,16 @@
-"""tax_service.realized_gains must not crash on a zero-quantity cost-only
-correction, and must match app.ledger's semantics for it exactly (spec:
-the same FIFO rule as app.ledger, replayed a second time).
+"""The tax view must not crash on a zero-quantity cost-only correction,
+and must treat an oversell as impossible rather than returning a gain
+computed against a partial cost.
 
-supersede_service emits a zero-quantity OPENING_BALANCE whenever a
-backfill explains every share but not the full cost basis
+Both were originally bugs in a second, independent FIFO replay that
+lived in tax_service. That replay is gone — tax_service now reads
+app.ledger's sales log, so these invariants come from the one ledger
+authority. The tests stay, pinned at the tax_service boundary: they are
+what would catch the regression if anyone reintroduces a shortcut here,
+and the zero-quantity case in particular reaches this code through
+supersede_service, which emits a zero-quantity OPENING_BALANCE whenever
+a backfill explains every share but not the full cost basis
 (tests/test_ledger_cost_only.py documents this as the routine outcome).
-Before this fix, `t.amount_eur / t.quantity` divided by zero and made
-/api/tax 500 forever after any supersede.
-
-Also covers the second, independent bug in the same replay: an oversell
-must raise, not silently truncate to a partial (wrong) cost and return a
-gain computed against it — the same InsufficientHoldingError app.ledger
-itself raises for the primary ledger.
 
 Invented ISINs and amounts only, per AGENTS.md.
 """
@@ -33,7 +32,7 @@ from app.models import (
     TxnSource,
     ValuationMode,
 )
-from app.tax_service import realized_gains
+from app.tax_service import realized_sales
 
 
 def _txn(n, type_, qty, amount, account=1, instrument=1, day=1):
@@ -77,7 +76,7 @@ def test_zero_quantity_cost_correction_does_not_crash(db_session):
     )
     db_session.commit()
 
-    gains = realized_gains(db_session)
+    gains = realized_sales(db_session)
 
     # 1500 proceeds against a corrected 1200 basis -> 300, not 500 and not
     # a ZeroDivisionError — matches ledger.py's
@@ -92,13 +91,14 @@ def test_zero_quantity_correction_with_nothing_on_hand_is_a_noop(db_session):
     db_session.add(_txn(1, TransactionType.OPENING_BALANCE, "0", "500", day=1))
     db_session.commit()
 
-    assert realized_gains(db_session) == []
+    assert realized_sales(db_session) == []
 
 
 def test_oversell_raises_instead_of_silently_truncating(db_session):
-    """The two FIFO replays (this one and app.ledger's) must agree that an
-    oversell is impossible, not paper over a divergence between them with
-    a wrong, partially-costed gain."""
+    """An oversell must raise rather than paper over the impossible state
+    with a wrong, partially-costed gain. txn_service.check_holdings stops
+    this at write time, so reaching it here means something upstream let a
+    corrupt ledger through — which must not pass as a quiet wrong number."""
     _seed_batch(db_session)
     db_session.add_all(
         [
@@ -109,6 +109,6 @@ def test_oversell_raises_instead_of_silently_truncating(db_session):
     db_session.commit()
 
     with pytest.raises(InsufficientHoldingError) as exc_info:
-        realized_gains(db_session)
+        realized_sales(db_session)
     assert exc_info.value.requested == Decimal("15")
     assert exc_info.value.available == Decimal("10")

@@ -17,6 +17,7 @@ from app.models import (
     DatePrecision,
     LiquidityTier,
     PriceMode,
+    TaxTreatment,
     TransactionType,
     TxnSource,
     ValuationMode,
@@ -82,6 +83,7 @@ class InstrumentCreate(BaseModel):
     liquidity_tier: LiquidityTier | None = None
     ter_pct: DecimalStr | None = None
     fine_weight_g: DecimalStr | None = None
+    tax_treatment: TaxTreatment | None = None
     valuation_config: dict = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     notes: str | None = None
@@ -95,6 +97,7 @@ class InstrumentUpdate(BaseModel):
     liquidity_tier: LiquidityTier | None = None
     ter_pct: DecimalStr | None = None
     fine_weight_g: DecimalStr | None = None
+    tax_treatment: TaxTreatment | None = None
     valuation_config: dict | None = None
     tags: list[str] | None = None
     notes: str | None = None
@@ -116,6 +119,7 @@ class InstrumentRead(BaseModel):
     liquidity_tier: LiquidityTier | None
     ter_pct: DecimalStr | None
     fine_weight_g: DecimalStr | None
+    tax_treatment: TaxTreatment | None
     valuation_config: dict
     tags: list[str]
     notes: str | None
@@ -408,27 +412,101 @@ class DataQualityResponse(BaseModel):
 
 
 class SaverAllowanceUsage(BaseModel):
+    """§20 Sparerpauschbetrag — a real allowance, only the excess is taxed."""
+
+    model_config = ConfigDict(from_attributes=True)
+
     year: int
     allowance_eur: DecimalStr
     realized_gains_eur: DecimalStr
     investment_income_eur: DecimalStr
+    vorabpauschale_eur: DecimalStr
     total_eur: DecimalStr
     remaining_eur: DecimalStr
 
 
+class PrivateSaleAllowanceUsage(BaseModel):
+    """§23 Freigrenze — a cliff, not an allowance. Reaching the limit
+    makes the whole amount taxable, which is why `limit_exceeded` is a
+    field of its own rather than something a client infers from
+    `remaining_eur <= 0`."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int
+    exemption_limit_eur: DecimalStr
+    realized_taxable_eur: DecimalStr
+    realized_exempt_eur: DecimalStr
+    remaining_eur: DecimalStr
+    limit_exceeded: bool
+
+
+class RegimeLiquidationRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    gross_gain_eur: DecimalStr
+    losses_eur: DecimalStr
+    net_gain_eur: DecimalStr
+    allowance_applied_eur: DecimalStr
+    taxable_eur: DecimalStr
+    tax_eur: DecimalStr
+    tax_free_gain_eur: DecimalStr
+
+
+class LiquidationSummaryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    as_of: date_
+    total_current_value_eur: DecimalStr
+    total_cost_basis_eur: DecimalStr
+    total_unrealized_pl_eur: DecimalStr
+    capital_gains: RegimeLiquidationRead
+    private_sale: RegimeLiquidationRead
+    total_tax_eur: DecimalStr
+    net_proceeds_eur: DecimalStr
+    excluded_position_count: int
+
+
 class UnrealizedTaxEstimateRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     account_id: int
     instrument_id: int
+    tax_treatment: TaxTreatment
     quantity: DecimalStr
     cost_basis_eur: DecimalStr
     current_value_eur: DecimalStr
     unrealized_pl_eur: DecimalStr
+    tax_free_gain_eur: DecimalStr
+    exposed_gain_eur: DecimalStr
+    tax_free_quantity: DecimalStr
+    next_tax_free_date: date_ | None
     estimated_tax_eur: DecimalStr
+
+
+class VorabpauschaleEntryCreate(BaseModel):
+    # The year the amount counts against the saver's allowance, i.e. the
+    # year the broker debited it — not the year it accrued for.
+    year: int = Field(ge=1, le=9999)
+    amount_eur: DecimalStr = Field(ge=0)
+    note: str | None = None
+
+
+class VorabpauschaleEntryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    year: int
+    amount_eur: DecimalStr
+    note: str | None
+    updated_at: datetime | None
 
 
 class TaxOverviewResponse(BaseModel):
     saver_allowance: SaverAllowanceUsage
+    private_sale_allowance: PrivateSaleAllowanceUsage
+    liquidation: LiquidationSummaryRead
     unrealized: list[UnrealizedTaxEstimateRead]
+    vorabpauschale: VorabpauschaleEntryRead | None
     vorabpauschale_reminder: str | None
 
 

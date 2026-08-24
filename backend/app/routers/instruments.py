@@ -28,6 +28,7 @@ def _to_read(instrument: Instrument) -> InstrumentRead:
         liquidity_tier=instrument.liquidity_tier,
         ter_pct=instrument.ter_pct,
         fine_weight_g=instrument.fine_weight_g,
+        tax_treatment=instrument.tax_treatment,
         valuation_config=json.loads(instrument.valuation_config_json or "{}"),
         tags=json.loads(instrument.tags_json or "[]"),
         notes=instrument.notes,
