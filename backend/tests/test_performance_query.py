@@ -781,3 +781,85 @@ def test_benchmark_opening_value_is_not_double_counted_at_inception(
     # 10 -> 11 is +10%, regardless of how the flows are scheduled: a
     # double-counted opening balance would distort this away from 110.
     assert body["benchmark_curve"][-1]["index_value"] == pytest.approx(110.0, abs=1e-6)
+
+
+def test_benchmark_return_pct_matches_the_index_own_price_move(
+    client, auth_headers, db_session
+):
+    """The headline comparison must be the benchmark's actual return, not
+    something that drifts from it. A fully-invested shadow portfolio's
+    chained return is exactly the index's price return over the window,
+    whatever the portfolio it is drawn against did."""
+    from app.models import PricePoint
+
+    account = client.post(
+        "/api/accounts",
+        json={"name": "Depot", "type": "BROKERAGE", "currency": "EUR"},
+        headers=auth_headers,
+    ).json()["id"]
+    held = client.post(
+        "/api/instruments",
+        json={
+            "name": "Held", "isin": "XX0000000780", "asset_class": "CRYPTO",
+            "valuation_mode": "MARKET", "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()["id"]
+    benchmark = client.post(
+        "/api/instruments",
+        json={
+            "name": "Index", "isin": "XX0000000790", "asset_class": "EQUITY",
+            "valuation_mode": "MARKET", "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()["id"]
+
+    # The holding triples; the index doubles. Deliberately different, so
+    # a benchmark figure that echoed the portfolio would be caught.
+    for instrument, marks in [
+        (held, [(date(2024, 1, 1), "100.00"), (date(2024, 6, 1), "300.00")]),
+        (benchmark, [(date(2024, 1, 1), "10.00"), (date(2024, 6, 1), "20.00")]),
+    ]:
+        for d, close in marks:
+            db_session.add(
+                PricePoint(
+                    instrument_id=instrument, date=d, close=Decimal(close),
+                    currency="EUR", provider="test", quality="ok",
+                )
+            )
+    db_session.commit()
+    client.post(
+        "/api/transactions",
+        json={
+            "external_id": "bret-buy", "date": "2024-01-01", "type": "BUY",
+            "account_id": account, "instrument_id": held,
+            "quantity": "10", "price": "100.00", "currency": "EUR",
+        },
+        headers=auth_headers,
+    )
+    client.post("/api/admin/rebuild-snapshots", headers=auth_headers)
+
+    body = client.get(
+        "/api/performance",
+        params={
+            "scope": "total", "period": "inception", "method": "twr",
+            "benchmark_instrument_id": benchmark,
+        },
+        headers=auth_headers,
+    ).json()
+
+    assert body["return_pct"] == pytest.approx(2.0, abs=1e-9)           # +200%
+    assert body["benchmark_return_pct"] == pytest.approx(1.0, abs=1e-9)  # +100%
+    # And it agrees with the curve it is drawn beside, so the headline
+    # figure and the chart can never tell different stories.
+    assert body["benchmark_curve"][-1]["index_value"] == pytest.approx(200.0, abs=1e-6)
+
+
+def test_benchmark_return_pct_absent_without_a_benchmark(client, auth_headers, db_session):
+    _setup_scenario(client, auth_headers, db_session)
+    body = client.get(
+        "/api/performance",
+        params={"scope": "total", "period": "inception", "method": "twr"},
+        headers=auth_headers,
+    ).json()
+    assert body["benchmark_return_pct"] is None

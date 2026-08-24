@@ -82,6 +82,19 @@ export function ReturnsTab() {
   const curveData = perf?.curve?.map((p) => ({ date: p.date, value: p.index_value })) ?? [];
   const benchmarkCurveData = perf?.benchmark_curve?.map((p) => ({ date: p.date, value: p.index_value }));
 
+  // The comparison the benchmark exists to make, stated outright. Both
+  // curves are indexed to 100 at the window start, so they always *look*
+  // like they begin together — without these two figures there is no way
+  // to read either total off the chart, and a benchmark that happens to
+  // land near the portfolio is indistinguishable from one that never
+  // loaded. Expressed in percentage points: it is a difference of two
+  // percentages, not a percentage of one.
+  const benchmarkReturn = benchmarkId && method === "twr" ? perf?.benchmark_return_pct : null;
+  const excessPp =
+    perf?.return_pct != null && benchmarkReturn != null
+      ? (perf.return_pct - benchmarkReturn) * 100
+      : null;
+
   return (
     <div className="space-y-6">
       <GlassCard className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -151,6 +164,31 @@ export function ReturnsTab() {
               <div className="text-xs text-text-muted">
                 {formatDate(perf.start_date, i18n.language)} – {formatDate(perf.end_date, i18n.language)}
               </div>
+              {benchmarkReturn != null && (
+                <div className="mt-3 flex flex-wrap items-baseline gap-x-4 gap-y-1 text-sm">
+                  <span className="text-text-muted">
+                    {benchmarkName ?? t("benchmark")}:{" "}
+                    <span className="tnum text-text">
+                      {formatPercent(benchmarkReturn, i18n.language, {
+                        signDisplay: "always",
+                      })}
+                    </span>
+                  </span>
+                  {excessPp != null && (
+                    <span
+                      className={`tnum font-medium ${
+                        excessPp >= 0 ? "text-positive" : "text-negative"
+                      }`}
+                    >
+                      {t(excessPp >= 0 ? "outperformance" : "underperformance", {
+                        pp: formatNumber(Math.abs(excessPp), i18n.language, {
+                          maximumFractionDigits: 1,
+                        }),
+                      })}
+                    </span>
+                  )}
+                </div>
+              )}
             </StatHero>
           ) : (
             <p className="text-sm text-text-muted">{t("noReturnFigure")}</p>

@@ -302,6 +302,9 @@ export interface PerformanceResponse {
   return_pct: number | null;
   curve: PerformancePoint[] | null;
   benchmark_curve: PerformancePoint[] | null;
+  /** The benchmark's own total return over the same window, on the same
+   *  basis as `return_pct` — so the two are directly subtractable. */
+  benchmark_return_pct: number | null;
 }
 
 export interface AttributionPeriod {

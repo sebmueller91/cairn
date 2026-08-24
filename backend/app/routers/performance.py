@@ -22,6 +22,7 @@ from app.performance_query import (
     value_series,
 )
 from app.performance_service import (
+    chain_link,
     cumulative_index,
     daily_returns,
     mwr,
@@ -112,6 +113,7 @@ def get_performance(
         return_pct = float(twr(values, flows)) if returns else None
 
         benchmark_curve = None
+        benchmark_return_pct = None
         if benchmark_instrument_id is not None:
             dates = [d for d, _ in values]
             prices = benchmark_price_series(db, benchmark_instrument_id, dates)
@@ -123,6 +125,12 @@ def get_performance(
                 PerformancePoint(date=d, index_value=float(v))
                 for d, v in cumulative_index(shadow_returns)
             ]
+            # Chained the same way as the portfolio's own figure, not
+            # read off the curve's last point — same input, same
+            # function, so the two numbers are guaranteed comparable.
+            benchmark_return_pct = (
+                float(chain_link(shadow_returns)) if shadow_returns else None
+            )
 
         return PerformanceResponse(
             scope=scope,
@@ -133,6 +141,7 @@ def get_performance(
             return_pct=return_pct,
             curve=curve,
             benchmark_curve=benchmark_curve,
+            benchmark_return_pct=benchmark_return_pct,
         )
 
     # Bug fix: `flow_events` treats `start` inclusively (same convention

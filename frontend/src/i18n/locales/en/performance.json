@@ -49,5 +49,7 @@
   "filtered": "filtered",
   "portfolioFiltered": "Selection",
   "noDataForFilter": "No data for this selection.",
-  "noDataForFilterHint": "The selected asset classes hold no market-priced positions in this period. Returns are only computed for positions with a market price."
+  "noDataForFilterHint": "The selected asset classes hold no market-priced positions in this period. Returns are only computed for positions with a market price.",
+  "outperformance": "{{pp}} pp ahead",
+  "underperformance": "{{pp}} pp behind"
 }

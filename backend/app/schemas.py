@@ -352,6 +352,13 @@ class PerformanceResponse(BaseModel):
     # instead" (spec 4.2), same base-100 scale as `curve` for a direct
     # chart overlay.
     benchmark_curve: list[PerformancePoint] | None = None
+    # The benchmark's total return over the same window, on the same
+    # basis as `return_pct`. Sent explicitly rather than left for the
+    # client to derive from the curve's last point: the whole question
+    # this view exists to answer is "did I beat it, by how much", and
+    # that comparison should not depend on a client reimplementing the
+    # convention correctly.
+    benchmark_return_pct: float | None = None
 
 
 class AttributionPeriod(BaseModel):

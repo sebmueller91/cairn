@@ -55,6 +55,30 @@ export function LineCompareChart({
   }, [primary, secondary]);
 
   return (
+    <>
+      {/* Without this the two lines are unlabelled and indistinguishable
+          except by hovering — which is how a benchmark that happens to
+          land near the portfolio reads as "nothing changed". */}
+      <div className="mb-2 flex flex-wrap items-center gap-4 text-xs text-text-muted">
+        <span className="flex items-center gap-1.5">
+          <span
+            className="inline-block h-0.5 w-4 rounded"
+            style={{ background: "var(--accent)" }}
+            aria-hidden
+          />
+          {primaryLabel}
+        </span>
+        {secondary && secondaryLabel && (
+          <span className="flex items-center gap-1.5">
+            <span
+              className="inline-block h-0 w-4 border-t-2 border-dashed"
+              style={{ borderColor: "var(--text-muted)" }}
+              aria-hidden
+            />
+            {secondaryLabel}
+          </span>
+        )}
+      </div>
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data} margin={CHART_MARGINS}>
         <CartesianGrid {...gridProps} />
@@ -105,5 +129,6 @@ export function LineCompareChart({
         )}
       </LineChart>
     </ResponsiveContainer>
+    </>
   );
 }
