@@ -1,6 +1,6 @@
 # 0012 — Backup mechanics and failure visibility
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context

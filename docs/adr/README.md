@@ -38,22 +38,26 @@ What this makes easy, what it makes hard, and what would have to happen to
 revisit it.
 ```
 
-## Open decisions
+## The record
 
-Listed in the plan-mode brief; expected to become ADRs 0001 onwards:
+All fifteen decisions below are **accepted** and implemented. They are kept as
+written, at the moment they were taken — an ADR that gets edited to match what
+was eventually built has lost the only thing it was for.
 
-1. Backend language and framework
-2. Database
-3. Storage model for derived data
-4. Frontend framework, charting, styling
-5. Offline and caching strategy
-6. i18n approach
-7. Build and deployment (development on macOS, operation on a Pi)
-8. Migrations and recovery from a bad one
-9. Scheduled jobs
-10. Price provider abstraction
-11. Authentication for a single-user LAN service
-12. Backup mechanics and failure visibility
-13. Test strategy and the structure of the golden dataset
-14. TLS and the single entry point (added in phase 6, not in the original brief)
-15. Offsite backup transport to the NAS (closes the layer-3 gap ADR 0012 deferred)
+| # | Decision |
+|---|---|
+| [0001](0001-backend-language-and-framework.md) | Backend language and framework |
+| [0002](0002-database.md) | Database |
+| [0003](0003-derived-data-storage-model.md) | Storage model for derived data |
+| [0004](0004-frontend-framework-charting-styling.md) | Frontend framework, charting, styling |
+| [0005](0005-offline-and-caching-strategy.md) | Offline and caching strategy |
+| [0006](0006-i18n-approach.md) | i18n approach |
+| [0007](0007-build-and-deployment.md) | Build and deployment (macOS dev, Pi runtime) |
+| [0008](0008-migrations-and-recovery.md) | Migrations and recovery from a bad one |
+| [0009](0009-scheduled-jobs.md) | Scheduled jobs |
+| [0010](0010-price-provider-abstraction.md) | Price provider abstraction |
+| [0011](0011-authentication.md) | Authentication for a single-user LAN service |
+| [0012](0012-backup-mechanics.md) | Backup mechanics and failure visibility |
+| [0013](0013-test-strategy-and-golden-dataset.md) | Test strategy and golden dataset structure |
+| [0014](0014-tls-single-entry-point.md) | TLS and the single entry point |
+| [0015](0015-offsite-backup-transport.md) | Offsite backup transport to the NAS (closes the layer-3 gap 0012 deferred) |

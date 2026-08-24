@@ -1,6 +1,6 @@
 # 0008 — Migrations and recovery from a bad one
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context

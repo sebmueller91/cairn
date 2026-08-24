@@ -1,6 +1,6 @@
 # 0005 — Offline and caching strategy
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context

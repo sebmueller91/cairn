@@ -1,10 +1,13 @@
 # Cairn — net worth & portfolio cockpit
 
-**Purpose of this document:** the complete functional and technical brief handed
-to a coding agent. It describes *what* is built and *why* — not every line of code.
+**Purpose of this document:** the functional and technical specification — the
+authority on *what* is built and *why*, not every line of code. It began as the
+brief handed to a coding agent and is now maintained alongside the
+implementation: where the two disagree, that is a bug in one of them.
 
-**Status:** draft v1 · single user · self-hosted · base currency EUR · UI German/English
-**Repository:** `cairn` · **package:** `cairn` · **hostname on the LAN:** `cairn.<your-domain>`
+**Status:** implemented · single user · self-hosted · base currency EUR · UI German/English
+**Chapters 1–5, 7, 10–11 are binding; 6, 8, 9 are advisory.**
+**Repository:** `cairn` · **package:** `cairn` · **hostname on the LAN:** `<your-pi-hostname>`
 
 ---
 

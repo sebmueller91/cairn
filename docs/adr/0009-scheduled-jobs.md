@@ -1,6 +1,6 @@
 # 0009 — Scheduled jobs
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context

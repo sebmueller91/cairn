@@ -1,6 +1,6 @@
 # 0001 — Backend language and framework
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context

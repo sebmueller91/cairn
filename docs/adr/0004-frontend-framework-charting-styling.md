@@ -1,6 +1,6 @@
 # 0004 — Frontend framework, charting library, styling
 
-**Status:** proposed
+**Status:** accepted (with one deviation in practice — see the note at the end)
 **Date:** 2026-08-15
 
 ## Context
@@ -43,3 +43,12 @@ dense daily rendering client-side (not just a wide time range — e.g. an
 interactive daily-resolution zoom-and-pan), Recharts will start to strain and
 uPlot becomes the right answer for that view specifically. Revisit then, not
 preemptively.
+
+## Note added later
+
+Radix was never actually pulled in. The UI rebuild ended up with a small set of
+hand-rolled primitives on top of Tailwind instead — few enough, and plain enough,
+that a dependency would have bought less than it cost. Everything else in this
+decision stands as written. Recorded here rather than edited into the Decision
+above, because what was decided and what was built are two different facts and
+only one of them belongs in an ADR.

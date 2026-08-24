@@ -1,6 +1,6 @@
 # 0015 — Offsite backup transport to the NAS
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-22
 
 ## Context
