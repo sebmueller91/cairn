@@ -125,8 +125,16 @@ export function EquityBreakdownCard() {
   return (
     <GlassCard>
       <h2 className="font-medium">{t("equityBreakdown.title")}</h2>
+      {/* min-w-0 on the sections, not decoration: a grid item defaults to
+          min-width:auto ("never narrower than my content"), and fund names
+          routinely run past fifty characters, which makes a legend row about
+          440px wide. Without it the section refused the 294px track it was
+          given, pushed the card past the screen edge and took the whole
+          page's horizontal scroll with it — the amounts ended up off-screen
+          on a phone. Constrained, the track wins and the legend's own
+          `truncate` finally has room to do its job. */}
       <div className="mt-4 grid gap-8 md:grid-cols-2">
-        <section>
+        <section className="min-w-0">
           <h3 className="mb-2 text-sm text-text-muted">
             {t("equityBreakdown.byInstrument")}
           </h3>
@@ -144,7 +152,7 @@ export function EquityBreakdownCard() {
           />
         </section>
 
-        <section>
+        <section className="min-w-0">
           <h3 className="mb-2 text-sm text-text-muted">{t("equityBreakdown.byKind")}</h3>
           <DonutChart data={byKind} height={200} formatValue={money} />
           <ChartLegend
