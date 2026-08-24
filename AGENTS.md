@@ -24,7 +24,8 @@ Decided — see `docs/adr/0001` through `0013` for the reasoning behind each.
 - **Database:** SQLite, WAL mode.
 - **Frontend:** React + TypeScript + Vite, TanStack Query with an IndexedDB
   persister, Recharts (server-side `granularity` downsampling for wide
-  ranges, no second charting library), Tailwind + Radix primitives,
+  ranges, no second charting library), Tailwind v4 with hand-rolled
+  primitives (no component library — ADR 0004's Radix was never adopted),
   vite-plugin-pwa (Workbox).
 - **Auth:** static bearer token as the root of trust; agents use
   `Authorization: Bearer <token>` directly, the browser SPA exchanges it once
@@ -38,9 +39,11 @@ Decided — see `docs/adr/0001` through `0013` for the reasoning behind each.
 - **TLS/entry point:** Caddy is the only published port (80/443); the api
   container is not published to the host at all, only reachable from Caddy
   over the compose network (ADR 0014). Certificate is a local `mkcert` CA
-  (no domain available) covering `raspberrypi5`, `<pi-fqdn>`,
-  and the Pi's LAN IP — every device needs the mkcert root CA trusted once
-  to see the app as secure.
+  (no domain available) covering the Pi's short hostname, its
+  router-resolved FQDN and its LAN IP — every device needs the mkcert root
+  CA trusted once to see the app as secure. Those three names come from
+  `deploy/deploy.env` (gitignored; see `deploy/deploy.env.example`) and are
+  substituted into `deploy/Caddyfile.template` at deploy time.
 - **Jobs:** price fetch and snapshot rebuild run in-process (APScheduler);
   backup runs from host cron, deliberately decoupled from the API
   container's own health (ADR 0009). The nightly run now has a third leg

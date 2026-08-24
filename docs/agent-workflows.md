@@ -181,7 +181,10 @@ Both live now (the tables arrived in phase 5).
 ## 7. ETF region/sector breakdown (look-through)
 
 The breakdowns live in `docs/etf-compositions.json`, which is the source of
-truth — not the database. Edit the factsheet numbers there and re-run:
+truth — not the database. That file lists your actual holdings, so it is
+gitignored like `.env`: copy `docs/etf-compositions.example.json` to create
+it, or point `CAIRN_COMPOSITIONS` somewhere else. Edit the factsheet numbers
+there and re-run:
 
 ```
 python3 scripts/apply-compositions.py --dry-run   # zeigt Summen je Dimension

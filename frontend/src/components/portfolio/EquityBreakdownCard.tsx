@@ -24,8 +24,9 @@ const NAMED_SLICES = SERIES_COLORS.length;
  * produce the same thing or nothing at all.
  *
  * Fund vs. single company comes from the `etf` tag, written by
- * scripts/apply-compositions.py out of docs/etf-compositions.json — the file
- * that already draws that line, since only a fund has a look-through.
+ * scripts/apply-compositions.py out of the local etf-compositions.json
+ * (gitignored; see docs/etf-compositions.example.json) — the file that
+ * already draws that line, since only a fund has a look-through.
  * Guessing from the name ("... UCITS ETF") would break silently the first
  * time a fund is named differently.
  */

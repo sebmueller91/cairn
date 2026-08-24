@@ -1,0 +1,175 @@
+{
+  "_about": [
+    "TEMPLATE. Copy to docs/etf-compositions.json (gitignored) and replace the",
+    "instruments below with your own. Region and sector breakdown per ETF for the",
+    "look-through analysis (spec 4.4). Applied via PUT /api/instruments/{id}/composition;",
+    "scripts/apply-compositions.py reads exactly this file. The source is index",
+    "composition data, not daily factsheets - weights are rounded to whole or half",
+    "percentage points and drift over time. For exact values, replace the numbers here",
+    "from the relevant factsheet and re-run the script; the file is deliberately the",
+    "source of truth, not the database.",
+    "Instruments are resolved by `ticker`, because ISIN is not set on the older ones.",
+    "Every ticker below is invented - this file exists to document the shape."
+  ],
+  "_stand": "2026-08",
+  "_taxonomie": {
+    "region": [
+      "North America",
+      "Europe",
+      "Japan",
+      "Asia-Pacific (developed)",
+      "Emerging Asia",
+      "Latin America",
+      "Middle East & Africa",
+      "Global"
+    ],
+    "sector": [
+      "Information Technology",
+      "Financials",
+      "Health Care",
+      "Consumer Discretionary",
+      "Communication Services",
+      "Industrials",
+      "Consumer Staples",
+      "Energy",
+      "Materials",
+      "Utilities",
+      "Real Estate",
+      "Precious Metals",
+      "Crypto"
+    ],
+    "_hinweis": "Einheitlich ueber alle Instrumente - sonst summieren sich 'USA' und 'North America' nicht auf."
+  },
+  "compositions": {
+    "WRLD.XX": {
+      "_name": "Example Developed World ETF",
+      "region": {
+        "North America": 71,
+        "Europe": 14,
+        "Japan": 6,
+        "Asia-Pacific (developed)": 9
+      },
+      "sector": {
+        "Information Technology": 25,
+        "Financials": 15,
+        "Health Care": 12,
+        "Consumer Discretionary": 11,
+        "Industrials": 11,
+        "Communication Services": 8,
+        "Consumer Staples": 7,
+        "Energy": 4,
+        "Materials": 3,
+        "Utilities": 2,
+        "Real Estate": 2
+      }
+    },
+    "EMKT.XX": {
+      "_name": "Example Emerging Markets ETF",
+      "region": {
+        "Emerging Asia": 78,
+        "Latin America": 9,
+        "Middle East & Africa": 8,
+        "Europe": 5
+      },
+      "sector": {
+        "Information Technology": 24,
+        "Financials": 22,
+        "Consumer Discretionary": 13,
+        "Communication Services": 10,
+        "Industrials": 7,
+        "Materials": 7,
+        "Energy": 5,
+        "Consumer Staples": 5,
+        "Health Care": 3,
+        "Utilities": 2,
+        "Real Estate": 2
+      }
+    },
+    "SMLL.XX": {
+      "_name": "Example Global Small Cap ETF",
+      "region": {
+        "North America": 60,
+        "Europe": 18,
+        "Japan": 12,
+        "Asia-Pacific (developed)": 10
+      },
+      "sector": {
+        "Industrials": 20,
+        "Financials": 15,
+        "Consumer Discretionary": 13,
+        "Information Technology": 12,
+        "Health Care": 10,
+        "Real Estate": 8,
+        "Materials": 8,
+        "Energy": 5,
+        "Consumer Staples": 4,
+        "Communication Services": 3,
+        "Utilities": 2
+      }
+    }
+  },
+  "direct_holdings": {
+    "_about": "Einzelwerte und Sachwerte haben keine Aufteilung - fuer sie nutzt der Look-Through die Felder region/sector am Instrument selbst.",
+    "EXCO.XX": {
+      "_name": "Example Industrial Co.",
+      "region": "Europe",
+      "sector": "Industrials"
+    },
+    "EXTC.XX": {
+      "_name": "Example Tech Co.",
+      "region": "North America",
+      "sector": "Information Technology"
+    },
+    "XAU=F": {
+      "_name": "Gold (spot)",
+      "region": "n/a",
+      "sector": "Precious Metals"
+    },
+    "BTC": {
+      "_name": "Bitcoin",
+      "region": "n/a",
+      "sector": "Crypto"
+    },
+    "_hinweis_na": [
+      "region 'n/a' heisst: dieses Instrument taucht in der Regionen-Auswertung gar nicht auf.",
+      "Eine Unze Silber im Tresor hat kein Sitzland; sie in einen Sammeltopf zu werfen macht ihn",
+      "zur drittgroessten Scheibe einer Karte ueber Geografie und drueckt jede echte Region.",
+      "Unterschied zu einem leeren Feld: leer heisst 'noch nicht erfasst' und erscheint als",
+      "'Unknown', damit es auffaellt. In der Branchen-Auswertung zaehlen sie ganz normal mit."
+    ]
+  },
+  "benchmarks": {
+    "_about": [
+      "Weltmarkt-Referenz je Dimension - womit die eigene Aufteilung verglichen wird.",
+      "Fuer Regionen ist das der MSCI ACWI: rund 85% der weltweiten Marktkapitalisierung,",
+      "Industrie- und Schwellenlaender zusammen. Das ist die Aufteilung, die man haette,",
+      "wenn man einfach 'den Weltmarkt' kauft - kein Ziel, nur ein Massstab.",
+      "Wird per PUT /api/look-through/benchmark gesetzt, ebenfalls von apply-compositions.py."
+    ],
+    "region": {
+      "label": "MSCI ACWI",
+      "breakdown": {
+        "North America": 66,
+        "Europe": 14,
+        "Emerging Asia": 8.5,
+        "Japan": 5,
+        "Asia-Pacific (developed)": 4,
+        "Middle East & Africa": 1.5,
+        "Latin America": 1
+      }
+    }
+  },
+  "kinds": {
+    "_about": [
+      "Fonds oder Einzelwert - fuer die Aufteilung 'ETFs gegenueber Einzelwerten'.",
+      "Alles unter `compositions` gilt automatisch als etf, alles unter",
+      "`direct_holdings` als direct. Hier stehen nur die Instrumente, die in",
+      "keiner der beiden Listen auftauchen: verkaufte Positionen aus einem",
+      "Broker-Export, die keine Aufteilung mehr brauchen, aber trotzdem",
+      "richtig einsortiert gehoeren.",
+      "apply-compositions.py schreibt daraus das Tag `etf` bzw. `direct`."
+    ],
+    "EXDX.XX": "etf",
+    "EXSC.XX": "direct"
+  }
+}

@@ -9,12 +9,13 @@ secrets are not, and both have a defined home outside the Pi.
 
 | Thing | Location | Committed? |
 |---|---|---|
-| Application (API, frontend, Caddyfile, compose, scripts) | this repository | yes |
+| Application (API, frontend, Caddyfile template, compose, scripts) | this repository | yes |
 | SQLite database | `/srv/cairn/data/cairn.db` on the Pi | never |
 | Nightly DB snapshots (`.backup` + integrity check) | `/srv/cairn/backups/cairn-YYYY-MM-DD.db` | never |
 | Nightly logical exports (CSV+JSON ZIP) | `/srv/cairn/backups/cairn-export-YYYY-MM-DD.zip` | never |
 | API token(s) | `/srv/cairn/config/.env` **and your password manager** | never |
 | mkcert CA + leaf cert | dev Mac (`mkcert -CAROOT`) and `deploy/tls/` (gitignored) | never |
+| Deploy target names (user, hostname, FQDN, LAN IP) | dev Mac, `deploy/deploy.env` (gitignored) | shape only, in `deploy/deploy.env.example` |
 | Backup cron | `crontab -l` on the Pi: `0 3 * * * /srv/cairn/backup.sh >> /srv/cairn/backups/cron.log 2>&1` | documented here |
 | Offsite copies on the NAS | `/srv/cairn/nas/cairn/{db,exports,pre-migration}/` (SMB share) | never |
 | NAS mount units | `/etc/systemd/system/srv-cairn-nas.{mount,automount}` | templates in `deploy/systemd/` |
@@ -104,9 +105,13 @@ Roughly half an hour, as spec 6.6 estimates:
    (integrity-check it first, as above).
 5. Start the local registry the deploy pipeline pushes to:
    `docker run -d --restart=always -p 5000:5000 --name registry -v /srv/cairn/registry:/var/lib/registry registry:2`
-6. From the dev Mac, in this repo: `./scripts/deploy.sh` — builds and
-   ships the API image, frontend, Caddyfile, TLS cert, compose file, and
-   `backup.sh`.
+6. From the dev Mac, in this repo: make sure `deploy/deploy.env` exists
+   (copy `deploy/deploy.env.example` and set `PI_USER`, `PI_NAME`,
+   `PI_FQDN`, `PI_LAN_IP` — the same three names the mkcert leaf cert
+   covers, or Caddy will serve a certificate that does not match), then
+   `./scripts/deploy.sh` — builds and ships the API image, frontend,
+   rendered Caddyfile, TLS cert, compose file, and `backup.sh`. The script
+   refuses to touch the Pi if any of those variables is unset.
 7. Reinstall the cron line (table above).
 8. Re-establish the offsite leg, or the rebuilt Pi silently has no layer 3:
    `apt install cifs-utils`, write `/srv/cairn/config/nas.cred` (root-owned,

@@ -14,12 +14,25 @@
 # API at all while the container restarts.
 set -euo pipefail
 
-PI_HOST="sebastian@raspberrypi5"
-PI_KEY="$HOME/.ssh/cairn_pi"
-REGISTRY="raspberrypi5:5000"
 TAG="${1:-latest}"
 
 cd "$(dirname "$0")/.."
+
+# Where this instance lives. Not in the repository: a public clone should
+# not carry someone's LAN topology around. deploy/deploy.env.example shows
+# the shape; environment variables still win over the file.
+if [ -f deploy/deploy.env ]; then
+  # shellcheck disable=SC1091
+  . ./deploy/deploy.env
+fi
+
+PI_USER="${PI_USER:-}"
+PI_NAME="${PI_NAME:-}"
+PI_FQDN="${PI_FQDN:-}"
+PI_LAN_IP="${PI_LAN_IP:-}"
+PI_KEY="${PI_KEY:-$HOME/.ssh/cairn_pi}"
+PI_HOST="$PI_USER@$PI_NAME"
+REGISTRY="$PI_NAME:5000"
 
 echo "==> Validating prerequisites"
 # All local and read-only — nothing on the Pi has been touched yet, so
@@ -30,14 +43,20 @@ echo "==> Validating prerequisites"
 # leaving no rollback path short of a manual restore. Checking every
 # input the rest of this script depends on, before it mutates anything,
 # turns that into a clean, harmless exit instead.
+for v in PI_USER PI_NAME PI_FQDN PI_LAN_IP; do
+  [ -n "${!v}" ] || {
+    echo "$v is not set — copy deploy/deploy.env.example to deploy/deploy.env and fill it in" >&2
+    exit 1
+  }
+done
 [ -f "$PI_KEY" ] || { echo "missing SSH key: $PI_KEY" >&2; exit 1; }
-for f in deploy/tls/raspberrypi5.pem deploy/tls/raspberrypi5-key.pem; do
+for f in "deploy/tls/$PI_NAME.pem" "deploy/tls/$PI_NAME-key.pem"; do
   [ -f "$f" ] || {
     echo "missing TLS material: $f (mkcert output — see docs/adr/0014, never committed)" >&2
     exit 1
   }
 done
-[ -f deploy/Caddyfile ] || { echo "missing deploy/Caddyfile" >&2; exit 1; }
+[ -f deploy/Caddyfile.template ] || { echo "missing deploy/Caddyfile.template" >&2; exit 1; }
 [ -f deploy/docker-compose.yml ] || { echo "missing deploy/docker-compose.yml" >&2; exit 1; }
 command -v mkcert >/dev/null || {
   echo "mkcert not found on PATH (needed below for the health check's CA root)" >&2
@@ -60,8 +79,25 @@ echo "==> Ensuring remote directories exist"
 ssh -i "$PI_KEY" "$PI_HOST" 'mkdir -p /srv/cairn/frontend-dist /srv/cairn/tls'
 
 echo "==> Syncing Caddyfile, TLS cert, compose file, and backup script to the Pi"
-scp -i "$PI_KEY" deploy/Caddyfile "$PI_HOST:/srv/cairn/Caddyfile"
-scp -i "$PI_KEY" deploy/tls/raspberrypi5.pem deploy/tls/raspberrypi5-key.pem "$PI_HOST:/srv/cairn/tls/"
+# Rendered here rather than committed: the repository holds the shape,
+# deploy/deploy.env holds this instance's names. A leftover @MARKER@ would
+# make Caddy fail to parse on the Pi, so check before shipping it.
+CADDYFILE=$(mktemp)
+trap 'rm -f "$CADDYFILE"' EXIT
+sed -e "s|@PI_NAME@|$PI_NAME|g" \
+    -e "s|@PI_FQDN@|$PI_FQDN|g" \
+    -e "s|@PI_LAN_IP@|$PI_LAN_IP|g" \
+    deploy/Caddyfile.template > "$CADDYFILE"
+# mktemp is 0600; the committed file was world-readable and Caddy reads it
+# through a read-only bind mount. Keep the mode the Pi had before.
+chmod 644 "$CADDYFILE"
+! grep -q '@PI_[A-Z_]*@' "$CADDYFILE" || {
+  echo "unsubstituted marker left in the rendered Caddyfile:" >&2
+  grep -n '@PI_[A-Z_]*@' "$CADDYFILE" >&2
+  exit 1
+}
+scp -i "$PI_KEY" "$CADDYFILE" "$PI_HOST:/srv/cairn/Caddyfile"
+scp -i "$PI_KEY" "deploy/tls/$PI_NAME.pem" "deploy/tls/$PI_NAME-key.pem" "$PI_HOST:/srv/cairn/tls/"
 scp -i "$PI_KEY" deploy/docker-compose.yml "$PI_HOST:/srv/cairn/docker-compose.yml"
 scp -i "$PI_KEY" scripts/backup.sh "$PI_HOST:/srv/cairn/backup.sh"
 ssh -i "$PI_KEY" "$PI_HOST" 'chmod +x /srv/cairn/backup.sh'
@@ -97,7 +133,7 @@ source /srv/cairn/config/.env
 set +a
 # Pulled locally on the Pi: address the registry as localhost, which Docker
 # trusts as insecure by default (127.0.0.0/8) — no daemon.json change needed
-# here, unlike the Mac side which must reach it as raspberrypi5:5000.
+# here, unlike the Mac side which must reach it as $PI_NAME:5000.
 export REGISTRY=localhost:5000 TAG
 docker compose -f docker-compose.yml pull
 docker compose -f docker-compose.yml up -d
@@ -128,14 +164,14 @@ echo "==> Waiting for health check"
 health_timeout=90
 health_interval=3
 SECONDS=0
-until curl -sf --cacert "$(mkcert -CAROOT)/rootCA.pem" "https://raspberrypi5/api/health" >/dev/null; do
+until curl -sf --cacert "$(mkcert -CAROOT)/rootCA.pem" "https://$PI_NAME/api/health" >/dev/null; do
   if [ "$SECONDS" -ge "$health_timeout" ]; then
     echo "health check did not succeed within ${health_timeout}s" >&2
     exit 1
   fi
   sleep "$health_interval"
 done
-curl -sf --cacert "$(mkcert -CAROOT)/rootCA.pem" "https://raspberrypi5/api/health"
+curl -sf --cacert "$(mkcert -CAROOT)/rootCA.pem" "https://$PI_NAME/api/health"
 echo
 
 # Last step, and only reached once the API above answered healthy on

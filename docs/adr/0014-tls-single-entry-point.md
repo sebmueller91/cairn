@@ -1,6 +1,6 @@
 # 0014 — TLS and the single entry point
 
-**Status:** proposed
+**Status:** accepted
 **Date:** 2026-08-15
 
 ## Context
@@ -14,10 +14,9 @@ directly for pipeline verification; that was explicitly a placeholder
 - **A domain you own + Let's Encrypt DNS-01 via Caddy** (spec's recommended
   route) — a real certificate, no per-device trust install, but requires
   owning a registrable domain and a DNS provider with an API. Asked the
-  user directly: no domain exists, and the Pi is reached purely by its
-  FRITZ!Box-resolved local name (`raspberrypi5` → `<pi-fqdn>`
-  → `<pi-lan-ip>`). Buying a domain solely for this was offered and
-  declined.
+  user directly: no domain exists, and the Pi is reached purely by the
+  local name the router resolves (`$PI_NAME` → `$PI_FQDN` → `$PI_LAN_IP`).
+  Buying a domain solely for this was offered and declined.
 - **A local mkcert CA** (spec's stated alternative) — no domain, no ongoing
   cost, works entirely offline. Cost is per-device friction: the mkcert root
   CA has to be installed and trusted on every phone/laptop that should see
@@ -28,8 +27,8 @@ directly for pipeline verification; that was explicitly a placeholder
 
 ## Decision
 `mkcert` generates a local CA on the dev Mac and a leaf certificate for
-every name a LAN device might use to reach the Pi: `raspberrypi5`,
-`<pi-fqdn>`, `<pi-lan-ip>`, plus `localhost` for local
+every name a LAN device might use to reach the Pi — its short hostname,
+its router-resolved FQDN and its LAN address, plus `localhost` for local
 testing. Caddy terminates TLS with that certificate and becomes the
 **only** published entry point (spec 6.4): the api container no longer
 binds a host port at all (`expose: 8000` on the compose network only,
@@ -52,7 +51,7 @@ was unwilling to acquire just for this. mkcert is the documented fallback
 for exactly this situation, and the friction it trades for is one-time per
 device, not recurring.
 
-The LAN IP (`<pi-lan-ip>`) is baked into the leaf cert's SAN list, which
+The LAN IP is baked into the leaf cert's SAN list, which
 is only stable if the Pi's DHCP lease doesn't change — worth a DHCP
 reservation in the router, noted for the user rather than done here (no
 router access from this environment).
@@ -72,3 +71,12 @@ ever needs to change (new hostname, IP reassignment), it's a manual
 automatically the way ACME would. Revisit this ADR if a domain is ever
 acquired later — swapping to DNS-01 removes the per-device trust problem
 entirely and is a Caddyfile change, not a redesign.
+
+## Note added later
+
+The three site-local names this ADR originally spelled out — short hostname,
+router FQDN, LAN address — now live in `deploy/deploy.env`, which is not in
+version control. `deploy/Caddyfile.template` carries `@PI_NAME@`, `@PI_FQDN@`
+and `@PI_LAN_IP@` markers that `scripts/deploy.sh` substitutes before shipping
+the file to the Pi. Nothing about the decision changed; the repository simply
+stopped describing one particular home network.

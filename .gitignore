@@ -13,12 +13,20 @@ __pycache__/
 # Secrets
 .env
 !deploy/.env.example
+
+# Where this instance actually lives — hostnames, FQDN, LAN address.
+# deploy/deploy.env.example documents the shape.
+deploy/deploy.env
 deploy/tls/*.pem
 !deploy/tls/.gitkeep
 
 # Source documents you book from
 inbox/*
 !inbox/.gitkeep
+
+# Your real portfolio composition — holdings are private data, like the
+# database. docs/etf-compositions.example.json documents the shape.
+docs/etf-compositions.json
 
 # OS
 .DS_Store

@@ -1,7 +1,13 @@
+# Template. scripts/deploy.sh renders this and ships the result to
+# /srv/cairn/Caddyfile — the @NAME@ markers are substituted from
+# deploy/deploy.env, which is not in this repository (see
+# deploy/deploy.env.example). Site-local names are private detail; only
+# the shape belongs in version control.
+#
 # TLS via a local mkcert CA (docs/adr/0014-tls-single-entry-point.md,
 # spec 6.3's "alternative" route — no domain, so no ACME/DNS-01). The cert
 # covers every name a device on the LAN might actually use to reach the
-# Pi: the plain mDNS-ish hostname, the FRITZ!Box-resolved FQDN, and the
+# Pi: the plain mDNS-ish hostname, the router-resolved FQDN, and the
 # LAN IP itself.
 {
 	admin off
@@ -12,8 +18,8 @@
 	redir https://{host}{uri} permanent
 }
 
-raspberrypi5:443, <pi-fqdn>:443, <pi-lan-ip>:443 {
-	tls /etc/caddy/tls/raspberrypi5.pem /etc/caddy/tls/raspberrypi5-key.pem
+@PI_NAME@:443, @PI_FQDN@:443, @PI_LAN_IP@:443 {
+	tls /etc/caddy/tls/@PI_NAME@.pem /etc/caddy/tls/@PI_NAME@-key.pem
 
 	# Single entry point (spec 6.4): the api container is never published
 	# to the host directly, only reachable through Caddy on the compose

@@ -1,10 +1,15 @@
 #!/usr/bin/env python3
-"""Spielt docs/etf-compositions.json in die laufende Instanz ein.
+"""Spielt die ETF-Aufteilungen in die laufende Instanz ein.
 
 Die JSON-Datei ist die Wahrheitsquelle, nicht die Datenbank: Factsheet-
 Zahlen dort korrigieren und dieses Skript erneut laufen lassen. Der
 PUT-Endpunkt ersetzt die Aufteilung je (Instrument, Dimension)
 vollstaendig, das Skript ist also idempotent.
+
+Sie enthaelt die eigenen Bestaende und liegt deshalb ausserhalb der
+Versionskontrolle (wie .env und die Datenbank). Standardpfad ist
+docs/etf-compositions.json, ueberschreibbar per CAIRN_COMPOSITIONS.
+docs/etf-compositions.example.json dokumentiert das Format.
 
     CAIRN_API_TOKEN=... python3 scripts/apply-compositions.py [--dry-run]
 
@@ -20,11 +25,23 @@ import urllib.error
 import urllib.request
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-DATA = ROOT / "docs" / "etf-compositions.json"
+DATA = pathlib.Path(
+    os.environ.get("CAIRN_COMPOSITIONS", ROOT / "docs" / "etf-compositions.json")
+)
 BASE = os.environ.get("CAIRN_API_URL", "https://raspberrypi5")
 # Die Instanz laeuft mit einem mkcert-Zertifikat im LAN; die Pruefung
 # schlaegt je nach Trust-Store fehl und der Host ist ohnehin unser eigener.
 CTX = ssl._create_unverified_context()
+
+
+def load_data() -> dict:
+    if not DATA.exists():
+        sys.exit(
+            f"keine Aufteilungen unter {DATA}\n"
+            "docs/etf-compositions.example.json kopieren und die eigenen "
+            "Instrumente eintragen, oder CAIRN_COMPOSITIONS auf die Datei setzen."
+        )
+    return json.loads(DATA.read_text())
 
 
 def token() -> str:
@@ -61,7 +78,7 @@ def main() -> None:
                     help="nur zeigen, was gesetzt wuerde")
     args = ap.parse_args()
 
-    data = json.loads(DATA.read_text())
+    data = load_data()
     instruments = call("GET", "/api/instruments")
     by_ticker = {i["ticker"]: i for i in instruments if i.get("ticker")}
 
