@@ -11,7 +11,16 @@ from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
-from app.models import DailySnapshot, FxRate, Instrument, PricePoint, Txn, TransactionType, ValuationMode
+from app.models import (
+    AssetClass,
+    DailySnapshot,
+    FxRate,
+    Instrument,
+    PricePoint,
+    Txn,
+    TransactionType,
+    ValuationMode,
+)
 from app.performance_service import FlowEvent
 from app.valuation_service import current_instrument_value
 
@@ -26,10 +35,38 @@ class InvalidPeriodError(ValueError):
     pass
 
 
+class InvalidAssetClassError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class ScopeFilter:
     account_id: int | None = None
     instrument_id: int | None = None
+    # None means "every asset class" — deliberately distinct from a
+    # frozenset containing all of them, so the common unfiltered case
+    # never pays for a membership test, and so "the caller said nothing"
+    # stays distinguishable from "the caller listed everything".
+    asset_classes: frozenset[AssetClass] | None = None
+
+
+def parse_asset_classes(raw: str | None) -> frozenset[AssetClass] | None:
+    """Parses the comma-separated `asset_classes` query param.
+
+    An empty or absent value means unfiltered. An unknown name is an
+    error rather than something to skip: silently dropping it would
+    answer a question the caller did not ask, and a typo'd class would
+    read as a real (smaller) portfolio instead of a bad request."""
+    if raw is None:
+        return None
+    names = [part.strip() for part in raw.split(",") if part.strip()]
+    if not names:
+        return None
+    valid = {c.value for c in AssetClass}
+    unknown = [n for n in names if n not in valid]
+    if unknown:
+        raise InvalidAssetClassError(", ".join(sorted(unknown)))
+    return frozenset(AssetClass(n) for n in names)
 
 
 def parse_scope(scope: str) -> ScopeFilter:
@@ -90,7 +127,7 @@ def latest_snapshot_date(db: Session) -> date | None:
 def inception_date(db: Session, scope: ScopeFilter) -> date | None:
     """Earliest day any MARKET position existed within scope — the
     "since inception" period start."""
-    market_ids = _market_instrument_ids(db)
+    market_ids = _market_instrument_ids(db, scope)
     if not market_ids:
         return None
     rows = (
@@ -158,13 +195,20 @@ def benchmark_price_series(
     return result
 
 
-def _market_instrument_ids(db: Session) -> set[int]:
-    return {
-        row[0]
-        for row in db.query(Instrument.id).filter(
-            Instrument.valuation_mode == ValuationMode.MARKET
-        )
-    }
+def _market_instrument_ids(db: Session, scope: ScopeFilter | None = None) -> set[int]:
+    """MARKET instruments, narrowed to the scope's asset classes.
+
+    Every series in this module funnels through here, so restricting the
+    eligible instruments once is what makes the asset-class filter apply
+    consistently to values, flows and inception alike — a filter that
+    reached the value series but not the flows would report contributions
+    into excluded holdings as pure return."""
+    query = db.query(Instrument.id).filter(
+        Instrument.valuation_mode == ValuationMode.MARKET
+    )
+    if scope is not None and scope.asset_classes is not None:
+        query = query.filter(Instrument.asset_class.in_(list(scope.asset_classes)))
+    return {row[0] for row in query}
 
 
 def value_series(
@@ -179,7 +223,7 @@ def value_series(
     get surfaced; this function doesn't try to detect that."""
     if start > end:
         return []
-    market_ids = _market_instrument_ids(db)
+    market_ids = _market_instrument_ids(db, scope)
     rows = (
         db.query(DailySnapshot)
         .filter(
@@ -237,7 +281,7 @@ def flow_events(
     for both TWR and MWR without needing two different flow windows)."""
     if start > end:
         return []
-    market_ids = _market_instrument_ids(db)
+    market_ids = _market_instrument_ids(db, scope)
     types = [TransactionType.BUY, TransactionType.SELL, TransactionType.OPENING_BALANCE]
     if scope.account_id is not None:
         types.append(TransactionType.TRANSFER)

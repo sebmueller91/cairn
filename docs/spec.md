@@ -408,6 +408,21 @@ the code.
   savings rate and an assumed return
 - **Coverage / runway:** investable portfolio ÷ annual expenses (if you record
   expenses roughly) — the classic FIRE metric, optional
+- **Asset-class filter on returns:** the same global class filter the
+  wealth and portfolio views use, applied to TWR/MWR. It narrows the
+  eligible instruments once, so values, flows and inception all move
+  together — a filter reaching the value series but not the flows would
+  report contributions into excluded holdings as pure return. The
+  benchmark overlay follows it, which is the point: comparing a whole
+  portfolio (metals, crypto, cash) against MSCI World is not a
+  comparison, comparing the equity sleeve against it is.
+
+  It deliberately does *not* apply to attribution or tax. Attribution is
+  an identity — its buckets must sum to the change in total net worth,
+  and cash, loan interest and FX have no asset class. Tax hangs off
+  annual portfolio-wide figures: the Sparerpauschbetrag and the §23
+  Freigrenze are consumed by everything owned, not by a selection.
+
 - **Tax-informational** (explicitly non-binding): usage of the annual saver's
   allowance, FIFO cost basis per position, unrealised P/L with an estimated tax
   charge on sale, a reminder about the January advance lump sum.

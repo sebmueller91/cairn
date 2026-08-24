@@ -11,6 +11,8 @@ import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { LineCompareChart } from "../charts/LineCompareChart";
 import { useIsLoading } from "../../lib/queryState";
+import { useAssetFilter } from "../../lib/assetFilter";
+import { ASSET_CLASSES } from "../../lib/assetClasses";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "inception";
 const PERIODS: Period[] = ["1M", "3M", "YTD", "1Y", "3Y", "5Y", "inception"];
@@ -21,6 +23,14 @@ const BENCHMARK_STORAGE_KEY = "cairn-benchmark";
 
 export function ReturnsTab() {
   const { t, i18n } = useTranslation("performance");
+  const { selected, allSelected } = useAssetFilter();
+  // Built by walking ASSET_CLASSES rather than the Set, so an identical
+  // selection always yields an identical string: a Set preserves
+  // insertion order, so toggling a class off and back on would otherwise
+  // move it to the end and produce a new query key for the same filter.
+  const assetClassParam = allSelected
+    ? null
+    : ASSET_CLASSES.filter((c) => selected.has(c)).join(",");
   const [period, setPeriod] = useState<Period>("1Y");
   const [method, setMethod] = useState<Method>("twr");
   const [benchmarkId, setBenchmarkId] = useState<string>(
@@ -53,10 +63,11 @@ export function ReturnsTab() {
   }, [instruments, benchmarkId]);
 
   const { data: perf, isPending, isError } = useQuery({
-    queryKey: ["performance", period, method, benchmarkId],
+    queryKey: ["performance", period, method, benchmarkId, assetClassParam],
     queryFn: () => {
       const params = new URLSearchParams({ scope: "total", period, method });
       if (benchmarkId && method === "twr") params.set("benchmark_instrument_id", benchmarkId);
+      if (assetClassParam) params.set("asset_classes", assetClassParam);
       return api.get<PerformanceResponse>(`/api/performance?${params}`);
     },
   });
@@ -111,7 +122,11 @@ export function ReturnsTab() {
         // 1M when the last nightly snapshot is older than a month) — that
         // used to hide the whole card instead of the one figure it lacks.
         <GlassCard>
-          <EmptyState icon={<TrendingUp className="size-8" aria-hidden />} title={t("noData")} />
+          <EmptyState
+            icon={<TrendingUp className="size-8" aria-hidden />}
+            title={allSelected ? t("noData") : t("noDataForFilter")}
+            hint={allSelected ? undefined : t("noDataForFilterHint")}
+          />
         </GlassCard>
       ) : (
         <GlassCard
@@ -125,7 +140,10 @@ export function ReturnsTab() {
         >
           {perf.return_pct != null ? (
             <StatHero
-              label={`${t(`periods.${period}`)} · ${t(`methods.${method}`)}`}
+              label={
+                `${t(`periods.${period}`)} · ${t(`methods.${method}`)}` +
+                (allSelected ? "" : ` · ${t("filtered")}`)
+              }
               value={perf.return_pct}
               format={(n) => formatPercent(n, i18n.language, { signDisplay: "always" })}
               className={perf.return_pct >= 0 ? "text-positive" : "text-negative"}
@@ -147,7 +165,7 @@ export function ReturnsTab() {
               <LineCompareChart
                 primary={curveData}
                 secondary={benchmarkId ? benchmarkCurveData : undefined}
-                primaryLabel={t("portfolio")}
+                primaryLabel={allSelected ? t("portfolio") : t("portfolioFiltered")}
                 secondaryLabel={benchmarkName ?? t("benchmark")}
                 formatValue={(n) => formatNumber(n, i18n.language, { maximumFractionDigits: 1 })}
               />

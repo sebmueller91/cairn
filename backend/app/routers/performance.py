@@ -1,17 +1,22 @@
 from datetime import date, timedelta
+from decimal import Decimal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.auth import get_scope
 from app.database import get_db
+from dataclasses import replace as dataclass_replace
+
 from app.performance_query import (
+    InvalidAssetClassError,
     InvalidPeriodError,
     InvalidScopeError,
     benchmark_price_series,
     flow_events,
     inception_date,
     latest_snapshot_date,
+    parse_asset_classes,
     parse_scope,
     period_start,
     value_series,
@@ -34,6 +39,12 @@ def get_performance(
     period: str = "1Y",
     method: str = "twr",
     benchmark_instrument_id: int | None = Query(default=None),
+    # Comma-separated AssetClass names, e.g. "EQUITY,BOND". Absent means
+    # the whole portfolio. Orthogonal to `scope` on purpose — narrowing
+    # to one account and narrowing to one asset class are independent
+    # questions, and the interesting one ("my equities, wherever they
+    # sit, against MSCI World") needs them combinable.
+    asset_classes: str | None = Query(default=None),
     db: Session = Depends(get_db),
     _scope=Depends(get_scope),
 ) -> PerformanceResponse:
@@ -44,6 +55,14 @@ def get_performance(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "invalid_scope", "params": {"scope": scope}},
         ) from None
+    try:
+        classes = parse_asset_classes(asset_classes)
+    except InvalidAssetClassError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "invalid_asset_class", "params": {"asset_classes": str(exc)}},
+        ) from None
+    scope_filter = dataclass_replace(scope_filter, asset_classes=classes)
     if method not in ("twr", "mwr"):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -74,6 +93,16 @@ def get_performance(
     values = value_series(db, scope_filter, start, end)
     flows = flow_events(db, scope_filter, start, end)
 
+    # What the scope was already worth the day before the window opened.
+    # Both branches need it and for the same reason — it is the position
+    # that existed before any flow in `flows` — so it is computed once
+    # here rather than twice with two chances to get the off-by-one
+    # wrong. `flow_events` includes flows dated exactly on `start`, so
+    # this must come from the day before; see mwr's note below.
+    pre_start = start - timedelta(days=1)
+    pre_start_values = value_series(db, scope_filter, pre_start, pre_start)
+    start_value = pre_start_values[0][1] if pre_start_values else None
+
     if method == "twr":
         returns = daily_returns(values, flows)
         curve = [
@@ -86,7 +115,9 @@ def get_performance(
         if benchmark_instrument_id is not None:
             dates = [d for d, _ in values]
             prices = benchmark_price_series(db, benchmark_instrument_id, dates)
-            shadow_values = shadow_value_series(dates, flows, prices)
+            shadow_values = shadow_value_series(
+                dates, flows, prices, opening_value=start_value or Decimal(0)
+            )
             shadow_returns = daily_returns(shadow_values, flows)
             benchmark_curve = [
                 PerformancePoint(date=d, index_value=float(v))
@@ -117,9 +148,6 @@ def get_performance(
     # `start` itself. At true inception that's zero (nothing existed
     # yet), which is exactly right: the whole opening position then
     # enters once, correctly, via the first flow.
-    pre_start = start - timedelta(days=1)
-    pre_start_values = value_series(db, scope_filter, pre_start, pre_start)
-    start_value = pre_start_values[0][1] if pre_start_values else None
     end_value = values[-1][1] if values else None
     if start_value is None or end_value is None:
         return PerformanceResponse(

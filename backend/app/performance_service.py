@@ -109,6 +109,7 @@ def shadow_value_series(
     dates: list[date],
     flows: list[FlowEvent],
     benchmark_price: dict[date, Decimal],
+    opening_value: Decimal = Decimal(0),
 ) -> list[tuple[date, Decimal]]:
     """"What if every contribution had gone into this benchmark instead"
     (spec 4.2): each flow buys (or sells) fictional benchmark units at
@@ -134,10 +135,23 @@ def shadow_value_series(
     genuinely unknown, not carried forward — leaving the convention
     `test_shadow_value_series_missing_price_reads_as_zero` already
     covers unchanged; that test has no flow landing on its missing-price
-    date, so it wasn't exercising this bug and needed no update."""
+    date, so it wasn't exercising this bug and needed no update.
+
+    `opening_value` is what the portfolio was already worth the day
+    before the window opened, and it is bought into the benchmark on the
+    first priced date exactly like any other flow. Without it the shadow
+    portfolio is funded *only* by contributions made inside the window,
+    so a window containing no purchases produced a flat zero series and
+    the overlay silently drew nothing — which is every window shorter
+    than the age of the holdings, i.e. the common case for anyone
+    comparing a long-held portfolio against an index over 1Y. It must be
+    the value on the day *before* `dates[0]`, not on `dates[0]` itself:
+    `flow_events` includes a flow dated exactly on the window start, and
+    a same-day value would already reflect that trade, double-counting
+    it. At true inception this is zero and nothing changes."""
     flow_map = _flows_by_date(flows)
     units = Decimal(0)
-    pending_flow = Decimal(0)
+    pending_flow = opening_value
     out: list[tuple[date, Decimal]] = []
     for d in dates:
         price = benchmark_price.get(d)
