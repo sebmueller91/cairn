@@ -99,13 +99,19 @@ export function ReturnsTab() {
     <div className="space-y-6">
       <GlassCard className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <SegmentedControl options={periodOptions} value={period} onChange={setPeriod} />
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SegmentedControl options={methodOptions} value={method} onChange={setMethod} />
           {method === "twr" && (
             <select
               value={benchmarkId}
               onChange={(e) => setBenchmarkId(e.target.value)}
-              className="h-8 rounded-full border border-border bg-bg-subtle px-3 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+              // A native select sizes itself to its longest <option>, and
+              // these are fund names — 58 characters is normal. Unconstrained
+              // that made the control wider than a phone screen, which widens
+              // the whole document, which in turn lets the page pinch-zoom out
+              // past 100% and never line back up. max-w-full alone would lose
+              // to the flex item's default min-width:auto, so both are needed.
+              className="h-8 min-w-0 max-w-full truncate rounded-full border border-border bg-bg-subtle px-3 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
             >
               <option value="">{t("noBenchmark")}</option>
               {marketInstruments.map((i) => (
