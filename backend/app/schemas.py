@@ -361,6 +361,62 @@ class PerformanceResponse(BaseModel):
     benchmark_return_pct: float | None = None
 
 
+class CalendarYearReturnRead(BaseModel):
+    year: int
+    # The part of the year actually covered. Clipped by inception at the
+    # near end and by the last nightly snapshot at the far end.
+    start_date: date_
+    end_date: date_
+    partial: bool
+    # TWR over the year, measured from the previous 31 December's close so
+    # the years chain back to the since-inception figure. None when the
+    # window held no daily return at all — deliberately not 0.0, which
+    # would read as "flat" rather than "nothing to report".
+    return_pct: float | None
+    # Same shadow-portfolio convention as PerformanceResponse's
+    # benchmark_return_pct ("what if every contribution had gone into
+    # this instead"), so the table and the chart can never disagree.
+    benchmark_return_pct: float | None = None
+
+
+class CalendarYearsResponse(BaseModel):
+    scope: str
+    # Always "twr". MWR is an annualised rate derived from the timing of
+    # flows; slicing it per calendar year and reading the results as a
+    # sequence would invite a comparison the number does not support.
+    method: str
+    years: list[CalendarYearReturnRead]
+
+
+class InstrumentReturnRead(BaseModel):
+    instrument_id: int
+    name: str
+    asset_class: str
+    # This instrument's own window: the requested period clipped to when
+    # it was actually first held, so a holding bought last month does not
+    # claim a one-year return.
+    start_date: date_
+    end_date: date_
+    return_pct: float | None
+    # Current value, carried so the ranking is readable — a +400% return
+    # on a 50 EUR position is noise, and a table of percentages alone
+    # gives no way to tell.
+    value_eur: DecimalStr
+
+
+class InstrumentReturnsResponse(BaseModel):
+    period: str
+    method: str
+    # The window the period resolved to, before each row clips it to its
+    # own inception. Sent so a client can tell which rows are actually
+    # shorter than what was asked for — comparing a row's start_date
+    # against this is the only way to know, and repeating the same date on
+    # every row instead says nothing.
+    start_date: date_
+    end_date: date_
+    instruments: list[InstrumentReturnRead]
+
+
 class AttributionPeriod(BaseModel):
     start_date: date_
     end_date: date_

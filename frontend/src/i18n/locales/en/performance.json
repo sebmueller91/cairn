@@ -51,5 +51,28 @@
   "noDataForFilter": "No data for this selection.",
   "noDataForFilterHint": "The selected asset classes hold no market-priced positions in this period. Returns are only computed for positions with a market price.",
   "outperformance": "{{pp}} pp ahead",
-  "underperformance": "{{pp}} pp behind"
+  "underperformance": "{{pp}} pp behind",
+  "scope": {
+    "label": "Scope",
+    "total": "Whole portfolio",
+    "accounts": "Accounts",
+    "instruments": "Instruments"
+  },
+  "calendarYears": {
+    "title": "Year by year",
+    "year": "Year",
+    "portfolio": "Return",
+    "excess": "Difference",
+    "partial": "part year",
+    "partialHint": "This year is only partly covered — not comparable with a full one.",
+    "empty": "No completed period yet."
+  },
+  "byInstrument": {
+    "title": "By holding",
+    "instrument": "Holding",
+    "value": "Value",
+    "hint": "Time-weighted return per holding, so the timing of your purchases does not distort the comparison. Select a row to narrow this tab to it.",
+    "empty": "No market-priced holdings in this selection.",
+    "onlyFrom": "only from {{date}}"
+  }
 }

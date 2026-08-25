@@ -62,7 +62,7 @@ internet-facing deployment. It is a LAN service for one household.
 ## Status
 
 **Running in production** on a Raspberry Pi 5, feature-complete against the
-specification. 368 backend tests and 98 frontend tests, all green.
+specification. 439 backend tests and 98 frontend tests, all green.
 
 ## Stack
 

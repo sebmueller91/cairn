@@ -357,7 +357,29 @@ switch between the three perspectives, defaulting to *investable portfolio*.
 - **MWR / XIRR (money-weighted)** — internal rate of return across all capital
   flows. Answers: *what did this earn **me**?* Reflects the timing of contributions.
 - Both for 1M / 3M / YTD / 1Y / 3Y / 5Y / since inception, in total, per account
-  or per instrument.
+  or per instrument. The scope is a selector on the returns view, and the
+  per-instrument case is also served whole, as a ranking — a batch endpoint
+  rather than one request per holding, because inception and the value series
+  each re-scan the snapshot table.
+
+  The ranking is deliberately *not* the unrealised P/L percentage the portfolio
+  view already carries. That one compares a lot against what was paid for it and
+  is therefore dominated by *when* it was bought; only a time-weighted figure is
+  comparable between two holdings, or against a benchmark. Each row reports its
+  own window, since a holding younger than the requested period cannot cover it.
+- **Calendar years:** the same TWR cut by calendar year rather than by trailing
+  window, with the benchmark alongside it. Each year is measured from the
+  previous 31 December's close, so the years chain: multiplying them together
+  reproduces the since-inception figure, and that identity is what makes the
+  table checkable. A year clipped at either end — by inception, or by the last
+  snapshot — is marked as partial rather than presented as an annual return.
+
+  This is not a reversal of 4.5. Volatility and drawdown were dropped as
+  decoration for a portfolio checked every few months; a year-by-year table is
+  the granularity people actually narrate their own finances in, and it is
+  derived from the same chained returns rather than a second set of numbers.
+  MWR is deliberately absent from it: an annualised rate shaped by the timing of
+  flows does not mean what a column of them read top-to-bottom would suggest.
 - **Benchmark overlay:** a selectable reference (e.g. an MSCI World ETF) as a
   line in the chart, plus the question "what if every contribution had gone into
   X instead?" — highly informative and trivial to compute with the flows already

@@ -51,5 +51,28 @@
   "noDataForFilter": "Keine Daten für diese Auswahl.",
   "noDataForFilterHint": "In den gewählten Anlageklassen gibt es in diesem Zeitraum keine marktbewerteten Positionen. Rendite wird nur für Positionen mit Marktpreis berechnet.",
   "outperformance": "{{pp}} pp besser",
-  "underperformance": "{{pp}} pp schlechter"
+  "underperformance": "{{pp}} pp schlechter",
+  "scope": {
+    "label": "Bereich",
+    "total": "Gesamtportfolio",
+    "accounts": "Konten",
+    "instruments": "Instrumente"
+  },
+  "calendarYears": {
+    "title": "Jahr für Jahr",
+    "year": "Jahr",
+    "portfolio": "Rendite",
+    "excess": "Differenz",
+    "partial": "Teiljahr",
+    "partialHint": "Dieses Jahr ist nur teilweise erfasst — nicht mit einem vollen Jahr vergleichbar.",
+    "empty": "Noch kein abgeschlossener Zeitraum."
+  },
+  "byInstrument": {
+    "title": "Nach Position",
+    "instrument": "Position",
+    "value": "Wert",
+    "hint": "Zeitgewichtete Rendite je Position, damit der Zeitpunkt der Käufe den Vergleich nicht verzerrt. Zeile auswählen, um den Tab darauf einzugrenzen.",
+    "empty": "Keine marktbewerteten Positionen in dieser Auswahl.",
+    "onlyFrom": "erst ab {{date}}"
+  }
 }

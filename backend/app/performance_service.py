@@ -105,6 +105,39 @@ def twr(values: list[tuple[date, Decimal]], flows: list[FlowEvent]) -> Decimal:
     return chain_link(daily_returns(values, flows))
 
 
+def calendar_year_slices(
+    values: list[tuple[date, Decimal]],
+) -> list[tuple[int, list[tuple[date, Decimal]]]]:
+    """Split a dense daily value series into one sub-series per calendar
+    year, ready to hand to `twr` for a year-by-year return table.
+
+    Each year after the first is prefixed with the final point of the
+    previous year. That prefix is the whole point of this function:
+    `daily_returns` measures each day against its predecessor, so a slice
+    that began on 1 January would have no base for that day and would
+    silently drop it. One lost day per year is invisible by eye and
+    compounds — and it would break the identity that chaining the yearly
+    returns together reproduces the return over the whole series.
+
+    Years with no points at all are absent rather than present-and-empty:
+    a fabricated year would render as a 0.00% return, which reads as
+    "flat" when the truth is "no data".
+    """
+    by_year: dict[int, list[tuple[date, Decimal]]] = {}
+    for d, v in values:
+        by_year.setdefault(d.year, []).append((d, v))
+
+    out: list[tuple[int, list[tuple[date, Decimal]]]] = []
+    previous: list[tuple[date, Decimal]] | None = None
+    for year in sorted(by_year):
+        chunk = by_year[year]
+        if previous is not None:
+            chunk = [previous[-1]] + chunk
+        out.append((year, chunk))
+        previous = by_year[year]
+    return out
+
+
 def shadow_value_series(
     dates: list[date],
     flows: list[FlowEvent],

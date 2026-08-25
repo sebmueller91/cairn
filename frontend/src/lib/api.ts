@@ -307,6 +307,44 @@ export interface PerformanceResponse {
   benchmark_return_pct: number | null;
 }
 
+export interface CalendarYearReturn {
+  year: number;
+  start_date: string;
+  end_date: string;
+  /** The year is clipped at one end — by inception, or by the last
+   *  snapshot. A partial year is not comparable with a full one. */
+  partial: boolean;
+  return_pct: number | null;
+  benchmark_return_pct: number | null;
+}
+
+export interface CalendarYearsResponse {
+  scope: string;
+  method: string;
+  years: CalendarYearReturn[];
+}
+
+export interface InstrumentReturn {
+  instrument_id: number;
+  name: string;
+  asset_class: AssetClass;
+  start_date: string;
+  end_date: string;
+  return_pct: number | null;
+  value_eur: string;
+}
+
+export interface InstrumentReturnsResponse {
+  period: string;
+  method: string;
+  /** The window the period resolved to, before each row clips it to its
+   *  own inception — compare a row's `start_date` against this to tell
+   *  whether that row covers less than was asked for. */
+  start_date: string;
+  end_date: string;
+  instruments: InstrumentReturn[];
+}
+
 export interface AttributionPeriod {
   start_date: string;
   end_date: string;

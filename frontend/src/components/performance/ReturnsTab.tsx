@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useQuery } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
-import { api, type Instrument, type PerformanceResponse } from "../../lib/api";
+import { api, type Account, type Instrument, type PerformanceResponse } from "../../lib/api";
 import { formatDate, formatNumber, formatPercent } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
 import { SegmentedControl } from "../ui/SegmentedControl";
@@ -13,6 +13,8 @@ import { LineCompareChart } from "../charts/LineCompareChart";
 import { useIsLoading } from "../../lib/queryState";
 import { useAssetFilter } from "../../lib/assetFilter";
 import { ASSET_CLASSES } from "../../lib/assetClasses";
+import { CalendarYearsCard } from "./CalendarYearsCard";
+import { InstrumentReturnsCard } from "./InstrumentReturnsCard";
 
 type Period = "1M" | "3M" | "YTD" | "1Y" | "3Y" | "5Y" | "inception";
 const PERIODS: Period[] = ["1M", "3M", "YTD", "1Y", "3Y", "5Y", "inception"];
@@ -20,6 +22,18 @@ type Method = "twr" | "mwr";
 
 // Survives a reload — the benchmark is a preference, not view state.
 const BENCHMARK_STORAGE_KEY = "cairn-benchmark";
+
+// Only these hold market-priced instruments, so only these have a return
+// to report. A REAL_ESTATE or LOAN account listed here would offer a
+// scope that can only ever render the empty state.
+const SCOPEABLE_ACCOUNT_TYPES = new Set(["BROKERAGE", "CRYPTO_WALLET", "PHYSICAL_STORAGE"]);
+
+/** `instrument:7` -> 7, anything else -> null. */
+function selectedInstrumentId(scope: string): number | null {
+  if (!scope.startsWith("instrument:")) return null;
+  const id = Number(scope.slice("instrument:".length));
+  return Number.isFinite(id) ? id : null;
+}
 
 export function ReturnsTab() {
   const { t, i18n } = useTranslation("performance");
@@ -33,6 +47,12 @@ export function ReturnsTab() {
     : ASSET_CLASSES.filter((c) => selected.has(c)).join(",");
   const [period, setPeriod] = useState<Period>("1Y");
   const [method, setMethod] = useState<Method>("twr");
+  // Spec 4.2 asks for TWR/MWR "in total, per account or per instrument".
+  // Deliberately not persisted, unlike the benchmark: a narrowed scope is
+  // something you go and look at, not a standing preference — coming back
+  // to the tab tomorrow and finding it still showing one holding would
+  // read as the whole portfolio having shrunk.
+  const [scope, setScope] = useState<string>("total");
   const [benchmarkId, setBenchmarkId] = useState<string>(
     () => localStorage.getItem(BENCHMARK_STORAGE_KEY) ?? "",
   );
@@ -45,8 +65,21 @@ export function ReturnsTab() {
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
+  const { data: accounts } = useQuery({
+    queryKey: ["accounts"],
+    queryFn: () => api.get<Account[]>("/api/accounts"),
+  });
   const marketInstruments = (instruments ?? []).filter((i) => i.valuation_mode === "MARKET");
+  const scopeableAccounts = (accounts ?? []).filter(
+    (a) => !a.archived && SCOPEABLE_ACCOUNT_TYPES.has(a.type),
+  );
   const benchmarkName = instruments?.find((i) => String(i.id) === benchmarkId)?.name;
+  const scopeName =
+    scope === "total"
+      ? null
+      : scope.startsWith("account:")
+        ? accounts?.find((a) => `account:${a.id}` === scope)?.name
+        : instruments?.find((i) => `instrument:${i.id}` === scope)?.name;
 
   // A benchmark instrument that gets deleted after being picked here stays
   // pinned in localStorage forever (BENCHMARK_STORAGE_KEY), so the curve
@@ -62,10 +95,25 @@ export function ReturnsTab() {
     }
   }, [instruments, benchmarkId]);
 
+  // A scope pointing at something that no longer exists would render an
+  // empty state with no way back other than knowing to reset the select.
+  // Same `instruments`-is-present guard as above, so a failed fetch is
+  // never mistaken for a deleted row.
+  useEffect(() => {
+    if (scope.startsWith("instrument:") && instruments) {
+      const id = scope.slice("instrument:".length);
+      if (!instruments.some((i) => String(i.id) === id)) setScope("total");
+    }
+    if (scope.startsWith("account:") && accounts) {
+      const id = scope.slice("account:".length);
+      if (!accounts.some((a) => String(a.id) === id)) setScope("total");
+    }
+  }, [scope, instruments, accounts]);
+
   const { data: perf, isPending, isError } = useQuery({
-    queryKey: ["performance", period, method, benchmarkId, assetClassParam],
+    queryKey: ["performance", scope, period, method, benchmarkId, assetClassParam],
     queryFn: () => {
-      const params = new URLSearchParams({ scope: "total", period, method });
+      const params = new URLSearchParams({ scope, period, method });
       if (benchmarkId && method === "twr") params.set("benchmark_instrument_id", benchmarkId);
       if (assetClassParam) params.set("asset_classes", assetClassParam);
       return api.get<PerformanceResponse>(`/api/performance?${params}`);
@@ -100,6 +148,35 @@ export function ReturnsTab() {
       <GlassCard className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
         <SegmentedControl options={periodOptions} value={period} onChange={setPeriod} />
         <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <select
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            aria-label={t("scope.label")}
+            // Same width discipline as the benchmark select below: account
+            // and fund names are long, and an unconstrained select widens
+            // the whole document on a phone.
+            className="h-8 min-w-0 max-w-full truncate rounded-full border border-border bg-bg-subtle px-3 text-xs text-text focus:outline-none focus:ring-1 focus:ring-accent"
+          >
+            <option value="total">{t("scope.total")}</option>
+            {scopeableAccounts.length > 0 && (
+              <optgroup label={t("scope.accounts")}>
+                {scopeableAccounts.map((a) => (
+                  <option key={a.id} value={`account:${a.id}`}>
+                    {a.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {marketInstruments.length > 0 && (
+              <optgroup label={t("scope.instruments")}>
+                {marketInstruments.map((i) => (
+                  <option key={i.id} value={`instrument:${i.id}`}>
+                    {i.name}
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
           <SegmentedControl options={methodOptions} value={method} onChange={setMethod} />
           {method === "twr" && (
             <select
@@ -161,6 +238,7 @@ export function ReturnsTab() {
             <StatHero
               label={
                 `${t(`periods.${period}`)} · ${t(`methods.${method}`)}` +
+                (scopeName ? ` · ${scopeName}` : "") +
                 (allSelected ? "" : ` · ${t("filtered")}`)
               }
               value={perf.return_pct}
@@ -209,7 +287,7 @@ export function ReturnsTab() {
               <LineCompareChart
                 primary={curveData}
                 secondary={benchmarkId ? benchmarkCurveData : undefined}
-                primaryLabel={allSelected ? t("portfolio") : t("portfolioFiltered")}
+                primaryLabel={scopeName ?? (allSelected ? t("portfolio") : t("portfolioFiltered"))}
                 secondaryLabel={benchmarkName ?? t("benchmark")}
                 formatValue={(n) => formatNumber(n, i18n.language, { maximumFractionDigits: 1 })}
               />
@@ -217,6 +295,25 @@ export function ReturnsTab() {
           </div>
         </GlassCard>
       )}
+
+      <CalendarYearsCard
+        scope={scope}
+        benchmarkId={benchmarkId}
+        benchmarkName={benchmarkName}
+        assetClassParam={assetClassParam}
+      />
+
+      <InstrumentReturnsCard
+        period={period}
+        method={method}
+        assetClassParam={assetClassParam}
+        selectedInstrumentId={selectedInstrumentId(scope)}
+        onSelectInstrument={(id) =>
+          // Clicking the row you are already scoped to backs out again,
+          // so the ranking is a toggle rather than a one-way door.
+          setScope((current) => (current === `instrument:${id}` ? "total" : `instrument:${id}`))
+        }
+      />
     </div>
   );
 }
