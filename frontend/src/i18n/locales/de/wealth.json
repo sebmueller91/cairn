@@ -41,5 +41,27 @@
   "empty": {
     "title": "Noch keine Historie",
     "hint": "Sobald die ersten Tages-Snapshots vorliegen, entsteht hier der Vermögensverlauf."
+  },
+  "outlook": {
+    "title": "Ausblick",
+    "disclaimer": "Eine Annahme, keine Prognose — wohin es führt, wenn alles so bleibt.",
+    "years": "{{count}}J",
+    "today": "heute",
+    "recorded": "Erfasst",
+    "projected": "Projiziert",
+    "range": "Spanne",
+    "summary": "In {{years}} Jahren rund {{value}}.",
+    "summaryRange": "({{low}} bis {{high}} über die Renditespanne.)",
+    "assumedReturn": "Angenommene Rendite % p. a.",
+    "spread": "Spanne {{low}} – {{high}} %",
+    "monthlySavings": "Monatliche Sparrate €",
+    "savingsDerived": "gemessen, letzte 12 Monate",
+    "savingsOverride": "eigener Wert",
+    "reset": "zurücksetzen",
+    "inflationNote": "In heutiger Kaufkraft, bei angenommenen {{pct}} % Inflation p. a.",
+    "filteredTitle": "Nur für das Gesamtportfolio",
+    "filteredHint": "Die Projektion startet beim Nettovermögen und lässt es mit der Gesamtsparrate wachsen. Beides gehört zu keiner einzelnen Anlageklasse — eine gefilterte Projektion würde eine Zahl mit einer Rate hochrechnen, die nie zu ihr gehörte. Filter aufheben, um sie zu sehen.",
+    "emptyTitle": "Noch keine Basis für eine Projektion",
+    "emptyHint": "Die Projektion startet beim zuletzt erfassten Nettovermögen. Sobald ein Snapshot vorliegt, erscheint sie hier."
   }
 }

@@ -26,6 +26,7 @@ from app.routers import (
     milestones,
     performance,
     positions,
+    projection,
     price_sources,
     prices,
     reconcile,
@@ -222,3 +223,4 @@ app.include_router(tax.router)
 app.include_router(vorabpauschale.router)
 app.include_router(look_through.router)
 app.include_router(milestones.router)
+app.include_router(projection.router)

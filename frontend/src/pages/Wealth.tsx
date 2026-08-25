@@ -13,6 +13,7 @@ import { AssetPresetChips } from "../components/AssetPresetChips";
 import { PageHeader } from "../components/ui/PageHeader";
 import { ClassMixCard } from "../components/wealth/ClassMixCard";
 import { MilestoneJourney } from "../components/wealth/MilestoneJourney";
+import { OutlookCard } from "../components/wealth/OutlookCard";
 import { Replay } from "../components/wealth/Replay";
 import { WealthCurveCard } from "../components/wealth/WealthCurveCard";
 import { rangeFor, type Period } from "../components/wealth/util";
@@ -103,6 +104,16 @@ export function Wealth() {
         selected={selected}
         allSelected={allSelected}
         milestone={milestoneQuery.data}
+        isLoading={historyQuery.isPending}
+      />
+
+      {/* Last, deliberately: everything above it is recorded, this one is
+          an assumption, and the page should read in that order. Shares the
+          full-history query with the milestone ladder above. */}
+      <OutlookCard
+        history={historyQuery.data}
+        selected={selected}
+        allSelected={allSelected}
         isLoading={historyQuery.isPending}
       />
     </div>

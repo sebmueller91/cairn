@@ -41,5 +41,27 @@
   "empty": {
     "title": "No history yet",
     "hint": "Once the first daily snapshots exist, your wealth curve appears here."
+  },
+  "outlook": {
+    "title": "Outlook",
+    "disclaimer": "An assumption, not a forecast — where this goes if nothing changes.",
+    "years": "{{count}}y",
+    "today": "today",
+    "recorded": "Recorded",
+    "projected": "Projected",
+    "range": "Range",
+    "summary": "In {{years}} years, around {{value}}.",
+    "summaryRange": "({{low}} to {{high}} across the return range.)",
+    "assumedReturn": "Assumed return % p.a.",
+    "spread": "range {{low}} – {{high}} %",
+    "monthlySavings": "Monthly savings €",
+    "savingsDerived": "measured, last 12 months",
+    "savingsOverride": "your figure",
+    "reset": "reset",
+    "inflationNote": "In today's money, assuming {{pct}} % inflation p.a.",
+    "filteredTitle": "Shown for the whole portfolio only",
+    "filteredHint": "The projection starts from net worth and grows it at your overall savings rate. Neither belongs to a single asset class, so a filtered projection would compound one number against a rate that was never its own. Clear the filter to see it.",
+    "emptyTitle": "Nothing to project from yet",
+    "emptyHint": "The projection starts from the latest recorded net worth. Once a snapshot exists, it will appear here."
   }
 }

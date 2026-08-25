@@ -631,6 +631,40 @@ class MilestoneResponse(BaseModel):
     estimated_date: date_ | None
 
 
+class ProjectionPoint(BaseModel):
+    date: date_
+    # The pessimistic, central and optimistic return assumptions. Three
+    # values rather than one because a single projected line reads as a
+    # forecast, and this is not one.
+    low_eur: DecimalStr
+    mid_eur: DecimalStr
+    high_eur: DecimalStr
+
+
+class ProjectionResponse(BaseModel):
+    scope: str
+    # Where the projection picks up from — the last day the snapshot
+    # engine has materialised, and its value there.
+    start_date: date_
+    start_value_eur: DecimalStr
+    monthly_savings_eur: DecimalStr
+    # "derived" (the trailing twelve-month rate, a measured figure) or
+    # "override" (a what-if the caller supplied). The two must never be
+    # indistinguishable on screen: one is history, the other is a wish.
+    monthly_savings_source: str
+    annual_return_pct: DecimalStr
+    return_low_pct: DecimalStr
+    return_high_pct: DecimalStr
+    annual_inflation_pct: DecimalStr
+    # Whether `points` are in today's purchasing power. Mirrors the
+    # `real` flag on /api/timeseries/networth, and is echoed back so the
+    # client never has to assume which basis it is looking at.
+    real: bool
+    # Empty when there is no snapshot to start from. Deliberately not a
+    # flat line at zero, which would read as a real answer.
+    points: list[ProjectionPoint]
+
+
 class RebuildSnapshotsResponse(BaseModel):
     days_written: int
 

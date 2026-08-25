@@ -428,6 +428,32 @@ the code.
   different chart.
 - **Milestones:** the next round number, and time to reach it at the current
   savings rate and an assumed return
+- **Outlook:** the same model run forwards instead of solved for time — the
+  wealth curve continued past today from the latest net-worth snapshot, at the
+  measured trailing savings rate, with the savings rate overridable for a
+  what-if. Shown as a band across a range of return assumptions rather than a
+  single line, and always alongside the recorded history it continues from.
+
+  Held to a higher standard than anything else here, because it is the only
+  figure in the app not derived from a recorded fact and a smooth exponential
+  is the most persuasive thing a chart can draw. Concretely: it shares
+  `months_to_reach`'s annuity model rather than inventing a second one (the two
+  are pinned together by a test, so the milestone card and the curve can never
+  imply different things); the assumptions are editable controls rather than a
+  footnote; the projection is drawn dashed inside a band with a marked seam at
+  today; and the savings rate says whether it was measured or typed in.
+
+  Real terms here are deflated by an **assumed** forward inflation rate, never
+  by the CPI series. Carrying the last known index forward — which is what the
+  historical real curve correctly does — yields a factor of exactly 1.0 for any
+  future date, so a projected figure would come back unchanged while being
+  labelled "in today's money". That failure is silent and total, so the
+  deflation is a separate function that takes its rate explicitly, and a test
+  asserts that loading a CPI series changes nothing about a projection.
+
+  Whole-portfolio only: the starting value is net worth and the savings rate is
+  a portfolio-wide flow, so a filtered projection would compound one number at
+  a rate that was never its own.
 - **Coverage / runway:** investable portfolio ÷ annual expenses (if you record
   expenses roughly) — the classic FIRE metric, optional
 - **Asset-class filter on returns:** the same global class filter the

@@ -307,6 +307,29 @@ export interface PerformanceResponse {
   benchmark_return_pct: number | null;
 }
 
+export interface ProjectionPoint {
+  date: string;
+  low_eur: string;
+  mid_eur: string;
+  high_eur: string;
+}
+
+export interface ProjectionResponse {
+  scope: string;
+  start_date: string;
+  start_value_eur: string;
+  monthly_savings_eur: string;
+  /** "derived" = the measured trailing twelve-month rate; "override" = a
+   *  what-if the caller supplied. Never render the two the same way. */
+  monthly_savings_source: "derived" | "override";
+  annual_return_pct: string;
+  return_low_pct: string;
+  return_high_pct: string;
+  annual_inflation_pct: string;
+  real: boolean;
+  points: ProjectionPoint[];
+}
+
 export interface CalendarYearReturn {
   year: number;
   start_date: string;

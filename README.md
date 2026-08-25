@@ -42,7 +42,9 @@ It answers two questions well:
   and an attribution waterfall that separates "I saved" from "the market moved"
 - **ETF look-through** — region and sector exposure through funds to the actual
   underlying weights, against a world-market reference
-- **Inflation-aware** — a CPI-adjusted real wealth curve alongside the nominal one
+- **Inflation-aware** — a CPI-adjusted real wealth curve alongside the nominal one,
+  and a forward outlook that deflates by an assumed rate rather than pretending
+  the CPI series extends into the future
 - **Prices without API keys** — keyless public sources, cached locally
 - **Offline-first PWA** — the Pi lives on the LAN; away from home the app shows
   the last known state with a visible timestamp
@@ -62,7 +64,7 @@ internet-facing deployment. It is a LAN service for one household.
 ## Status
 
 **Running in production** on a Raspberry Pi 5, feature-complete against the
-specification. 439 backend tests and 98 frontend tests, all green.
+specification. 481 backend tests and 98 frontend tests, all green.
 
 ## Stack
 
