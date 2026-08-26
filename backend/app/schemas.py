@@ -631,6 +631,53 @@ class MilestoneResponse(BaseModel):
     estimated_date: date_ | None
 
 
+class AllocationBucketRead(BaseModel):
+    # Machine-readable key (an enum name, a currency code, an account id,
+    # or "" for rows the dimension does not classify). Empty rather than
+    # null so it stays a usable dict/object key on the client.
+    key: str
+    # Display text the client may still choose to translate — for
+    # `account` this is the account's own name, which no locale file can
+    # know.
+    label: str
+    value_eur: DecimalStr
+
+
+class AllocationBreakdownResponse(BaseModel):
+    dimension: str
+    scope: str
+    # Sum of the buckets, echoed so a client can compute shares without
+    # re-adding a list it may have truncated for display.
+    total_eur: DecimalStr
+    # Largest first.
+    buckets: list[AllocationBucketRead]
+
+
+class ConcentrationHoldingRead(BaseModel):
+    instrument_id: int
+    name: str
+    asset_class: str
+    value_eur: DecimalStr
+    # 0–1 fraction of the concentration universe.
+    share: float
+
+
+class ConcentrationResponse(BaseModel):
+    # How many holdings `top_n_share` covers.
+    top_n: int
+    holdings_count: int
+    total_eur: DecimalStr
+    # All four are None for an empty portfolio rather than 0 — zero is the
+    # *least* concentrated reading on these scales, so it would render
+    # "nothing held" as "perfectly diversified".
+    hhi: float | None
+    effective_holdings: float | None
+    top_n_share: float | None
+    largest_share: float | None
+    # Largest first, so the index above can be checked by eye.
+    holdings: list[ConcentrationHoldingRead]
+
+
 class ProjectionPoint(BaseModel):
     date: date_
     # The pessimistic, central and optimistic return assumptions. Three

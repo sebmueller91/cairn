@@ -14,6 +14,7 @@ from app.routers import (
     attribution,
     auth,
     contributions,
+    concentration,
     cpi,
     data_quality,
     export,
@@ -219,6 +220,7 @@ app.include_router(performance.router)
 app.include_router(attribution.router)
 app.include_router(contributions.router)
 app.include_router(allocation.router)
+app.include_router(concentration.router)
 app.include_router(tax.router)
 app.include_router(vorabpauschale.router)
 app.include_router(look_through.router)

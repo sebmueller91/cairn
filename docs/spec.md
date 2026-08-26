@@ -406,11 +406,33 @@ separation of "did I get richer because I saved, or because the market ran?".
   rebalancing proposal — including a *"purchases only"* mode (no selling; the
   next contribution is distributed across the underweight classes)
 - **Concentration risk:** top-10 positions as a share, HHI concentration index,
-  largest single-stock weight
+  largest single-stock weight — plus *effective holdings* (10 000 ÷ HHI), which
+  is the same information in a unit that reads without explanation.
+
+  Measured over MARKET-valued positions grouped by instrument, not over net
+  worth: a house is typically most of a household's wealth and would pin
+  "largest single weight" to itself forever, which is not the question this
+  asks. Grouping by instrument rather than by position means one fund held in
+  two accounts counts once.
+
+  It counts instruments, **not** what they hold. `etf_composition` stores
+  region and sector percentages, not constituents, so two funds that overlap
+  heavily still count as two independent positions. True look-through
+  concentration would need constituent data entered per fund; until then the
+  figure is shown with that caveat next to it rather than left to imply
+  something it cannot support.
 - **ETF look-through:** optional, a region/sector breakdown maintained per ETF
   (entered by hand from the factsheet; it rarely changes). This reveals that a
   single share you hold directly also sits inside three of your ETFs.
-- **Currency exposure** including the FX contribution to return
+- **Currency exposure** including the FX contribution to return. The exposure
+  breakdown reads each instrument's own quote currency (the FX contribution
+  itself is attribution's, 4.3). A euro-quoted fund full of dollar assets still
+  counts as EUR here — that is a look-through question, and the view says so.
+- **Liquidity tier** as its own breakdown, from `instrument.liquidity_tier`.
+  The field is nullable and mostly unfilled in practice; rows without one —
+  cash balances included, since they have no instrument at all — go to an
+  explicit *not classified* bucket rather than being assumed into a tier.
+  Surfacing the gap is more useful than hiding it behind a plausible guess.
 
 ### 4.5 Cash flow and saving behaviour — dropped
 Savings rate, dividend calendar and a running-cost view were specified here and
@@ -795,11 +817,20 @@ GET  /api/instruments?search=
 GET  /api/positions?account_id=&group_by=instrument|account
 GET  /api/transactions?from=&to=&account_id=&limit=&cursor=
 GET  /api/timeseries/networth?from=&to=&granularity=day|week|month
-GET  /api/allocation?dimension=asset_class|account|region|currency|liquidity&scope=investable|gross|net
+GET  /api/allocation/breakdown?dimension=asset_class|account|currency|liquidity&scope=investable|gross|net
+GET  /api/concentration?top_n=10
 GET  /api/performance?scope=&period=&method=twr|mwr
 GET  /api/data-quality        # stale prices, missing cost basis, old valuations
 GET  /api/export/full
 ```
+
+Two deviations from the shape first sketched here, both deliberate:
+`/api/allocation` itself was taken by target-allocation drift and rebalancing
+(4.4), so the dimensional breakdown is a sub-resource rather than an overload
+of one path with two unrelated response shapes. And `region` is not one of its
+dimensions: `/api/look-through` already answers region and sector properly, by
+weighting each fund by its own composition, and a raw breakdown of
+`instrument.region` would be a second, worse answer that disagreed with it.
 
 **Write**
 ```

@@ -58,5 +58,33 @@
     "clearHint": "Feld leeren entfernt das Ziel.",
     "emergingShareColumn": "Spalte rechts: Schwellenländer-Anteil des jeweiligen ETFs",
     "emptyHint": "Sobald ETFs im Bestand sind, erscheint hier ihre Aufteilung."
+  },
+  "concentration": {
+    "title": "Konzentration & Struktur",
+    "subtitle": "Zwei Portfolios können beide 70 % Aktien sein — eines hält vierzig Fonds, das andere zwei. Diese Zahlen unterscheiden sie.",
+    "topN": "Top {{n}}",
+    "ofHoldings": "von {{count}} Positionen",
+    "largest": "Größte Position",
+    "hhi": "HHI",
+    "hhiHint": "0–10.000; niedriger ist breiter gestreut",
+    "effective": "Effektive Positionen",
+    "effectiveHint": "10.000 ÷ HHI",
+    "lookThroughCaveat": "Je Instrument gezählt, nicht durch Fonds hindurch — zwei Fonds mit Überschneidung zählen weiterhin getrennt.",
+    "structureTitle": "Struktur",
+    "dimension": {
+      "currency": "Währung",
+      "liquidity": "Liquidität",
+      "account": "Konto"
+    },
+    "tier": {
+      "T0": "T0 · sofort",
+      "T1": "T1 · Tage",
+      "T2": "T2 · Monate",
+      "T3": "T3 · illiquide"
+    },
+    "unclassified": "Nicht klassifiziert",
+    "currencyHint": "Die Notierungswährung des jeweiligen Instruments. Ein in Euro notierter Fonds mit Dollar-Werten zählt hier weiterhin als EUR.",
+    "liquidityHint": "Aus der Liquiditätsstufe des Instruments. Alles ohne gesetzte Stufe — auch Kontostände — bleibt unter „Nicht klassifiziert“, statt einer Stufe zugeordnet zu werden.",
+    "empty": "Noch keine marktbewerteten Positionen."
   }
 }

@@ -307,6 +307,42 @@ export interface PerformanceResponse {
   benchmark_return_pct: number | null;
 }
 
+export interface AllocationBucket {
+  /** Enum name, currency code, account id, or "" when the dimension does
+   *  not classify this row. */
+  key: string;
+  label: string;
+  value_eur: string;
+}
+
+export interface AllocationBreakdownResponse {
+  dimension: string;
+  scope: string;
+  total_eur: string;
+  buckets: AllocationBucket[];
+}
+
+export interface ConcentrationHolding {
+  instrument_id: number;
+  name: string;
+  asset_class: AssetClass;
+  value_eur: string;
+  share: number;
+}
+
+export interface ConcentrationResponse {
+  top_n: number;
+  holdings_count: number;
+  total_eur: string;
+  /** Null rather than 0 for an empty portfolio — 0 is the least
+   *  concentrated reading on these scales. */
+  hhi: number | null;
+  effective_holdings: number | null;
+  top_n_share: number | null;
+  largest_share: number | null;
+  holdings: ConcentrationHolding[];
+}
+
 export interface ProjectionPoint {
   date: string;
   low_eur: string;

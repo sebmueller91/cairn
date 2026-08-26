@@ -58,5 +58,33 @@
     "clearHint": "Clearing the field removes the target.",
     "emergingShareColumn": "Right column: each fund's emerging share",
     "emptyHint": "The split appears here once funds are held."
+  },
+  "concentration": {
+    "title": "Concentration & structure",
+    "subtitle": "Two portfolios can both be 70 % equity while one holds forty funds and the other holds two. These are the figures that tell them apart.",
+    "topN": "Top {{n}}",
+    "ofHoldings": "of {{count}} holdings",
+    "largest": "Largest position",
+    "hhi": "HHI",
+    "hhiHint": "0–10,000; lower is more spread",
+    "effective": "Effective holdings",
+    "effectiveHint": "10,000 ÷ HHI",
+    "lookThroughCaveat": "Counted per instrument, not through funds to what they hold — two funds that overlap still count separately.",
+    "structureTitle": "Exposure",
+    "dimension": {
+      "currency": "Currency",
+      "liquidity": "Liquidity",
+      "account": "Account"
+    },
+    "tier": {
+      "T0": "T0 · immediate",
+      "T1": "T1 · days",
+      "T2": "T2 · months",
+      "T3": "T3 · illiquid"
+    },
+    "unclassified": "Not classified",
+    "currencyHint": "The currency each instrument is quoted in. A euro-quoted fund holding dollar assets still counts as EUR here.",
+    "liquidityHint": "From each instrument's liquidity tier. Anything without one set — cash balances included — stays under “Not classified” rather than being assumed into a tier.",
+    "empty": "No market-priced holdings yet."
   }
 }
