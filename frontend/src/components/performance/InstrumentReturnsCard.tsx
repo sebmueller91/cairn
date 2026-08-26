@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { api, type InstrumentReturnsResponse } from "../../lib/api";
 import { formatDate, formatNumber, formatPercent } from "../../lib/format";
 import { ASSET_CLASS_COLORS } from "../../lib/assetClasses";
@@ -7,7 +6,7 @@ import { GlassCard } from "../ui/GlassCard";
 import { DataTable, type Column } from "../ui/DataTable";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 type Row = InstrumentReturnsResponse["instruments"][number];
 
@@ -38,7 +37,7 @@ export function InstrumentReturnsCard({
 }) {
   const { t, i18n } = useTranslation(["performance", "common"]);
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["performance", "by-instrument", period, method, assetClassParam],
     queryFn: () => {
       const params = new URLSearchParams({ period, method });

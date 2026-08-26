@@ -1,7 +1,6 @@
 import { useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { api, type Instrument, type Position } from "../../lib/api";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 export interface PositionWithInstrument extends Position {
   instrument: Instrument | undefined;
@@ -22,11 +21,11 @@ export interface PositionWithInstrument extends Position {
  * window and every card renders its empty/error state instead of waiting.
  */
 export function usePositionsWithInstruments() {
-  const positions = useQuery({
+  const positions = useCachedQuery({
     queryKey: ["positions", "instrument"],
     queryFn: () => api.get<Position[]>("/api/positions?group_by=instrument"),
   });
-  const instruments = useQuery({
+  const instruments = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });

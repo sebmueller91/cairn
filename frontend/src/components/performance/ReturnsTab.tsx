@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { TrendingUp } from "lucide-react";
 import { api, type Account, type Instrument, type PerformanceResponse } from "../../lib/api";
 import { formatDate, formatNumber, formatPercent } from "../../lib/format";
@@ -10,7 +9,7 @@ import { StatHero } from "../ui/StatHero";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { LineCompareChart } from "../charts/LineCompareChart";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 import { useAssetFilter } from "../../lib/assetFilter";
 import { ASSET_CLASSES } from "../../lib/assetClasses";
 import { CalendarYearsCard } from "./CalendarYearsCard";
@@ -61,11 +60,11 @@ export function ReturnsTab() {
     localStorage.setItem(BENCHMARK_STORAGE_KEY, benchmarkId);
   }, [benchmarkId]);
 
-  const { data: instruments } = useQuery({
+  const { data: instruments } = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
-  const { data: accounts } = useQuery({
+  const { data: accounts } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
@@ -110,7 +109,7 @@ export function ReturnsTab() {
     }
   }, [scope, instruments, accounts]);
 
-  const { data: perf, isPending, isError } = useQuery({
+  const { data: perf, isPending, isError } = useCachedQuery({
     queryKey: ["performance", scope, period, method, benchmarkId, assetClassParam],
     queryFn: () => {
       const params = new URLSearchParams({ scope, period, method });

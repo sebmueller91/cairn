@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { Sparkles } from "lucide-react";
 import { PageHeader } from "../components/ui/PageHeader";
 import { EmptyState } from "../components/ui/EmptyState";
@@ -11,7 +10,7 @@ import { NextMilestoneCard } from "../components/overview/NextMilestoneCard";
 import { LastTwelveMonthsCard } from "../components/overview/LastTwelveMonthsCard";
 import { FreshnessStrip } from "../components/overview/FreshnessStrip";
 import { fetchHeroNetWorth, netWorthQueryKey } from "../components/overview/utils";
-import { useIsLoading } from "../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../lib/queryState";
 
 /** Mission control: the one-glance view of the whole portfolio. Every card
  * below runs its own query, keyed identically to this page-level one where
@@ -21,7 +20,7 @@ export function Overview() {
   const { t } = useTranslation("overview");
   const [cashModalOpen, setCashModalOpen] = useState(false);
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: netWorthQueryKey(),
     queryFn: fetchHeroNetWorth,
   });

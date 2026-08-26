@@ -27,10 +27,53 @@ export const persister = createAsyncStoragePersister({
   key: "cairn-query-cache",
 });
 
+/**
+ * The single source of truth for how the persisted cache is restored and
+ * saved. Both `restoreQueryClient` and `subscribeToPersist` below spread
+ * this, so the two halves can never drift apart.
+ *
+ * `maxAge: Infinity` is load-bearing, not decoration. ADR 0005: "No hard
+ * client-side TTL; a `buster` string bumped on breaking API/schema changes
+ * is the only thing that invalidates the persisted cache outright."
+ * `persistQueryClientRestore` defaults `maxAge` to **24 hours** and, once
+ * past it, calls `persister.removeClient()` — it *deletes* the cache
+ * rather than merely distrusting it. Away from home that turns spec 6.2's
+ * "if it fails, the cache stands" into a blank app roughly one day after
+ * the last time it was opened at home, which is exactly the window in
+ * which someone would actually want to check their net worth from a train.
+ *
+ * Staleness is shown, never enforced: the freshness strip reads each
+ * query's own `dataUpdatedAt` (see lib/freshness.ts) and tints anything
+ * older than 24h, which is spec 6.2's designated mechanism for "never a
+ * stale number that looks fresh". Deleting the data is not a substitute
+ * for labelling it.
+ */
 export const persistOptions = {
   persister,
   buster: CACHE_BUSTER,
-  maxAge: Infinity as number, // no expiry — staleness is shown, not enforced (spec 6.2)
+  maxAge: Infinity,
+  dehydrateOptions: {
+    // Persist anything that *has* an answer, not only queries whose last
+    // fetch succeeded.
+    //
+    // TanStack's `defaultShouldDehydrateQuery` is
+    // `query.state.status === "success"`, and the cache is re-saved on
+    // every cache change — including the moment a refetch fails. So one
+    // opened-while-away session was enough to erase the offline cache: the
+    // cards rendered from IndexedDB, the refetches against the unreachable
+    // Pi failed, every one of those queries flipped to `status: "error"`
+    // while still holding its data, and the very next save dropped them
+    // from IndexedDB for having failed. Open the app away from home twice
+    // and the second time it had nothing left to show — the first visit
+    // silently consumed the cache it was reading from.
+    //
+    // `data !== undefined` is the honest test of "is there something worth
+    // keeping": a query that failed with a value still in hand is exactly
+    // the stale-but-useful case spec 6.2 wants preserved, and one that
+    // never resolved has nothing to write down either way.
+    shouldDehydrateQuery: (query: { state: { data: unknown } }) =>
+      query.state.data !== undefined,
+  },
 };
 
 // A few seconds is generous for a local IndexedDB open/read on a Pi-served
@@ -67,8 +110,7 @@ export function restoreQueryClient(
 ): Promise<void> {
   const restore = persistQueryClientRestore({
     queryClient,
-    persister,
-    buster: CACHE_BUSTER,
+    ...persistOptions,
   }).catch(() => {
     // persistQueryClientRestore already discards the persisted client and
     // rethrows on a genuine failure (corrupt entry, decode error) — nothing
@@ -86,7 +128,6 @@ export function restoreQueryClient(
 export function subscribeToPersist(queryClient: QueryClient): () => void {
   return persistQueryClientSubscribe({
     queryClient,
-    persister,
-    buster: CACHE_BUSTER,
+    ...persistOptions,
   });
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -8,7 +7,7 @@ import { api, type AllocationResponse } from "../../lib/api";
 import { formatPercent } from "../../lib/format";
 import { ASSET_CLASS_COLORS, assetClassLabelKey, type AssetClass } from "../../lib/assetClasses";
 import { TargetAllocationModal } from "./TargetAllocationModal";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 function DriftBadge({ driftPp, lang }: { driftPp: number; lang: string }) {
   const cls = driftPp > 0 ? "text-positive" : driftPp < 0 ? "text-negative" : "text-text-muted";
@@ -73,7 +72,7 @@ function DriftRowView({
 /** Section 4 — target vs. actual allocation per asset class. */
 export function TargetVsActualCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["allocation"],
     queryFn: () => api.get<AllocationResponse>("/api/allocation"),
   });

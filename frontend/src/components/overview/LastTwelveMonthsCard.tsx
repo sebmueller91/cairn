@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { getContributions } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
@@ -7,7 +6,7 @@ import type { AssetClass } from "../../lib/assetClasses";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /**
  * What actually went in over the trailing year: money invested per asset
@@ -26,7 +25,7 @@ import { useIsLoading } from "../../lib/queryState";
 export function LastTwelveMonthsCard() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["contributions", "overview-12m"],
     queryFn: () => getContributions(),
   });

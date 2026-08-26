@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, Check } from "lucide-react";
 import {
   api,
@@ -17,7 +17,7 @@ import { SegmentedControl } from "../ui/SegmentedControl";
 import { ProgressArc } from "../ui/ProgressArc";
 import { DataTable, type Column } from "../ui/DataTable";
 import { Skeleton } from "../ui/Skeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 type YearMode = "current" | "last";
 
@@ -265,13 +265,13 @@ export function TaxTab() {
   const personalRate = useDebouncedDecimal(DEFAULT_PERSONAL_RATE);
   const personalRateFraction = (Number(personalRate.value) / 100).toString();
 
-  const { data: instruments } = useQuery({
+  const { data: instruments } = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
   const instrumentName = (id: number) => instruments?.find((i) => i.id === id)?.name ?? `#${id}`;
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["tax", year, allowance.value, privateSaleLimit.value, personalRateFraction],
     queryFn: () =>
       api.get<TaxOverviewResponse>(

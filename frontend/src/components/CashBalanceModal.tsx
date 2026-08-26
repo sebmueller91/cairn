@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCachedQuery } from "../lib/queryState";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { api, ApiError, type Account, type Transaction } from "../lib/api";
 import { parseDecimalInput } from "../lib/decimalInput";
@@ -40,7 +41,7 @@ export function CashBalanceModal({
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
 
-  const { data: accounts } = useQuery({
+  const { data: accounts } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });

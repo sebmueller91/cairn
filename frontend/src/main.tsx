@@ -41,6 +41,19 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30_000,
+      // Must not be shorter than the persister's `maxAge` (Infinity, see
+      // lib/persister.ts), or the two disagree about what "cached" means.
+      // The persisted cache is a dehydrated copy of the *in-memory* cache,
+      // and `persistQueryClientSubscribe` rewrites it on every cache
+      // change — including a garbage collection. At the 5-minute default,
+      // a query whose card is currently unmounted (any tab that isn't the
+      // one on screen) gets collected five minutes later, and the very
+      // next save quietly drops it from IndexedDB too. The offline cache
+      // would then only ever hold whatever happened to be mounted in the
+      // last five minutes of the previous session — so the Portfolio tab
+      // renders on the train and the Performance tab does not, for no
+      // reason the user could possibly infer.
+      gcTime: Infinity,
       // Was a flat `1`: every 401/403/404/422 got issued twice before
       // failing, for no benefit — a rejected request stays rejected.
       // `shouldRetry` (lib/api.ts) only retries transient 5xx/network

@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle } from "lucide-react";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
@@ -7,7 +6,7 @@ import { api, type Account, type Loan, type LoanStatus } from "../../lib/api";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { usePositionsWithInstruments } from "./usePositionsWithInstruments";
 import { SignedAmount } from "./SignedAmount";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 function LoanRow({ loan, accountName }: { loan: Loan; accountName: string }) {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
@@ -15,7 +14,7 @@ function LoanRow({ loan, accountName }: { loan: Loan; accountName: string }) {
   // own `pending` has gone false, and that already folds in isRestoring —
   // by the time a LoanRow exists, the cache restore is over and plain
   // isPending is trustworthy again.
-  const { data: status, isPending, isError } = useQuery({
+  const { data: status, isPending, isError } = useCachedQuery({
     queryKey: ["loan-status", loan.id],
     queryFn: () => api.get<LoanStatus>(`/api/loans/${loan.id}/status`),
   });
@@ -66,7 +65,7 @@ export function RealAssetsLoansCard() {
     data: loans,
     isPending: loansPending,
     isError: loansError,
-  } = useQuery({
+  } = useCachedQuery({
     queryKey: ["loans"],
     queryFn: () => api.get<Loan[]>("/api/loans"),
   });
@@ -74,7 +73,7 @@ export function RealAssetsLoansCard() {
     data: accounts,
     isPending: accountsPending,
     isError: accountsError,
-  } = useQuery({
+  } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });

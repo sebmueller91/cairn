@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
+import { useCachedQuery } from "../lib/queryState";
 import {
   api,
   getAllocationTimeseries,
@@ -38,7 +38,7 @@ export function Wealth() {
   const { from, granularity } = useMemo(() => rangeFor(period), [period]);
 
   // Windowed allocation — the curve card and the mix card share it.
-  const windowQuery = useQuery({
+  const windowQuery = useCachedQuery({
     queryKey: ["allocationTimeseries", from ?? "all", granularity],
     queryFn: () => getAllocationTimeseries({ from, granularity }),
   });
@@ -47,7 +47,7 @@ export function Wealth() {
   // not just the ones inside the selected window. At `MAX` this is literally
   // the same query key as the one above, so React Query serves both from one
   // request.
-  const historyQuery = useQuery({
+  const historyQuery = useCachedQuery({
     queryKey: ["allocationTimeseries", "all", "month"],
     queryFn: () => getAllocationTimeseries({ granularity: "month" }),
   });
@@ -55,13 +55,13 @@ export function Wealth() {
   // The CPI series itself, not a deflated total: deflation is a scalar per
   // date, so handing the client the index lets the real view follow the
   // asset filter instead of being restricted to the whole portfolio.
-  const cpiQuery = useQuery({
+  const cpiQuery = useCachedQuery({
     queryKey: ["cpi"],
     queryFn: getCpiPoints,
     staleTime: 24 * 60 * 60 * 1000,
   });
 
-  const milestoneQuery = useQuery({
+  const milestoneQuery = useCachedQuery({
     queryKey: ["milestones", "net"],
     queryFn: () => api.get<MilestoneResponse>("/api/milestones?scope=net"),
     enabled: allSelected,

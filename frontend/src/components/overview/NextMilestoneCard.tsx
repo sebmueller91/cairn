@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { api, type MilestoneResponse } from "../../lib/api";
 import { formatCurrency, formatDate, formatPercent } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
 import { ProgressArc } from "../ui/ProgressArc";
 import { Skeleton } from "../ui/Skeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /** Progress toward the next round-number milestone (scope=net).
  *
@@ -16,7 +15,7 @@ import { useIsLoading } from "../../lib/queryState";
 export function NextMilestoneCard() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["milestones", "overview"],
     queryFn: () => api.get<MilestoneResponse>("/api/milestones?scope=net"),
   });
