@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency } from "../../lib/format";
 import {
@@ -12,7 +11,7 @@ import { Skeleton } from "../ui/Skeleton";
 import { DonutChart, type DonutSlice } from "../charts/DonutChart";
 import { ChartLegend, type LegendItem } from "../charts/ChartLegend";
 import { isoDaysAgo } from "./utils";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /** Mini allocation donut for the latest snapshot. LIABILITY is excluded —
  * a donut can't render a negative slice — and shown as a small debt line
@@ -28,7 +27,7 @@ export function ClassMixCard() {
   // reason as netWorthQueryKey — otherwise a cached "fresh" query keeps
   // answering yesterday's 14-day window after local midnight.
   const from = isoDaysAgo(14);
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["allocation-timeseries", "overview", from],
     queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });

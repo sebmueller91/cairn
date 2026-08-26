@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -8,7 +7,7 @@ import { getAllocationTimeseries } from "../../lib/api";
 import { formatCurrency, formatPercent } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { useAssetFilter } from "../../lib/assetFilter";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /** ISO `YYYY-MM-DD` for `days` ago, in *local* time — `toISOString()` would
  * convert to UTC first and misdate anyone in a positive UTC offset during
@@ -36,7 +35,7 @@ export function ClassDistributionCard() {
   // asks for the same shape of data correctly with a `from` bound; two
   // weeks is more than enough to guarantee at least one point.
   const from = isoDaysAgo(14);
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["allocation-timeseries", "latest", from],
     queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
   });

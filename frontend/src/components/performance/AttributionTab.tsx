@@ -4,7 +4,6 @@
 // visible range, so the two charts always agree with each other.
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { api, type AttributionResponse } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -15,7 +14,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { BarWaterfall, type WaterfallBar } from "../charts/BarWaterfall";
 import { currencyFormatter } from "../charts/chartTheme";
 import { MonthlyCompositionChart } from "./MonthlyCompositionChart";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 type Granularity = "month" | "year";
 
@@ -38,7 +37,7 @@ export function AttributionTab() {
   const { t, i18n } = useTranslation("performance");
   const [granularity, setGranularity] = useState<Granularity>("month");
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["attribution", granularity],
     queryFn: () => api.get<AttributionResponse>(`/api/attribution?granularity=${granularity}`),
   });

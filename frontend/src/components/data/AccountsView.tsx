@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { api, type Account } from "../../lib/api";
 import { formatDate } from "../../lib/format";
@@ -10,7 +9,7 @@ import { GlassCard } from "../ui/GlassCard";
 import { CashBalanceModal } from "../CashBalanceModal";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 export function AccountsView() {
   const { t, i18n } = useTranslation(["data", "assets", "common"]);
@@ -18,7 +17,7 @@ export function AccountsView() {
   const [cashAccountId, setCashAccountId] = useState<number | undefined>(undefined);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const { data: accounts, isPending, isError } = useQuery({
+  const { data: accounts, isPending, isError } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });

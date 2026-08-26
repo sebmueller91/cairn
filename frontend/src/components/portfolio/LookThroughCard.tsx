@@ -1,15 +1,14 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
 import { HBarList, type HBarItem } from "../charts/HBarList";
 import { api, type LookThroughResponse } from "../../lib/api";
 import { formatCurrency, formatNumber, formatPercent } from "../../lib/format";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 function useLookThrough(dimension: "region" | "sector") {
-  return useQuery({
+  return useCachedQuery({
     queryKey: ["look-through", dimension],
     queryFn: () => api.get<LookThroughResponse>(`/api/look-through?dimension=${dimension}`),
   });

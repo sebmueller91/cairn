@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { api, type Account, type Instrument, type Position } from "../../lib/api";
 import { formatCurrency, formatNumber } from "../../lib/format";
 import { DataTable, type Column } from "../ui/DataTable";
@@ -10,7 +9,7 @@ import { SegmentedControl } from "../ui/SegmentedControl";
 import { SearchField } from "./SearchField";
 import { SignedAmount } from "./SignedAmount";
 import { TableSkeleton } from "./TableSkeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 type GroupBy = "account" | "instrument";
 
@@ -19,16 +18,16 @@ export function PositionsView() {
   const [groupBy, setGroupBy] = useState<GroupBy>("account");
   const [search, setSearch] = useState("");
 
-  const { data: positions, isPending, isError } = useQuery({
+  const { data: positions, isPending, isError } = useCachedQuery({
     queryKey: ["positions", groupBy],
     queryFn: () => api.get<Position[]>(`/api/positions?group_by=${groupBy}`),
   });
   const pending = useIsLoading(isPending);
-  const { data: accounts } = useQuery({
+  const { data: accounts } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
-  const { data: instruments } = useQuery({
+  const { data: instruments } = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });

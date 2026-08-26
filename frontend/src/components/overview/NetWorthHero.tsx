@@ -1,12 +1,11 @@
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { formatCurrency } from "../../lib/format";
 import { GlassCard } from "../ui/GlassCard";
 import { StatHero } from "../ui/StatHero";
 import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
 import { closestPoint, fetchHeroNetWorth, HERO_DAYS, netWorthQueryKey } from "./utils";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /** The hero panel: latest net worth (scope=net, so loans count against it),
  * a sparkline over HERO_DAYS, and a delta chip against the start of that
@@ -15,7 +14,7 @@ import { useIsLoading } from "../../lib/queryState";
 export function NetWorthHero() {
   const { t, i18n } = useTranslation("overview");
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: netWorthQueryKey(),
     queryFn: fetchHeroNetWorth,
   });

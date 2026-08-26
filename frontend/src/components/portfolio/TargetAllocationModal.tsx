@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCachedQuery } from "../../lib/queryState";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { Check } from "lucide-react";
 import { api, ApiError } from "../../lib/api";
 import { ASSET_CLASS_COLORS, assetClassLabelKey, type AssetClass } from "../../lib/assetClasses";
@@ -51,7 +52,7 @@ export function TargetAllocationModal({
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
 
-  const { data: targets } = useQuery({
+  const { data: targets } = useCachedQuery({
     queryKey: ["allocation-targets"],
     queryFn: () => api.get<Record<string, string>>("/api/allocation/targets"),
   });

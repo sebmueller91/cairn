@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { api, type Instrument } from "../../lib/api";
 import { ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { DataTable, type Column } from "../ui/DataTable";
@@ -8,13 +7,13 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 export function InstrumentsView() {
   const { t } = useTranslation(["data", "common"]);
   const [search, setSearch] = useState("");
 
-  const { data: instruments, isPending, isError } = useQuery({
+  const { data: instruments, isPending, isError } = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });

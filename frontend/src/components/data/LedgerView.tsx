@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import {
   api,
   type Account,
@@ -14,7 +13,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SearchField } from "./SearchField";
 import { TableSkeleton } from "./TableSkeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 const TRANSACTION_TYPES: TransactionType[] = [
   "BUY",
@@ -42,15 +41,15 @@ export function LedgerView() {
   const [search, setSearch] = useState("");
   const [limit, setLimit] = useState(PAGE_SIZE);
 
-  const { data: accounts } = useQuery({
+  const { data: accounts } = useCachedQuery({
     queryKey: ["accounts"],
     queryFn: () => api.get<Account[]>("/api/accounts"),
   });
-  const { data: instruments } = useQuery({
+  const { data: instruments } = useCachedQuery({
     queryKey: ["instruments"],
     queryFn: () => api.get<Instrument[]>("/api/instruments"),
   });
-  const { data: transactions, isPending, isError } = useQuery({
+  const { data: transactions, isPending, isError } = useCachedQuery({
     queryKey: ["transactions", accountId, limit],
     queryFn: () => {
       const params = new URLSearchParams({ limit: String(limit) });

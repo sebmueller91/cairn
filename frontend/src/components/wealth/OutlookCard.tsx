@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { Telescope } from "lucide-react";
 import { api, type AllocationTimeseriesPoint, type ProjectionResponse } from "../../lib/api";
 import { sumSelected } from "../../lib/allocationSeries";
@@ -11,7 +10,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { GlassCard } from "../ui/GlassCard";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { Skeleton } from "../ui/Skeleton";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 const HORIZONS = [5, 10, 20, 30] as const;
 /** Rendered as a range around the central assumption, e.g. 3 % – 7 %. */
@@ -59,7 +58,7 @@ export function OutlookCard({
   const [returnPct, setReturnPct] = useState("5");
   const [savingsOverride, setSavingsOverride] = useState<string>("");
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["projection", years, real, returnPct, savingsOverride],
     queryFn: () => {
       const params = new URLSearchParams({

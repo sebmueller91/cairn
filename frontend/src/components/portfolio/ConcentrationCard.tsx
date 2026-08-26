@@ -1,6 +1,5 @@
 import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useQuery } from "@tanstack/react-query";
 import { Layers } from "lucide-react";
 import {
   api,
@@ -13,7 +12,7 @@ import { HBarList, type HBarItem } from "../charts/HBarList";
 import { SegmentedControl } from "../ui/SegmentedControl";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 type Dimension = "currency" | "liquidity" | "account";
 const DIMENSIONS: Dimension[] = ["currency", "liquidity", "account"];
@@ -49,11 +48,11 @@ export function ConcentrationCard() {
   const { t, i18n } = useTranslation(["portfolio", "common"]);
   const [dimension, setDimension] = useState<Dimension>("currency");
 
-  const conc = useQuery({
+  const conc = useCachedQuery({
     queryKey: ["concentration"],
     queryFn: () => api.get<ConcentrationResponse>("/api/concentration"),
   });
-  const breakdown = useQuery({
+  const breakdown = useCachedQuery({
     queryKey: ["allocationBreakdown", dimension],
     queryFn: () =>
       api.get<AllocationBreakdownResponse>(

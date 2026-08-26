@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../ui/GlassCard";
 import { Skeleton } from "../ui/Skeleton";
 import { EmptyState } from "../ui/EmptyState";
@@ -9,7 +9,7 @@ import { formatCurrency, formatPercent } from "../../lib/format";
 import { parseDecimalInput } from "../../lib/decimalInput";
 import { useOnlineStatus } from "../../lib/online";
 import { SERIES_COLORS } from "../charts/chartTheme";
-import { useIsLoading } from "../../lib/queryState";
+import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 const DEVELOPED_COLOR = SERIES_COLORS[0];
 const EMERGING_COLOR = SERIES_COLORS[1];
@@ -32,7 +32,7 @@ export function EtfSplitCard() {
   const queryClient = useQueryClient();
   const online = useOnlineStatus();
 
-  const { data, isPending, isError } = useQuery({
+  const { data, isPending, isError } = useCachedQuery({
     queryKey: ["etf-split"],
     queryFn: getEtfSplit,
   });
