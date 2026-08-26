@@ -115,7 +115,22 @@ def test_breakdown_sums_to_the_snapshot_total(
     """Every dimension is a repartition of the same money, so all of them
     must add up to the same figure — the one /api/timeseries/networth
     reports for that scope. This is the test that would catch a scope
-    boundary drawn differently here than in snapshot_service."""
+    boundary drawn differently here than in snapshot_service.
+
+    Not an exact equality, and the tolerance is not slop. `Money`
+    quantizes every stored value to 2dp on write (db_types.py), while
+    snapshot_service accumulates `investable_value` at full precision and
+    rounds once when it writes the `total` row. So the sum of the rounded
+    parts and the rounded sum can differ by up to half a cent per
+    contributing row — on a real portfolio that is a couple of cents, and
+    it is a property of the snapshot engine, not of this endpoint.
+    Bounding it by the actual row count keeps the assertion tight enough
+    to catch a genuine scope error (which would be off by whole holdings,
+    not fractions of a cent) while not failing on arithmetic that is
+    working as designed.
+    """
+    from app.models import DailySnapshot
+
     _setup_mixed_portfolio(client, auth_headers, db_session)
 
     body = client.get(
@@ -125,11 +140,20 @@ def test_breakdown_sums_to_the_snapshot_total(
     ).json()
     total = sum(Decimal(b["value_eur"]) for b in body["buckets"])
 
+    row_count = (
+        db_session.query(DailySnapshot)
+        .filter(DailySnapshot.scope_type.in_(["position", "cash_account", "loan"]))
+        .count()
+    )
+    tolerance = Decimal("0.005") * row_count
+
     networth = client.get(
         "/api/timeseries/networth", params={"scope": scope}, headers=auth_headers
     ).json()
-    assert Decimal(networth[-1]["value_eur"]) == pytest.approx(total, abs=Decimal("0.01"))
-    assert Decimal(body["total_eur"]) == pytest.approx(total, abs=Decimal("0.01"))
+    assert Decimal(networth[-1]["value_eur"]) == pytest.approx(total, abs=tolerance)
+    # The endpoint's own `total_eur` must match its buckets exactly, with
+    # no tolerance — that one is pure addition inside a single response.
+    assert Decimal(body["total_eur"]) == total
 
 
 def test_scopes_nest_the_way_the_snapshot_engine_defines_them(
