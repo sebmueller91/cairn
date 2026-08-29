@@ -8,6 +8,7 @@ import "./index.css";
 import { AuthProvider } from "./lib/auth";
 import { BoundedPersistProvider } from "./lib/persistProvider";
 import { shouldRetry } from "./lib/api";
+import { staleTimeWithinLocalDay } from "./lib/queryState";
 import { App } from "./App";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -40,7 +41,13 @@ registerSW({
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      // A function, not a flat 30s: several queries send a rolling `from`
+      // bound that moves at local midnight, and their keys deliberately do
+      // *not* encode it (lib/queryState.ts explains why that would orphan
+      // the offline cache every night). Clamping the 30s window at the
+      // day boundary is what makes those queries refetch a fresh window on
+      // the other side of midnight instead of sitting on yesterday's.
+      staleTime: (query) => staleTimeWithinLocalDay(query.state.dataUpdatedAt),
       // Must not be shorter than the persister's `maxAge` (Infinity, see
       // lib/persister.ts), or the two disagree about what "cached" means.
       // The persisted cache is a dehydrated copy of the *in-memory* cache,

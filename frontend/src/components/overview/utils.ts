@@ -4,25 +4,12 @@
 
 import { api, type NetWorthPoint } from "../../lib/api";
 
-/** `YYYY-MM-DD` for a `Date`, read from its *local* fields. `toISOString()`
- * converts to UTC first, which silently steps back a day for anyone in a
- * positive UTC offset (all of Central Europe) during the early hours of
- * the local day — before ~01:00 CET / ~02:00 CEST, "today" would come out
- * as yesterday. */
-function localISODate(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
-
-/** ISO `YYYY-MM-DD` for `days` ago, in local time — matches the `from`
- * query params the timeseries/attribution endpoints expect. */
-export function isoDaysAgo(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  return localISODate(d);
-}
+// The local-day helpers moved to lib/localDate.ts once three copies of them
+// existed and one of them (wealth/util.ts) had drifted to UTC. Re-exported
+// here so the Overview cards that already import it from this module keep
+// working.
+import { isoDaysAgo } from "../../lib/localDate";
+export { isoDaysAgo };
 
 /** The point in `points` whose `date` is nearest to `target` — used to find
  * "~30 days ago" in a daily series without assuming an exact match exists
@@ -84,13 +71,19 @@ export function fetchHeroNetWorth(): Promise<NetWorthPoint[]> {
   return api.get<NetWorthPoint[]>(`/api/timeseries/networth?${params}`);
 }
 
-/** A function, not a constant: the window's `from` bound moves by a day
- * every local midnight, but a plain array literal would freeze it at
- * whatever it was when the module first loaded. Since the bound wasn't
- * part of the key, a query considered "fresh" (within staleTime) kept
- * serving yesterday's HERO_DAYS window after midnight — same request,
- * same key, so TanStack Query never knew to refetch. Including today's
- * local date makes the key itself roll over. */
-export function netWorthQueryKey(): readonly [string, string, string] {
-  return ["networth", "overview", isoDaysAgo(0)] as const;
+/** The key both the hero and the Overview page mount this query under.
+ *
+ * Deliberately time-invariant. It used to end in `isoDaysAgo(0)` so the key
+ * itself rolled over at local midnight and forced a refetch of a freshly
+ * bounded window — which worked, and cost the offline cache everything: the
+ * key IndexedDB holds yesterday's answer under is not the key anyone asks
+ * for today, so away from home the hero errored instead of showing the last
+ * number it knew (lib/queryState.ts documents the general rule). The
+ * rollover now comes from `staleTimeWithinLocalDay` instead, and the window
+ * bound is computed inside `fetchHeroNetWorth` at fetch time.
+ *
+ * Still a function rather than a constant, purely so both call sites keep
+ * reading the same way. */
+export function netWorthQueryKey(): readonly [string, string, number] {
+  return ["networth", "overview", HERO_DAYS] as const;
 }

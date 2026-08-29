@@ -1,6 +1,8 @@
 // Small shared bits of the Wealth page. Kept out of the components so the
 // period vocabulary has exactly one definition across the four cards.
 
+import { isoDaysAgo, isoMonthsAgo } from "../../lib/localDate";
+
 /** Ranges the Wealth page offers. `MAX` means "everything on record". */
 export type Period = "7D" | "1M" | "3M" | "6M" | "1Y" | "5Y" | "MAX";
 
@@ -9,50 +11,68 @@ export const PERIODS: readonly Period[] = ["7D", "1M", "3M", "6M", "1Y", "5Y", "
 export type Granularity = "day" | "week" | "month";
 
 /**
- * A period as query parameters. Wide ranges ask for coarser buckets rather
- * than shipping thousands of daily points to the browser (ADR 0004) — the
- * same lever Dashboard.tsx pulls, at the coarser step ladder this page's
- * five buttons need. `from: undefined` is how `MAX` says "no lower bound".
+ * How coarse a period's buckets are. Wide ranges ask for coarser buckets
+ * rather than shipping thousands of daily points to the browser (ADR 0004)
+ * — the same lever Dashboard.tsx pulls, at the coarser step ladder this
+ * page's five buttons need.
+ *
+ * Split out from {@link rangeFor} because it is a pure function of the
+ * period with no dependence on the current date, which makes it safe to put
+ * in a query key — the `from` bound is not (see lib/queryState.ts).
  */
-export function rangeFor(period: Period): {
-  from?: string;
-  granularity: Granularity;
-} {
-  const now = new Date();
-  const iso = (d: Date) => d.toISOString().slice(0, 10);
-  const daysBack = (n: number) => {
-    const d = new Date(now);
-    d.setDate(d.getDate() - n);
-    return iso(d);
-  };
-  const monthsBack = (n: number) => {
-    const d = new Date(now);
-    d.setMonth(d.getMonth() - n);
-    return iso(d);
-  };
-
+export function granularityFor(period: Period): Granularity {
   switch (period) {
     case "7D":
       // The only range where a single day's move is the whole story: prices
       // land once a day, so a week is eight points and every one of them is
       // a real close rather than a bucket average.
-      return { from: daysBack(7), granularity: "day" };
+      return "day";
     case "1M":
-      return { from: monthsBack(1), granularity: "day" };
     case "3M":
-      return { from: monthsBack(3), granularity: "day" };
+      return "day";
     case "6M":
-      return { from: monthsBack(6), granularity: "week" };
     case "1Y":
-      return { from: monthsBack(12), granularity: "week" };
+      return "week";
     case "5Y":
       // Still weekly rather than monthly: ~260 points is nothing for the
       // chart, and it keeps the shape of a drawdown visible. Monthly
       // buckets smooth exactly the detail this range exists to show —
       // MAX is where the ladder finally gives that up.
-      return { from: monthsBack(60), granularity: "week" };
+      return "week";
     case "MAX":
-      return { granularity: "month" };
+      return "month";
+  }
+}
+
+/**
+ * A period as query parameters. `from: undefined` is how `MAX` says "no
+ * lower bound".
+ *
+ * Call this inside a `queryFn`, so the bound is recomputed on every fetch.
+ * The bounds used to be built from `toISOString()`, i.e. UTC, so this page
+ * rolled its window over an hour or two before the Overview cards did —
+ * both are on the local day now, via lib/localDate.ts.
+ */
+export function rangeFor(period: Period): {
+  from?: string;
+  granularity: Granularity;
+} {
+  const granularity = granularityFor(period);
+  switch (period) {
+    case "7D":
+      return { from: isoDaysAgo(7), granularity };
+    case "1M":
+      return { from: isoMonthsAgo(1), granularity };
+    case "3M":
+      return { from: isoMonthsAgo(3), granularity };
+    case "6M":
+      return { from: isoMonthsAgo(6), granularity };
+    case "1Y":
+      return { from: isoMonthsAgo(12), granularity };
+    case "5Y":
+      return { from: isoMonthsAgo(60), granularity };
+    case "MAX":
+      return { granularity };
   }
 }
 

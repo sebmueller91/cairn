@@ -10,12 +10,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, authEvents, UNAUTHORIZED_EVENT } from "./api";
 import { persister } from "./persister";
 
-// Name of the Workbox `NetworkFirst` cache for `/api/*` GETs
-// (vite.config.ts, cacheName: 'api-cache') — kept in sync with that file by
-// hand since this module can't import it. Cleared on logout alongside the
-// query cache so a shared device doesn't keep serving the previous
-// session's figures from the Cache API after sign-out.
-const SW_API_CACHE_NAME = "api-cache";
+// Prefix of the Workbox `NetworkFirst` cache for `/api/*` GETs
+// (vite.config.ts, `cacheName`). Matched by prefix rather than by exact
+// name on purpose: this was `"api-cache"` while the real cache had already
+// been versioned to `api-cache-v1`, so the `caches.delete()` below deleted
+// nothing at all and every cached figure survived sign-out — precisely what
+// it exists to prevent. The cache name is documented to be bumped again on
+// a response-shape change, so an exact name here is a constant invitation
+// to drift back out of sync.
+const SW_API_CACHE_PREFIX = "api-cache";
 
 type Scope = "full" | "read_only";
 
@@ -94,14 +97,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // wants to be logged out on this device. Every net-worth figure,
       // position and transaction lives in the query cache (IndexedDB,
       // `maxAge: Infinity` per persister.ts) and the service worker's own
-      // `api-cache`; clearing only the scope flag left both fully
+      // `api-cache-*`; clearing only the scope flag left both fully
       // populated for whoever opens the app next.
       setScope(null);
       localStorage.removeItem(SCOPE_STORAGE_KEY);
       queryClient.clear();
       await persister.removeClient();
       if (typeof caches !== "undefined") {
-        await caches.delete(SW_API_CACHE_NAME);
+        const names = await caches.keys();
+        await Promise.all(
+          names
+            .filter((name) => name.startsWith(SW_API_CACHE_PREFIX))
+            .map((name) => caches.delete(name)),
+        );
       }
     }
   }, [queryClient]);

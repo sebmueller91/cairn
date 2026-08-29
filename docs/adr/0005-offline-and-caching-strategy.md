@@ -23,6 +23,16 @@ worker is allowed to touch.
   eviction policy needed. No hard client-side TTL; a `buster` string bumped
   on breaking API/schema changes is the only thing that invalidates the
   persisted cache outright.
+- **Query keys are time-invariant.** A rolling window bound (`from=` for the
+  last 14 days, 180 days, a year) is resolved inside the `queryFn` at fetch
+  time and never appears in the key; the midnight rollover that would
+  otherwise motivate putting it there comes from a `staleTime` clamped at
+  the next *local* midnight instead. Corollary of the bullet above: because
+  the key is the address of the persisted entry, a key that changes on a
+  timer does not make the cache stale, it makes it unreachable — the entry
+  written yesterday is still in IndexedDB, under a key nothing will ever ask
+  for again. Bump the `buster` when the key space changes, not only when a
+  response shape does.
 - **Staleness surfaced:** a global banner reads the oldest `dataUpdatedAt`
   across currently-mounted queries — *"as of 2026-08-12, 22:31 · offline"* —
   plus the 24h tint the spec specifies.
@@ -49,3 +59,12 @@ dependency (TanStack Query) plus one well-trodden Workbox recipe — nothing
 bespoke to maintain. Makes hard: forms need an explicit online-check gate
 rather than "just submit and see" — a small amount of repeated UI logic
 across every mutating form, worth extracting into one shared hook early.
+
+The sharper edge, learned twice: making the query cache *be* the offline
+cache means every ordinary query-cache habit is now an offline-behaviour
+decision. `gcTime`, `shouldDehydrateQuery` and the shape of a query key each
+look like local tuning and each silently decide whether there is anything to
+show on a train. None of them announce themselves — the app is perfectly
+correct at home either way, and only fails where it cannot be observed. That
+is why `lib/queryState.ts` and `lib/persister.ts` carry the reasoning inline
+rather than deferring to this ADR.

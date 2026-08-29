@@ -8,20 +8,7 @@ import { formatCurrency, formatPercent } from "../../lib/format";
 import { ASSET_CLASSES, ASSET_CLASS_COLORS, assetClassLabelKey } from "../../lib/assetClasses";
 import { useAssetFilter } from "../../lib/assetFilter";
 import { useCachedQuery, useIsLoading } from "../../lib/queryState";
-
-/** ISO `YYYY-MM-DD` for `days` ago, in *local* time — `toISOString()` would
- * convert to UTC first and misdate anyone in a positive UTC offset during
- * the early hours of the local day (see the identical helper and comment
- * in overview/utils.ts, which this intentionally does not import — that
- * module is kept local to the Overview page by design). */
-function isoDaysAgo(days: number): string {
-  const d = new Date();
-  d.setDate(d.getDate() - days);
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
+import { isoDaysAgo } from "../../lib/localDate";
 
 /** Section 1 — today's allocation by asset class, as a donut + legend. */
 export function ClassDistributionCard() {
@@ -34,10 +21,13 @@ export function ClassDistributionCard() {
   // all of it — the slowest request in the app, on the Pi. `ClassMixCard`
   // asks for the same shape of data correctly with a `from` bound; two
   // weeks is more than enough to guarantee at least one point.
-  const from = isoDaysAgo(14);
+  //
+  // The bound lives in the queryFn, not the key — see ClassMixCard and
+  // lib/queryState.ts for why a key must never carry today's date.
   const { data, isPending, isError } = useCachedQuery({
-    queryKey: ["allocation-timeseries", "latest", from],
-    queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
+    queryKey: ["allocation-timeseries", "latest", "14d"],
+    queryFn: () =>
+      getAllocationTimeseries({ from: isoDaysAgo(14), granularity: "day" }),
   });
   const pending = useIsLoading(isPending);
 
