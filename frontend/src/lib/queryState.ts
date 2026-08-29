@@ -91,6 +91,27 @@ export function computeIsQueryLoading(isRestoring: boolean, isPending: boolean):
  * A failure with nothing to fall back on still reports as an error — that
  * is a genuine "we have nothing", not a stale reading, and a card that
  * sat on a skeleton forever instead would be worse than the truth.
+ *
+ * Which is the whole reason for the rule below: "nothing to fall back on"
+ * must mean "never fetched", not "fetched under a key nobody asks for any
+ * more".
+ *
+ * **A query key must not contain anything derived from the current time.**
+ *
+ * The persisted cache is addressed *by query key* (ADR 0005 — the query
+ * cache is the offline cache). A key holding today's date changes at local
+ * midnight, so the next lookup asks IndexedDB for a key that has never
+ * existed: `data` is `undefined`, the fetch against an unreachable Pi
+ * fails, `cacheStands` correctly says there is nothing to stand on, and
+ * the card errors — while yesterday's perfectly good answer sits in
+ * IndexedDB under yesterday's key, where nothing will ever look for it
+ * again. With `gcTime: Infinity` (main.tsx) it is not even evicted; the
+ * persisted client just grows another orphaned key-set every calendar day.
+ *
+ * Rolling window bounds therefore get resolved *inside* the `queryFn`,
+ * where they are recomputed on every fetch anyway, and the rollover that
+ * date-in-key was reaching for is enforced by
+ * {@link staleTimeWithinLocalDay} instead.
  */
 export function useCachedQuery<
   TQueryFnData = unknown,
@@ -122,4 +143,51 @@ export function useCachedQuery<
  */
 export function cacheStands(isError: boolean, data: unknown): boolean {
   return isError && data !== undefined;
+}
+
+/** The app-wide staleTime floor: how long any answer counts as fresh
+ * before a mount/focus/reconnect will refetch it. */
+export const DEFAULT_STALE_MS = 30_000;
+
+/**
+ * Milliseconds from `dataUpdatedAt` to the next *local* midnight after it.
+ *
+ * Built by constructing the boundary from local calendar fields rather than
+ * by adding 86_400_000, so the platform resolves DST for us: on the 23-hour
+ * spring-forward day the answer really is an hour shorter, and on the
+ * 25-hour autumn day an hour longer.
+ */
+export function msUntilNextLocalDay(dataUpdatedAt: number): number {
+  const d = new Date(dataUpdatedAt);
+  const nextMidnight = new Date(
+    d.getFullYear(),
+    d.getMonth(),
+    d.getDate() + 1,
+    0,
+    0,
+    0,
+    0,
+  );
+  return nextMidnight.getTime() - dataUpdatedAt;
+}
+
+/**
+ * The default staleTime, clamped so no answer is ever considered fresh
+ * across a local midnight.
+ *
+ * The rolling `from` bounds several queries send (`isoDaysAgo(14)`, the
+ * Wealth ladder, the 180-day hero window) move at local midnight, so an
+ * answer computed yesterday describes yesterday's window. Marking it stale
+ * at the boundary means the next mount, window focus or reconnect refetches
+ * with a freshly computed bound — which is exactly what putting the date in
+ * the query key used to achieve, minus the cost of orphaning the offline
+ * cache every night (see {@link useCachedQuery}).
+ *
+ * Stale is not empty: the old answer keeps rendering until the refetch
+ * lands, and if the refetch fails the cache stands. `dataUpdatedAt === 0`
+ * means nothing has ever been fetched, which is stale by definition.
+ */
+export function staleTimeWithinLocalDay(dataUpdatedAt: number): number {
+  if (!dataUpdatedAt) return 0;
+  return Math.min(DEFAULT_STALE_MS, msUntilNextLocalDay(dataUpdatedAt));
 }

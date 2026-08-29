@@ -16,11 +16,20 @@ const idbStorage = {
   removeItem: async (key: string) => del(key),
 };
 
-// Bump this when a schema/API change means old cached shapes would be
-// wrong to render — e.g. a renamed field a cached response still has the
-// old name for. Not tied to app version generally; only breaking changes
-// need it (ADR 0005).
-const CACHE_BUSTER = "2";
+// Bump this when old persisted entries would be wrong to *render* or
+// impossible to *reach*:
+//
+//   - a schema/API change, e.g. a renamed field a cached response still
+//     has the old name for; or
+//   - a change to the query key space, which leaves the entries written
+//     under the old keys stranded — nothing reads them, and with
+//     `gcTime: Infinity` (main.tsx) nothing evicts them either.
+//
+// "3" is the second kind: the rolling `from` bounds came out of four query
+// keys, so every per-calendar-day key set accumulated since is now dead
+// weight. Not tied to app version generally; only these two cases need it
+// (ADR 0005).
+const CACHE_BUSTER = "3";
 
 export const persister = createAsyncStoragePersister({
   storage: idbStorage,

@@ -23,13 +23,14 @@ import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 export function ClassMixCard() {
   const { t, i18n } = useTranslation("overview");
 
-  // The `from` bound is part of the key (not just the queryFn) for the same
-  // reason as netWorthQueryKey — otherwise a cached "fresh" query keeps
-  // answering yesterday's 14-day window after local midnight.
-  const from = isoDaysAgo(14);
+  // The `from` bound is resolved inside the queryFn, never in the key: a
+  // key ending in today's date rolls over at local midnight and takes the
+  // whole offline cache with it (lib/queryState.ts). The midnight rollover
+  // it used to provide now comes from `staleTimeWithinLocalDay`.
   const { data, isPending, isError } = useCachedQuery({
-    queryKey: ["allocation-timeseries", "overview", from],
-    queryFn: () => getAllocationTimeseries({ from, granularity: "day" }),
+    queryKey: ["allocation-timeseries", "overview", "14d"],
+    queryFn: () =>
+      getAllocationTimeseries({ from: isoDaysAgo(14), granularity: "day" }),
   });
   const pending = useIsLoading(isPending);
 

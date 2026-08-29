@@ -16,7 +16,7 @@ import { MilestoneJourney } from "../components/wealth/MilestoneJourney";
 import { OutlookCard } from "../components/wealth/OutlookCard";
 import { Replay } from "../components/wealth/Replay";
 import { WealthCurveCard } from "../components/wealth/WealthCurveCard";
-import { rangeFor, type Period } from "../components/wealth/util";
+import { granularityFor, rangeFor, type Period } from "../components/wealth/util";
 
 /**
  * The Wealth page: one curve, its composition, the whole history as a
@@ -35,12 +35,21 @@ export function Wealth() {
   const [period, setPeriod] = useState<Period>("1Y");
   const [real, setReal] = useState(false);
 
-  const { from, granularity } = useMemo(() => rangeFor(period), [period]);
-
-  // Windowed allocation — the curve card and the mix card share it.
+  // Only the granularity is derived up here. The window's `from` bound is
+  // deliberately absent from the key and computed inside the queryFn
+  // instead: it moves at midnight, and a key that moves with it points at
+  // an IndexedDB entry that has never existed, so the cache this page
+  // renders from away from home would be orphaned every night (the rule,
+  // and why, are in lib/queryState.ts). `MAX` still maps to "all" so this
+  // query and `historyQuery` below share one request, as they always have.
+  const granularity = useMemo(() => granularityFor(period), [period]);
   const windowQuery = useCachedQuery({
-    queryKey: ["allocationTimeseries", from ?? "all", granularity],
-    queryFn: () => getAllocationTimeseries({ from, granularity }),
+    queryKey: [
+      "allocationTimeseries",
+      period === "MAX" ? "all" : period,
+      granularity,
+    ],
+    queryFn: () => getAllocationTimeseries(rangeFor(period)),
   });
 
   // Full history, monthly — the milestone journey needs every crossing ever,

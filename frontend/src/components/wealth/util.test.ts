@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { frameIndices, PERIODS, rangeFor, type Granularity } from "./util";
+import {
+  frameIndices,
+  granularityFor,
+  PERIODS,
+  rangeFor,
+  type Granularity,
+} from "./util";
 
 describe("rangeFor", () => {
   beforeEach(() => {
@@ -89,5 +95,79 @@ describe("frameIndices", () => {
 
   it("handles a single-point series", () => {
     expect(frameIndices(7, 1)).toEqual({ lower: 0, upper: 0, t01: 0, snap: 0 });
+  });
+});
+
+describe("the Wealth window query key", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // Mirrors what pages/Wealth.tsx builds. The `from` bound is deliberately
+  // not in it: this page's key used to carry it, so at midnight the curve
+  // asked IndexedDB for an entry that had never existed and errored away
+  // from home instead of showing the last window it had. See
+  // lib/queryState.ts for the rule.
+  const keyFor = (period: (typeof PERIODS)[number]) =>
+    [
+      "allocationTimeseries",
+      period === "MAX" ? "all" : period,
+      granularityFor(period),
+    ] as const;
+
+  it("does not change across local midnight, for any period", () => {
+    vi.setSystemTime(new Date(2026, 7, 29, 23, 59, 0));
+    const before = PERIODS.map(keyFor);
+    vi.setSystemTime(new Date(2026, 7, 30, 0, 1, 0));
+    expect(PERIODS.map(keyFor)).toEqual(before);
+  });
+
+  it("carries no date-shaped segment at all", () => {
+    vi.setSystemTime(new Date(2026, 7, 29, 12, 0, 0));
+    for (const period of PERIODS) {
+      for (const part of keyFor(period)) {
+        expect(String(part)).not.toMatch(/\d{4}-\d{2}-\d{2}/);
+      }
+    }
+  });
+
+  it("still lets MAX share one request with the full-history query", () => {
+    // pages/Wealth.tsx mounts a second query on
+    // ["allocationTimeseries", "all", "month"] for the milestone journey;
+    // at MAX the two must remain literally the same key.
+    expect(keyFor("MAX")).toEqual(["allocationTimeseries", "all", "month"]);
+  });
+
+  it("gives every other period its own key", () => {
+    const keys = PERIODS.map((p) => JSON.stringify(keyFor(p)));
+    expect(new Set(keys).size).toBe(PERIODS.length);
+  });
+});
+
+describe("rangeFor bounds the window on the local day", () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("uses the local date, not the UTC one, late in the evening", () => {
+    // 23:30 UTC is already 01:30 the next local day in CEST. This page used
+    // to build its bounds with `toISOString()`, so its window rolled over
+    // an hour or two before the Overview cards' did — the two pages
+    // disagreed about what "today" meant for that window.
+    vi.setSystemTime(new Date("2026-08-16T23:30:00Z"));
+    expect(rangeFor("7D").from).toBe("2026-08-10");
+  });
+
+  it("agrees with granularityFor", () => {
+    vi.setSystemTime(new Date("2026-08-16T12:00:00Z"));
+    for (const period of PERIODS) {
+      expect(rangeFor(period).granularity).toBe(granularityFor(period));
+    }
   });
 });
