@@ -112,6 +112,12 @@ LIABILITY) · `region` · `sector` · `currency` · `liquidity_tier`
 | `LOAN_PAYMENT` | instalment → interest and principal split | amount, interest_part, principal_part |
 | `EXTRA_REPAYMENT` | overpayment | amount |
 
+`VALUATION` is listed for completeness but is **not** bookable as a transaction:
+`POST /api/valuations` and the `valuation_anchor` table are the real mechanism
+(ch. 9 already treats anchors as their own resource), so a transaction row would
+be a second, redundant path to the same data. The API rejects it with
+`unsupported_transaction_type`.
+
 Every transaction carries: `date`, `account_id`, `instrument_id?`, `amount_eur`
 (converted, with the FX rate stored alongside), `note`, `source`
 (`manual` / `agent` / `import`), `external_id`, `import_batch_id`, `created_at`.
@@ -277,6 +283,22 @@ amortisation progress, cumulative interest paid, projected balance at the end of
 the fixed-rate period, a countdown to refinancing, and the interest portion as a
 running cost in the cash flow view.
 
+Two limits to know before trusting a projection:
+
+- **The fixed-rate period is stored but not applied.** `fixed_until` reaches
+  the amortisation, and the schedule keeps compounding at `rate_pct` past it
+  anyway. Nothing here says what rate follows the end of a Zinsbindung — a
+  tracked index? a renewal entered as a new loan? — and picking one would be
+  inventing a domain rule. So a balance asked for *after* `fixed_until` is
+  very likely wrong, and more so the further past it you ask. Treat the
+  fixed-rate end as the horizon of the projection, not a point it survives.
+- **`payment_day` is a starting anchor, not a guarantee.** The schedule walks
+  month to month and clamps to the shortest month it meets, and never climbs
+  back: `payment_day: 31` settles on the 28th from the first February onward.
+  It stays one payment per month either way, so the balance is barely
+  affected — but the payment *dates* drift down, and a day near month-end is
+  approximate rather than exact.
+
 ### 3.6 Cash and capital flows
 
 **Cash is tracked by balance only.** The agent occasionally books a
@@ -307,6 +329,22 @@ portfolio deposits are already explained. The interpolation subtracts them
 explicitly and spreads only the *unexplained* remainder linearly. Otherwise
 5,000 would briefly appear twice in net worth: once in the stale account
 balance, once in the portfolio.
+
+**Two limits on that bridge**, both of which make gross worth read high rather
+than low, and neither of which announces itself:
+
+- It spans only the days that lie *between* two statements. After the most
+  recent one there is no second point to interpolate towards, so the balance
+  is carried forward flat. Purchases booked into that open-ended tail raise
+  the portfolio without lowering any cash, and gross worth runs high by
+  roughly their cost until the next statement lands. A month with large
+  purchases is worth a statement even if the quarter is not up.
+- Nothing in the data model records *which* cash account funded a given
+  portfolio deposit. With exactly one cash account that is unambiguous and the
+  correction applies. With two or more it is deliberately withheld — each
+  account falls back to plain interpolation between its own statements —
+  rather than smearing one account's withdrawal across all of them. So adding
+  a second cash account silently changes how the first one is interpolated.
 
 **Savings rate as a residual.** What enters total wealth from outside is not
 booked but computed:
