@@ -1,7 +1,7 @@
 # Agent workflows
 
 Worked scenarios for booking data, against the real API as implemented
-through phase 4. Every payload below is copy-pasteable — these are not
+through phase 5. Every payload below is copy-pasteable — these are not
 illustrative shapes anymore. Expand as real cases come up.
 
 Always: **dry run → visual check → commit → reconcile.**
@@ -18,7 +18,9 @@ point.
 
 ## 1. Import an annual statement
 
-1. Statement lands in `inbox/` (gitignored)
+1. Statement lands in `inbox/` (gitignored) — that is this repo's convention,
+   not a path anything reads; if you collect statements somewhere else, tell
+   the agent where rather than letting it assume `inbox/` is empty of work
 2. Resolve every ISIN to an `instrument_id` (workflow 3 for any unknown one)
    and the account name to an `account_id`
 3. Build an `external_id` per row: `<account>-<date>-<isin>-<type>-<n>`
@@ -100,6 +102,39 @@ semantics with a batch label.
 
 ---
 
+## 2b. Correct a booking that is already in
+
+`PATCH /api/transactions/{id}` amends a booked row in place, but it reaches
+only `date`, `date_precision`, `quantity`, `price`, `fees`, `tax`, `note` and
+`provisional`. **It cannot change an amount.** For a BUY/SELL that is no
+obstacle — the amount follows from quantity and price, both patchable — but
+for the amount-only types (`DIVIDEND`, `INTEREST`, `FEE`, `TAX`, `DEPOSIT`,
+`WITHDRAWAL`, `BALANCE_STATEMENT`, `LOAN_PAYMENT`, `EXTRA_REPAYMENT`) a wrong
+figure cannot be patched at all. Three ways out, in order of preference:
+
+1. **Delete and rebook.** `DELETE /api/transactions/{id}`, then book again
+   with the right amount. Cleanest, and the only one that leaves no trace of
+   the wrong figure. Refused with `delete_breaks_holdings` if a later SELL or
+   TRANSFER on that instrument depended on the row.
+2. **Roll the whole batch back.** `DELETE /api/import-batches/{id}` removes
+   every row of an import together, with the same holdings replay and the
+   same refusal. Use it when an entire import was wrong rather than one line
+   of it.
+3. **Book a correcting entry** carrying only the difference, dated where the
+   correction belongs. Use it when the original has to stay — for the audit
+   trail, or because deleting is refused. Always say so in the `note`: a
+   standalone row of an odd amount is unreadable a year later without one.
+
+Then `POST /api/admin/rebuild-snapshots`. The snapshot series is a cache, and
+a correction dated in the past does not reach it until it is rebuilt — the
+positions endpoints recompute live and will already agree, which makes it easy
+to believe the job is done when the wealth curve still disagrees.
+
+Re-sending the same `external_id` is **not** a correction path: identical
+content is a no-op, different content is a `409`, never a silent overwrite.
+
+---
+
 ## 3. Create new instruments
 
 Before the first transaction on an unknown ISIN:
@@ -168,6 +203,14 @@ allowance headroom that January already spent.
 No individual entries, no categories. Every few months is enough — the
 savings-rate resolution follows from how often these arrive (spec 3.6).
 
+The resolution argument hides one thing worth knowing: the cash bridge spans
+only the days *between* two statements, so after the latest one the balance is
+carried forward flat. Purchases booked after it raise the portfolio with
+nothing deducted from cash, and gross worth runs high by roughly their cost
+until the next statement arrives. A month with a large purchase — a lump-sum
+buy, not the usual savings-plan rate — earns a statement of its own even if
+the quarter is not up.
+
 ---
 
 ## 5. Backfill older history
@@ -206,6 +249,15 @@ Both live now (the tables arrived in phase 5).
   `POST /api/valuations` sets an anchor. An ANCHORED instrument is worth
   **nothing before its first anchor**, so when backfilling, place an anchor
   at or before the position's opening date or the whole history reads zero.
+
+Two things the loan schedule will not tell you it is doing (spec 3.5):
+
+- `fixed_until` is stored and then ignored — the balance keeps compounding at
+  `rate_pct` past the end of the fixed-rate period, so any `as_of` beyond it
+  is very likely wrong. Do not quote a balance from past a Zinsbindung.
+- `payment_day` clamps down to the shortest month it meets and never climbs
+  back, so `31` settles on the 28th after the first February. One payment per
+  month either way; only the dates drift.
 
 ---
 
