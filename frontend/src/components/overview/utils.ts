@@ -52,11 +52,19 @@ export const STALE_THRESHOLD_HOURS = 48;
 export const STALE_OFFSITE_THRESHOLD_HOURS = 72;
 
 /** The window the Overview hero reports on — both its sparkline and its
- * delta chip. Half a year rather than a month or a quarter: the Overview is
+ * delta chip. A full year rather than a month or a quarter: the Overview is
  * meant to answer "where is this heading", and over 30 days a portfolio
- * this size is mostly market noise. One constant so the two figures in the
- * hero can never describe different periods. */
-export const HERO_DAYS = 180;
+ * this size is mostly market noise. A year also puts the hero on the same
+ * period as the twelve-months card below it, so the two stop telling
+ * different stories about the same stretch of time. One constant so the
+ * two figures in the hero can never describe different periods. */
+export const HERO_DAYS = 365;
+
+/** The same window in whole months, for the hero's caption — "12 months"
+ * reads the way the card below it is labelled, where "365 days" would not.
+ * Derived rather than written out so the label cannot drift away from the
+ * window it describes if HERO_DAYS ever moves again. */
+export const HERO_MONTHS = Math.round(HERO_DAYS / 30.44);
 
 /** Net worth (scope=net, so loans count against it) over HERO_DAYS at day
  * granularity. Shared between NetWorthHero (the sparkline + delta) and

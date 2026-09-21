@@ -2,7 +2,7 @@
   "title": "Overview",
   "hero": {
     "label": "Net worth",
-    "sparkCaption": "Last {{days}} days"
+    "sparkCaption": "Last {{months}} months"
   },
   "classMix": {
     "title": "Asset mix",

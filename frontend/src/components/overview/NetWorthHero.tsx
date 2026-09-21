@@ -4,7 +4,13 @@ import { GlassCard } from "../ui/GlassCard";
 import { StatHero } from "../ui/StatHero";
 import { Sparkline } from "../ui/Sparkline";
 import { Skeleton } from "../ui/Skeleton";
-import { closestPoint, fetchHeroNetWorth, HERO_DAYS, netWorthQueryKey } from "./utils";
+import {
+  closestPoint,
+  fetchHeroNetWorth,
+  HERO_DAYS,
+  HERO_MONTHS,
+  netWorthQueryKey,
+} from "./utils";
 import { useCachedQuery, useIsLoading } from "../../lib/queryState";
 
 /** The hero panel: latest net worth (scope=net, so loans count against it),
@@ -77,7 +83,7 @@ export function NetWorthHero() {
           className="w-full"
         />
         <div className="mt-1.5 text-xs text-text-muted">
-          {t("hero.sparkCaption", { days: HERO_DAYS })}
+          {t("hero.sparkCaption", { months: HERO_MONTHS })}
         </div>
       </StatHero>
     </GlassCard>

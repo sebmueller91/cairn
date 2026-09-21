@@ -2,7 +2,7 @@
   "title": "Überblick",
   "hero": {
     "label": "Nettovermögen",
-    "sparkCaption": "Verlauf der letzten {{days}} Tage"
+    "sparkCaption": "Verlauf der letzten {{months}} Monate"
   },
   "classMix": {
     "title": "Anlageklassen",
