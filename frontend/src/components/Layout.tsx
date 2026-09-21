@@ -42,7 +42,15 @@ function tabLinkClass({ isActive }: { isActive: boolean }) {
 function Sidebar() {
   const { t } = useTranslation("common");
   return (
-    <aside className="hidden w-56 shrink-0 flex-col border-r border-border bg-bg-card p-4 backdrop-blur-glass md:flex">
+    // Pinned so the nav stays reachable however far a long page scrolls.
+    // `sticky` rather than a nested scroll container on the right: the page
+    // keeps scrolling as the document, so browser scroll restoration and
+    // mobile overscroll stay native. `self-start` is what makes it work at
+    // all — a stretched flex child is already as tall as the row, leaving
+    // sticky nothing to travel over; `h-dvh` then puts the divider back to
+    // full viewport height, and `overflow-y-auto` keeps the links reachable
+    // on a viewport too short to hold them.
+    <aside className="sticky top-0 hidden h-dvh w-56 shrink-0 flex-col self-start overflow-y-auto border-r border-border bg-bg-card p-4 backdrop-blur-glass md:flex">
       <div className="mb-6 flex items-center gap-2 px-3">
         <span
           aria-hidden
