@@ -176,7 +176,7 @@ export function msUntilNextLocalDay(dataUpdatedAt: number): number {
  * across a local midnight.
  *
  * The rolling `from` bounds several queries send (`isoDaysAgo(14)`, the
- * Wealth ladder, the 180-day hero window) move at local midnight, so an
+ * Wealth ladder, the year-long hero window) move at local midnight, so an
  * answer computed yesterday describes yesterday's window. Marking it stale
  * at the boundary means the next mount, window focus or reconnect refetches
  * with a freshly computed bound — which is exactly what putting the date in

@@ -1,5 +1,6 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { keepPreviousData } from "@tanstack/react-query";
 import { Telescope } from "lucide-react";
 import { api, type AllocationTimeseriesPoint, type ProjectionResponse } from "../../lib/api";
 import { sumSelected } from "../../lib/allocationSeries";
@@ -17,15 +18,34 @@ const HORIZONS = [5, 10, 20, 30] as const;
 const SPREAD_PP = 2;
 /** How much recorded history to show alongside, so the seam has context. */
 const HISTORY_MONTHS = 36;
+/** Same reasoning as the tax view's own debounce: these two fields sit in
+ * the query key, so raw keystrokes meant a request per digit — and "2" on
+ * the way to "2285" is a projection nobody asked to see. */
+const INPUT_DEBOUNCE_MS = 400;
+
+/** The value, once the typing has stopped. Deliberately not the validating
+ * hook TaxTab has: there the field is a German decimal that must parse
+ * before it can be sent, here `type="number"` already narrows what can be
+ * typed and an empty string is itself a meaningful state ("no override").
+ * Kept local until a third caller wants it. */
+function useDebouncedValue<T>(value: T, ms: number): T {
+  const [settled, setSettled] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setSettled(value), ms);
+    return () => clearTimeout(id);
+  }, [value, ms]);
+  return settled;
+}
 
 /**
  * Where the wealth curve goes if nothing changes.
  *
  * This is the only card in the app whose numbers are not derived from a
- * recorded fact, and it is built to keep saying so: the assumptions sit
- * in the header as controls rather than in a footnote, the projection is
- * drawn as a dashed line inside a band rather than as a curve, and the
- * savings rate says whether it was measured or typed in.
+ * recorded fact, and it is built to keep saying so without a disclaimer
+ * to read: the assumptions sit in the card as editable controls rather
+ * than in a footnote, the projection is drawn as a dashed line inside a
+ * band rather than as a curve, and the savings rate says whether it was
+ * measured or typed in.
  *
  * Whole-portfolio only. The starting value is the net-worth snapshot and
  * the savings rate is a portfolio-wide flow, so projecting "just the
@@ -58,23 +78,35 @@ export function OutlookCard({
   const [returnPct, setReturnPct] = useState("5");
   const [savingsOverride, setSavingsOverride] = useState<string>("");
 
+  // The inputs render from the raw state (so typing stays responsive) but
+  // the query reads these, so the chart re-fetches once per pause rather
+  // than once per digit.
+  const queriedReturnPct = useDebouncedValue(returnPct, INPUT_DEBOUNCE_MS);
+  const queriedSavings = useDebouncedValue(savingsOverride, INPUT_DEBOUNCE_MS);
+
   const { data, isPending, isError } = useCachedQuery({
-    queryKey: ["projection", years, real, returnPct, savingsOverride],
+    queryKey: ["projection", years, real, queriedReturnPct, queriedSavings],
     queryFn: () => {
       const params = new URLSearchParams({
         scope: "net",
         years: String(years),
-        annual_return_pct: returnPct,
+        annual_return_pct: queriedReturnPct,
         return_spread_pp: String(SPREAD_PP),
         real: String(real),
       });
       // Empty string means "no override" — but "0" is a real answer to
       // "what if I stopped saving", so it must not be swallowed by a
       // falsiness check here any more than by one on the server.
-      if (savingsOverride !== "") params.set("monthly_savings_eur", savingsOverride);
+      if (queriedSavings !== "") params.set("monthly_savings_eur", queriedSavings);
       return api.get<ProjectionResponse>(`/api/projection?${params}`);
     },
     enabled: allSelected,
+    // The horizon, the mode and both assumption fields are all in the key,
+    // so every change used to drop `data` and swap the chart for a
+    // skeleton — the card changed height under the cursor mid-edit. Hold
+    // the last cone until the new one lands; it is a projection, and the
+    // difference between the two is the point being looked at anyway.
+    placeholderData: keepPreviousData,
   });
   const pending = useIsLoading(isPending) && allSelected;
 
@@ -95,14 +127,12 @@ export function OutlookCard({
   );
 
   const formatValue = (n: number) => formatCurrency(n, i18n.language);
-  const last = cone.at(-1);
 
   return (
     <GlassCard>
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="font-medium">{t("outlook.title")}</h2>
-          <p className="mt-1 text-xs text-text-muted">{t("outlook.disclaimer")}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <SegmentedControl
@@ -157,21 +187,6 @@ export function OutlookCard({
               formatValue={formatValue}
             />
           </div>
-
-          {last && (
-            <p className="mt-4 text-sm">
-              {t("outlook.summary", {
-                years,
-                value: formatCurrency(last.mid, i18n.language),
-              })}{" "}
-              <span className="text-text-muted">
-                {t("outlook.summaryRange", {
-                  low: formatCurrency(last.low, i18n.language),
-                  high: formatCurrency(last.high, i18n.language),
-                })}
-              </span>
-            </p>
-          )}
 
           {/* The assumptions, editable in place. A projection whose
               premises are buried is unreadable — the same curve means

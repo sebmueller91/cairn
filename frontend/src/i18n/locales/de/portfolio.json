@@ -61,7 +61,6 @@
   },
   "concentration": {
     "title": "Konzentration & Struktur",
-    "subtitle": "Zwei Portfolios können beide 70 % Aktien sein — eines hält vierzig Fonds, das andere zwei. Diese Zahlen unterscheiden sie.",
     "topN": "Top {{n}}",
     "ofHoldings": "von {{count}} Positionen",
     "largest": "Größte Position",

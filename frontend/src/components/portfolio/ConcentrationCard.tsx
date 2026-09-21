@@ -104,8 +104,7 @@ export function ConcentrationCard() {
 
   return (
     <GlassCard>
-      <h2 className="mb-1 font-medium">{t("concentration.title")}</h2>
-      <p className="mb-4 text-xs text-text-muted">{t("concentration.subtitle")}</p>
+      <h2 className="mb-4 font-medium">{t("concentration.title")}</h2>
 
       {pending ? (
         <div className="space-y-4">

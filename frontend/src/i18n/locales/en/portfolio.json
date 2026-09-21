@@ -61,7 +61,6 @@
   },
   "concentration": {
     "title": "Concentration & structure",
-    "subtitle": "Two portfolios can both be 70 % equity while one holds forty funds and the other holds two. These are the figures that tell them apart.",
     "topN": "Top {{n}}",
     "ofHoldings": "of {{count}} holdings",
     "largest": "Largest position",
