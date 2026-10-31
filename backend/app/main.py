@@ -30,6 +30,7 @@ from app.routers import (
     projection,
     price_sources,
     prices,
+    recurring_bookings,
     reconcile,
     tax,
     timeseries,
@@ -226,3 +227,4 @@ app.include_router(vorabpauschale.router)
 app.include_router(look_through.router)
 app.include_router(milestones.router)
 app.include_router(projection.router)
+app.include_router(recurring_bookings.router)

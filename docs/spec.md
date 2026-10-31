@@ -178,6 +178,16 @@ complete. Consequences for presentation:
 - a completeness panel: *"Portfolio A: complete since 03/2021 · Portfolio B:
   since 01/2024 · BTC: since inception"*
 
+**5. Recurring bookings (ADR 0016).** Savings plans and the loan instalment
+are standing rules. A nightly job books each execution on its due day — moved
+to the next German business day if that is a weekend or nationwide public
+holiday, unless the rule says otherwise (the loan instalment is booked on the
+second last day of the month as is) — as a `provisional` transaction: a `BUY` priced from the day's close
+(`price_mode: auto`), a `LOAN_PAYMENT` for the loan's instalment. The statement
+then *confirms* the row (real quantity, price, fees, `provisional` cleared)
+instead of creating it, so the ledger is current between statements without
+pretending an estimate is a fact.
+
 Because all metrics derive from the ledger and snapshots are only a cache, a
 rebuild after each backfill is enough — the whole history recomputes and gets
 more precise on its own.
@@ -1168,6 +1178,7 @@ most effective quality measure in the project.
 | 6 | **Remote access** | No additional remote access — cache mode, existing VPN when needed | 6.3; the offline path becomes the normal case and is acceptance-relevant. HTTPS remains mandatory (service workers) |
 | 7 | **Language & theme** | DE (default) / EN switchable, light/dark/system in settings | 8.3; API and database values stay English, translation only in presentation |
 | 8 | **Name** | `Cairn`, repository `cairn` | package, container, hostname and PWA manifest kept consistent |
+| 9 | **Recurring bookings** | Savings plans and the loan instalment are booked automatically as provisional transactions; statements confirm them | 2.5 (mechanism 5); ADR 0016 |
 
 ### Still to settle
 - **Index series for the house:** national, state or district type? Pick it with
