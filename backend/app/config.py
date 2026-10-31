@@ -10,6 +10,10 @@ class Settings(BaseSettings):
     api_token: str = "dev-token"
     api_token_readonly: str | None = None
     enable_scheduler: bool = True
+    # The in-app agent (ADR 0017). Unset key = agent off; nothing else in
+    # the app depends on it. Lives only in the Pi's /srv/cairn/config/.env.
+    anthropic_api_key: str | None = None
+    agent_model: str = "claude-sonnet-5-5"
 
 
 @lru_cache

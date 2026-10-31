@@ -1,0 +1,52 @@
+{
+  "title": "Assistent",
+  "newChat": "Neuer Chat",
+  "noChats": "Noch keine Chats.",
+  "untitled": "Neuer Chat",
+  "deleteChat": "Chat löschen",
+  "deleteChatConfirm": "Diesen Chat löschen? Bereits übernommene Buchungen bleiben bestehen.",
+  "startTitle": "Chat starten",
+  "startHint": "Screenshots von Abrechnungen einfügen oder beschreiben, was passiert ist. Gebucht wird erst, wenn du es übernimmst.",
+  "emptyTitle": "Was soll gebucht werden?",
+  "emptyHint": "Screenshots einfügen (Strg/Cmd+V), hierher ziehen oder die Buchung beschreiben.",
+  "notConfiguredTitle": "Der Assistent ist nicht eingerichtet",
+  "notConfiguredHint": "Auf dem Server fehlt ein Anthropic-API-Schlüssel (ANTHROPIC_API_KEY in /srv/cairn/config/.env).",
+  "placeholder": "Nachricht oder Screenshot einfügen…",
+  "send": "Senden",
+  "addImage": "Bild hinzufügen",
+  "removeImage": "Bild entfernen",
+  "imageFailed": "Das Bild konnte nicht gelesen werden.",
+  "working": "Wird bearbeitet – das kann eine Minute dauern.",
+  "imagesAttached_one": "{{count}} Bild",
+  "imagesAttached_other": "{{count}} Bilder",
+  "apply": "Übernehmen",
+  "reject": "Verwerfen",
+  "fees": "Gebühren",
+  "provisional": "vorläufig",
+  "status": {
+    "pending": "Offen",
+    "applied": "Übernommen",
+    "rejected": "Verworfen"
+  },
+  "actions": {
+    "create": "Neu",
+    "update": "Korrektur",
+    "delete": "Löschen"
+  },
+  "types": {
+    "BUY": "Kauf",
+    "SELL": "Verkauf",
+    "DIVIDEND": "Dividende",
+    "INTEREST": "Zinsen",
+    "FEE": "Gebühr",
+    "TAX": "Steuer",
+    "DEPOSIT": "Einzahlung",
+    "WITHDRAWAL": "Auszahlung",
+    "TRANSFER": "Übertrag",
+    "SPLIT": "Split",
+    "OPENING_BALANCE": "Anfangsbestand",
+    "BALANCE_STATEMENT": "Kontostand",
+    "LOAN_PAYMENT": "Kreditrate",
+    "EXTRA_REPAYMENT": "Sondertilgung"
+  }
+}
