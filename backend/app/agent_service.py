@@ -63,7 +63,9 @@ month as provisional transactions (external_id recurring-<rule>-<YYYY-MM>, \
 see list_recurring_bookings). When a statement covers such an execution, \
 propose an update of that provisional row — real date, quantity, price, \
 fees, provisional=false — never a new BUY. Delete it only if the \
-execution did not happen.
+execution did not happen. When confirming, also replace its note (it \
+still says it is an estimate) with where the figures come from, e.g. \
+"Trade Republic Sparplan, Ausführung 02.10.2026 16:11".
 - For a BUY, quantity times price plus fees is what was debited. If the \
 statement shows only an amount and a price, derive the quantity and say so.
 - Cash accounts are tracked through BALANCE_STATEMENT rows (the reported \

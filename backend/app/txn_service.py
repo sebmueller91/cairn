@@ -438,11 +438,18 @@ def patch_txn(db: Session, txn: Txn, body: TransactionUpdate, actor: TxnSource) 
         "tax": str(txn.tax),
         "note": txn.note,
         "provisional": txn.provisional,
+        "price_mode": txn.price_mode.value,
     }
     updates = body.model_dump(exclude_unset=True, mode="json")
     changed_fields = set(body.model_dump(exclude_unset=True).keys())
     for field, value in body.model_dump(exclude_unset=True).items():
         setattr(txn, field, value)
+    # A price someone types in or reads off a statement is no longer the
+    # price-history estimate `auto` stands for (spec 2.5: "becomes exact
+    # once you supply the document").
+    if "price" in changed_fields and body.price is not None and txn.price_mode == PriceMode.AUTO:
+        txn.price_mode = PriceMode.EXACT
+        updates["price_mode"] = PriceMode.EXACT.value
 
     # Recomputes amount_eur when a patched field feeds it (the only field
     # the ledger reads for cost), re-runs the same validation the create
