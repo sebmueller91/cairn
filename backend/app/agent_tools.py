@@ -345,6 +345,7 @@ def apply_changes(
         try:
             patch_txn(db, txn, body, actor=TxnSource.AGENT)
             db.flush()
+            db.refresh(txn)  # preview the stored (cent-rounded) amount
         except TxnValidationError as e:
             fail("update", i, e.code, e.params)
         preview.append(

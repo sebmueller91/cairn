@@ -116,3 +116,40 @@ def test_explicit_price_wins_over_auto_lookup(client, auth_headers, db_session):
     )
     assert resp.status_code == 201
     assert resp.json()["price"] == "100.00"
+
+
+def test_patching_a_price_makes_an_auto_price_exact(client, auth_headers, db_session):
+    """A statement price replaces the price-history estimate — the row
+    must stop saying its price came from history."""
+    from app.models import PricePoint
+
+    account, instrument = _setup(client, auth_headers, isin="XX0000000703")
+    db_session.add(
+        PricePoint(
+            instrument_id=instrument["id"], date=date(2024, 6, 1), close=Decimal("95.50"),
+            currency="EUR", provider="stooq", quality="ok",
+        )
+    )
+    db_session.commit()
+    txn = client.post(
+        "/api/transactions",
+        json={
+            "external_id": "auto-buy-4", "date": "2024-06-15", "type": "BUY",
+            "account_id": account["id"], "instrument_id": instrument["id"],
+            "quantity": "10", "price_mode": "auto", "currency": "EUR",
+        },
+        headers=auth_headers,
+    ).json()
+    assert txn["price_mode"] == "auto"
+
+    resp = client.patch(
+        f"/api/transactions/{txn['id']}", json={"note": "only a note"}, headers=auth_headers
+    )
+    assert resp.json()["price_mode"] == "auto"
+
+    resp = client.patch(
+        f"/api/transactions/{txn['id']}", json={"price": "96.10"}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["price_mode"] == "exact"
+    assert resp.json()["amount_eur"] == "961.00"
