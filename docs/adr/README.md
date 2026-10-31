@@ -61,3 +61,4 @@ was eventually built has lost the only thing it was for.
 | [0013](0013-test-strategy-and-golden-dataset.md) | Test strategy and golden dataset structure |
 | [0014](0014-tls-single-entry-point.md) | TLS and the single entry point |
 | [0015](0015-offsite-backup-transport.md) | Offsite backup transport to the NAS (closes the layer-3 gap 0012 deferred) |
+| [0016](0016-recurring-bookings.md) | Recurring bookings for savings plans and loan instalments |

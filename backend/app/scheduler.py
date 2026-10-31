@@ -1,5 +1,5 @@
-"""In-process scheduled jobs (ADR 0009): price fetch and snapshot rebuild
-run here, inside the API container, because they need the ORM/service
+"""In-process scheduled jobs (ADR 0009): price fetch, recurring bookings
+(ADR 0016) and snapshot rebuild run here, inside the API container, because they need the ORM/service
 layer directly. Backup deliberately does NOT run here — see ADR 0009 for
 why coupling backup's schedule to this process's liveness would be the
 wrong failure mode.
@@ -20,6 +20,7 @@ from app.price_fetch_service import (
     fetch_fx_rate,
     fetch_latest_for_instrument,
 )
+from app.recurring_service import book_due
 from app.snapshot_service import rebuild_snapshots
 
 logger = logging.getLogger(__name__)
@@ -164,6 +165,24 @@ def run_snapshot_rebuild_job() -> None:
         db.close()
 
 
+def run_recurring_bookings_job() -> None:
+    db = SessionLocal()
+    try:
+        result = book_due(db)
+        kv_store.set(db, "last_recurring_booking", _now_iso())
+        db.commit()
+        logger.info(
+            "recurring bookings job: %d booked, %d failed",
+            len(result.booked),
+            len(result.failures),
+        )
+    except Exception:
+        db.rollback()
+        logger.exception("recurring bookings job failed")
+    finally:
+        db.close()
+
+
 def create_scheduler() -> BackgroundScheduler:
     configure_app_logging()
     scheduler = BackgroundScheduler(timezone=BERLIN)
@@ -178,6 +197,17 @@ def create_scheduler() -> BackgroundScheduler:
         coalesce=True,
         # Correct already, kept explicit: a run that is still going must
         # never overlap with the next night's trigger.
+        max_instances=1,
+    )
+    # Between the two: a BUY booked here prices itself from the close the
+    # 22:30 fetch just stored, and the 23:00 rebuild already includes it.
+    scheduler.add_job(
+        run_recurring_bookings_job,
+        CronTrigger(hour=22, minute=45, timezone=BERLIN),
+        id="recurring_bookings",
+        replace_existing=True,
+        misfire_grace_time=MISFIRE_GRACE_SECONDS,
+        coalesce=True,
         max_instances=1,
     )
     scheduler.add_job(

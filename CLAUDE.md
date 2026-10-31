@@ -1,3 +1,3 @@
 See [AGENTS.md](./AGENTS.md) — single source of truth for agent context.
 Domain questions: [docs/spec.md](./docs/spec.md).
-Technical decisions: [docs/adr/](./docs/adr/) — all fifteen accepted and implemented.
+Technical decisions: [docs/adr/](./docs/adr/) — all sixteen accepted and implemented.

@@ -44,7 +44,8 @@ Decided — see `docs/adr/0001` through `0013` for the reasoning behind each.
   CA trusted once to see the app as secure. Those three names come from
   `deploy/deploy.env` (gitignored; see `deploy/deploy.env.example`) and are
   substituted into `deploy/Caddyfile.template` at deploy time.
-- **Jobs:** price fetch and snapshot rebuild run in-process (APScheduler);
+- **Jobs:** price fetch, recurring bookings (ADR 0016) and snapshot rebuild
+  run in-process (APScheduler);
   backup runs from host cron, deliberately decoupled from the API
   container's own health (ADR 0009). The nightly run now has a third leg
   that mirrors snapshots and exports to the Synology NAS over a CIFS
@@ -120,6 +121,12 @@ Two phase-4 additions worth knowing before you hit them as surprises:
 - `price_mode: "auto"` on a BUY/SELL now actually resolves a price from
   `price_point` history (or fails loudly with `no_price_available`) —
   earlier phases stored the flag but didn't act on it.
+
+Savings plans and the loan instalment are booked by the 22:45 job as
+`provisional` rows with `external_id` `recurring-<rule>-<YYYY-MM>` (ADR
+0016). When a statement covers such a month, **patch that row** (quantity,
+price, fees, `provisional: false`) — do not book the execution again, or it
+is counted twice. Delete it only if the execution really did not happen.
 
 `VALUATION` is a recognized type but rejected with
 `unsupported_transaction_type` — `LOAN_PAYMENT`/`EXTRA_REPAYMENT` were the

@@ -370,6 +370,59 @@ class Loan(Base):
     )
 
 
+class RecurringBooking(Base):
+    """A standing rule — a savings plan or a loan instalment — that the
+    nightly job turns into one provisional transaction per month
+    (app/recurring_service.py). The rule is configuration, not ledger:
+    every booking it produces is an ordinary txn, editable and voidable
+    like any other, and nothing is derived from the rule itself.
+
+    `amount_eur` is the gross amount debited (fees included). NULL on a
+    LOAN_PAYMENT rule means "the loan's own monthly_payment", so the
+    instalment is not kept in two places.
+
+    `booked_through` is the last nominal due date already handled. It,
+    not the existence of a txn, is what stops a month from being booked
+    twice — so deleting a provisional booking (because that month's
+    execution really did not happen) does not make it come back."""
+
+    __tablename__ = "recurring_booking"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    name: Mapped[str] = mapped_column(String, nullable=False, unique=True)
+    type: Mapped[TransactionType] = mapped_column(
+        Enum(TransactionType), nullable=False
+    )
+    account_id: Mapped[int] = mapped_column(ForeignKey("account.id"), nullable=False)
+    instrument_id: Mapped[int | None] = mapped_column(
+        ForeignKey("instrument.id"), nullable=True
+    )
+    amount_eur: Mapped[Money | None] = mapped_column(Money, nullable=True)
+    fees: Mapped[Money] = mapped_column(Money, nullable=False, default=0)
+    # 1-31 counts from the start of the month (a day past the end of a
+    # short month means its last day); -1..-28 counts back from the end,
+    # so -1 is the last day and -2 the second last.
+    day_of_month: Mapped[int] = mapped_column(Integer, nullable=False)
+    # Move a due date on a weekend/public holiday to the next business
+    # day. Off for a bank that debits on the calendar day regardless.
+    shift_to_business_day: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True
+    )
+    # Fractional shares are cut (never rounded up) to this many places —
+    # brokers differ (e.g. 6 vs 3), and a quantity the broker could not
+    # have bought is a guaranteed reconcile mismatch.
+    quantity_decimals: Mapped[int] = mapped_column(Integer, nullable=False, default=6)
+    start_date: Mapped[date] = mapped_column(Date, nullable=False)
+    end_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    booked_through: Mapped[date | None] = mapped_column(Date, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
 class HousePriceIndexPoint(Base):
     """Destatis GENESIS table 61262 (spec 3.4), one series per district
     type. Populated by the fetch job — real Destatis credentials require

@@ -41,7 +41,7 @@ def test_scheduler_jobs_have_realistic_misfire_grace_time():
     with a WARNING."""
     scheduler = create_scheduler()
     jobs = {job.id: job for job in scheduler.get_jobs()}
-    assert set(jobs) == {"price_fetch", "snapshot_rebuild"}
+    assert set(jobs) == {"price_fetch", "recurring_bookings", "snapshot_rebuild"}
     for job in jobs.values():
         assert job.misfire_grace_time == MISFIRE_GRACE_SECONDS
         assert job.misfire_grace_time >= 60  # realistic, not the 1s default

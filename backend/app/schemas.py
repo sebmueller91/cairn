@@ -878,3 +878,68 @@ class LoanStatus(BaseModel):
 class ErrorDetail(BaseModel):
     code: str
     params: dict = {}
+
+
+class RecurringBookingCreate(BaseModel):
+    name: str = Field(min_length=1)
+    type: TransactionType
+    account_id: int
+    instrument_id: int | None = None
+    # Gross amount debited, fees included. Omit on a LOAN_PAYMENT rule to
+    # use the loan's own monthly_payment.
+    amount_eur: DecimalStr | None = Field(default=None, gt=0)
+    fees: DecimalStr = Field(default=Decimal(0), ge=0)
+    # 1..31 from the start of the month, -1..-28 back from its end
+    # (-1 = last day). 0 is rejected.
+    day_of_month: int = Field(ge=-28, le=31)
+    shift_to_business_day: bool = True
+    quantity_decimals: int = Field(default=6, ge=0, le=8)
+    start_date: date_
+    end_date: date_ | None = None
+    active: bool = True
+    note: str | None = None
+
+
+class RecurringBookingUpdate(BaseModel):
+    amount_eur: DecimalStr | None = Field(default=None, gt=0)
+    fees: DecimalStr | None = Field(default=None, ge=0)
+    day_of_month: int | None = Field(default=None, ge=-28, le=31)
+    shift_to_business_day: bool | None = None
+    quantity_decimals: int | None = Field(default=None, ge=0, le=8)
+    end_date: date_ | None = None
+    active: bool | None = None
+    note: str | None = None
+
+
+class RecurringBookingRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    type: TransactionType
+    account_id: int
+    instrument_id: int | None
+    amount_eur: DecimalStr | None
+    fees: DecimalStr
+    day_of_month: int
+    shift_to_business_day: bool
+    quantity_decimals: int
+    start_date: date_
+    end_date: date_ | None
+    active: bool
+    booked_through: date_ | None
+    note: str | None
+
+
+class RecurringRunFailure(BaseModel):
+    rule_id: int
+    due: date_
+    code: str
+    params: dict = {}
+
+
+class RecurringRunResponse(BaseModel):
+    dry_run: bool
+    import_batch_id: int | None
+    booked: list[TransactionRead]
+    failures: list[RecurringRunFailure]
