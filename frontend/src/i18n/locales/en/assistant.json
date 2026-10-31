@@ -1,0 +1,52 @@
+{
+  "title": "Assistant",
+  "newChat": "New chat",
+  "noChats": "No chats yet.",
+  "untitled": "New chat",
+  "deleteChat": "Delete chat",
+  "deleteChatConfirm": "Delete this chat? Bookings already applied stay.",
+  "startTitle": "Start a chat",
+  "startHint": "Paste statement screenshots or describe what happened. Nothing is booked until you apply it.",
+  "emptyTitle": "What should be booked?",
+  "emptyHint": "Paste screenshots (Ctrl/Cmd+V), drop them here, or describe the transaction.",
+  "notConfiguredTitle": "The assistant is not set up",
+  "notConfiguredHint": "An Anthropic API key is missing on the server (ANTHROPIC_API_KEY in /srv/cairn/config/.env).",
+  "placeholder": "Message, or paste a screenshot…",
+  "send": "Send",
+  "addImage": "Add image",
+  "removeImage": "Remove image",
+  "imageFailed": "The image could not be read.",
+  "working": "Working on it — this can take a minute.",
+  "imagesAttached_one": "{{count}} image",
+  "imagesAttached_other": "{{count}} images",
+  "apply": "Apply",
+  "reject": "Reject",
+  "fees": "Fees",
+  "provisional": "provisional",
+  "status": {
+    "pending": "Waiting",
+    "applied": "Applied",
+    "rejected": "Rejected"
+  },
+  "actions": {
+    "create": "New",
+    "update": "Correction",
+    "delete": "Delete"
+  },
+  "types": {
+    "BUY": "Buy",
+    "SELL": "Sell",
+    "DIVIDEND": "Dividend",
+    "INTEREST": "Interest",
+    "FEE": "Fee",
+    "TAX": "Tax",
+    "DEPOSIT": "Deposit",
+    "WITHDRAWAL": "Withdrawal",
+    "TRANSFER": "Transfer",
+    "SPLIT": "Split",
+    "OPENING_BALANCE": "Opening balance",
+    "BALANCE_STATEMENT": "Balance",
+    "LOAN_PAYMENT": "Loan payment",
+    "EXTRA_REPAYMENT": "Extra repayment"
+  }
+}

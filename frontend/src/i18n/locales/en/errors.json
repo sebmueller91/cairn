@@ -56,5 +56,15 @@
   "value_too_short": "{{field}} is too short.",
   "edit_breaks_holdings": "This change would leave a later sale drawing on more than the holding it's based on.",
   "delete_breaks_holdings": "This can't be deleted: a later sale draws on the holding it created.",
-  "ledger_unreplayable": "A sale draws on more than the holding it's based on ({{requested}} sold, {{available}} held). Correct that transaction to see this data again."
+  "ledger_unreplayable": "A sale draws on more than the holding it's based on ({{requested}} sold, {{available}} held). Correct that transaction to see this data again.",
+  "agent_not_configured": "The assistant has no API key configured.",
+  "agent_auth_failed": "The Anthropic API key was rejected.",
+  "agent_rate_limited": "Too many requests to the AI service — try again in a minute.",
+  "agent_request_rejected": "The AI service rejected the request (credit used up or spend limit reached?).",
+  "agent_upstream_error": "The AI service had an error — try again.",
+  "agent_unreachable": "The AI service could not be reached.",
+  "proposal_not_found": "Proposal not found.",
+  "proposal_already_decided": "This proposal was already decided.",
+  "conversation_not_found": "Chat not found.",
+  "empty_message": "Write something or add an image."
 }

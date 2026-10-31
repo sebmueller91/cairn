@@ -11,6 +11,7 @@ import deOverview from "./locales/de/overview.json";
 import deWealth from "./locales/de/wealth.json";
 import dePortfolio from "./locales/de/portfolio.json";
 import deData from "./locales/de/data.json";
+import deAssistant from "./locales/de/assistant.json";
 import enCommon from "./locales/en/common.json";
 import enAssets from "./locales/en/assets.json";
 import enSettings from "./locales/en/settings.json";
@@ -21,6 +22,7 @@ import enOverview from "./locales/en/overview.json";
 import enWealth from "./locales/en/wealth.json";
 import enPortfolio from "./locales/en/portfolio.json";
 import enData from "./locales/en/data.json";
+import enAssistant from "./locales/en/assistant.json";
 
 const STORAGE_KEY = "cairn-language";
 
@@ -46,6 +48,7 @@ i18n
         wealth: deWealth,
         portfolio: dePortfolio,
         data: deData,
+        assistant: deAssistant,
       },
       en: {
         common: enCommon,
@@ -58,6 +61,7 @@ i18n
         wealth: enWealth,
         portfolio: enPortfolio,
         data: enData,
+        assistant: enAssistant,
       },
     },
     lng: stored === "en" ? "en" : "de",
@@ -74,6 +78,7 @@ i18n
       "wealth",
       "portfolio",
       "data",
+      "assistant",
     ],
     interpolation: { escapeValue: false },
   });

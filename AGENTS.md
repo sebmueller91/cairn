@@ -87,9 +87,12 @@ These hold regardless of which stack is chosen.
 ## Explicitly out of scope
 
 - No broker integration, no banking connection, no payment capability.
-  **The application never moves money and holds no credentials.** This is a
-  security decision, not a gap — it is why the worst case is disclosure rather
-  than loss. Do not add it, and say so if a request implies it.
+  **The application never moves money and holds no financial credentials.**
+  This is a security decision, not a gap — it is why the worst case is
+  disclosure rather than loss. Do not add it, and say so if a request implies
+  it. The one credential it does hold is the in-app agent's Anthropic API key
+  (ADR 0017): it can spend only prepaid, capped API credit, and the agent can
+  only *propose* ledger changes for a person to apply.
 - No multi-user support, no tenancy.
 - No internet-facing deployment. LAN only; remote access happens over an
   existing VPN.
@@ -137,6 +140,11 @@ native tool calls (spec 7.5's "optional extension") — same validation,
 same idempotency, it just calls the same API instead of raw curl. See
 `mcp_server/README.md` to configure it in Claude Code/Desktop. Runs
 locally on your own machine, not deployed to the Pi.
+
+**In-app agent:** the Assistant page (ADR 0017) runs Claude on the Pi with
+read tools and `propose_changes`; a person applies each proposal. Its tool
+list in `backend/app/agent_tools.py` is the whole of what it can reach —
+widening it is a security decision, not a convenience.
 
 ## Handling documents
 

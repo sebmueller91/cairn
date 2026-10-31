@@ -56,5 +56,15 @@
   "value_too_short": "{{field}} ist zu kurz.",
   "edit_breaks_holdings": "Diese Änderung würde dazu führen, dass ein späterer Verkauf mehr abzieht, als der Bestand hergibt.",
   "delete_breaks_holdings": "Kann nicht gelöscht werden: Ein späterer Verkauf stützt sich auf den damit erzeugten Bestand.",
-  "ledger_unreplayable": "Ein Verkauf zieht mehr ab, als der zugrunde liegende Bestand hergibt ({{requested}} verkauft, {{available}} vorhanden). Bitte die betroffene Transaktion korrigieren, damit diese Daten wieder erscheinen."
+  "ledger_unreplayable": "Ein Verkauf zieht mehr ab, als der zugrunde liegende Bestand hergibt ({{requested}} verkauft, {{available}} vorhanden). Bitte die betroffene Transaktion korrigieren, damit diese Daten wieder erscheinen.",
+  "agent_not_configured": "Für den Assistenten ist kein API-Schlüssel eingerichtet.",
+  "agent_auth_failed": "Der Anthropic-API-Schlüssel wurde abgelehnt.",
+  "agent_rate_limited": "Zu viele Anfragen an den KI-Dienst – bitte in einer Minute erneut versuchen.",
+  "agent_request_rejected": "Der KI-Dienst hat die Anfrage abgelehnt (Guthaben aufgebraucht oder Ausgabenlimit erreicht?).",
+  "agent_upstream_error": "Fehler beim KI-Dienst – bitte erneut versuchen.",
+  "agent_unreachable": "Der KI-Dienst ist nicht erreichbar.",
+  "proposal_not_found": "Vorschlag nicht gefunden.",
+  "proposal_already_decided": "Über diesen Vorschlag wurde bereits entschieden.",
+  "conversation_not_found": "Chat nicht gefunden.",
+  "empty_message": "Schreib etwas oder füge ein Bild hinzu."
 }

@@ -10,6 +10,7 @@ import { Portfolio } from "./pages/Portfolio";
 import { PerformanceHub } from "./pages/PerformanceHub";
 import { Data } from "./pages/Data";
 import { Settings } from "./pages/Settings";
+import { Assistant } from "./pages/Assistant";
 
 // Unknown paths previously matched nothing and rendered a blank page — the
 // dead `/api/export/full` link (a separate agent's fix, service-worker
@@ -52,6 +53,7 @@ export function App() {
             <Route path="portfolio" element={<Portfolio />} />
             <Route path="performance" element={<PerformanceHub />} />
             <Route path="data" element={<Data />} />
+            <Route path="assistant" element={<Assistant />} />
             <Route path="settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Route>

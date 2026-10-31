@@ -6,6 +6,7 @@ import {
   PieChart,
   Activity,
   Table2,
+  Bot,
   Settings as SettingsIcon,
   LogOut,
   Eye,
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { to: "/portfolio", key: "portfolio", icon: PieChart },
   { to: "/performance", key: "performance", icon: Activity },
   { to: "/data", key: "data", icon: Table2 },
+  { to: "/assistant", key: "assistant", icon: Bot },
 ] as const;
 
 function sidebarLinkClass({ isActive }: { isActive: boolean }) {

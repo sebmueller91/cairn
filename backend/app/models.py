@@ -423,6 +423,55 @@ class RecurringBooking(Base):
     )
 
 
+class AgentConversation(Base):
+    """One chat with the in-app agent (ADR 0017). `messages_json` is the
+    exact Messages API history, append-only — thinking blocks and tool
+    calls included, because the API needs them back unchanged — and
+    screenshots are kept in it as sent. Not ledger data: deleting a
+    conversation changes no number."""
+
+    __tablename__ = "agent_conversation"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    title: Mapped[str | None] = mapped_column(String, nullable=True)
+    messages_json: Mapped[str] = mapped_column(Text, nullable=False, default="[]")
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, server_default=func.now(), onupdate=func.now()
+    )
+
+
+class AgentProposal(Base):
+    """A set of ledger changes the agent wants to make. The agent can only
+    ever create these; a person applies or rejects them. `changes_json`
+    is validated against the ledger when proposed and again when applied
+    (the ledger may have moved in between); `preview_json` is what the UI
+    shows for review."""
+
+    __tablename__ = "agent_proposal"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    conversation_id: Mapped[int] = mapped_column(
+        ForeignKey("agent_conversation.id", ondelete="CASCADE"), nullable=False
+    )
+    tool_use_id: Mapped[str] = mapped_column(String, nullable=False)
+    summary: Mapped[str] = mapped_column(Text, nullable=False)
+    changes_json: Mapped[str] = mapped_column(Text, nullable=False)
+    preview_json: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String, nullable=False, default="pending")  # pending|applied|rejected
+    error_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Plain reference, no FK: rolling the batch back later must not be
+    # blocked by the proposal that once created it.
+    import_batch_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    # Whether the agent has been told the outcome yet (it learns at the
+    # start of the next user message).
+    reported: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    decided_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+
 class HousePriceIndexPoint(Base):
     """Destatis GENESIS table 61262 (spec 3.4), one series per district
     type. Populated by the fetch job — real Destatis credentials require

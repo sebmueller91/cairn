@@ -943,3 +943,93 @@ class RecurringRunResponse(BaseModel):
     import_batch_id: int | None
     booked: list[TransactionRead]
     failures: list[RecurringRunFailure]
+
+
+class AgentCreate(BaseModel):
+    """A new txn as the agent proposes it: TransactionCreate minus what
+    the server assigns itself (external_id, source)."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    date: date_
+    date_precision: DatePrecision = DatePrecision.DAY
+    type: TransactionType
+    account_id: int
+    instrument_id: int | None = None
+    counter_account_id: int | None = None
+    quantity: DecimalStr | None = None
+    price: DecimalStr | None = None
+    price_mode: PriceMode = PriceMode.EXACT
+    amount: DecimalStr | None = None
+    currency: str = Field(min_length=3, max_length=3)
+    fx_rate: DecimalStr | None = None
+    fees: DecimalStr = Decimal(0)
+    tax: DecimalStr = Decimal(0)
+    split_ratio: DecimalStr | None = None
+    provisional: bool = False
+    note: str | None = None
+
+
+class AgentUpdate(TransactionUpdate):
+    model_config = ConfigDict(extra="forbid")
+
+    transaction_id: int
+
+
+class AgentDelete(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    transaction_id: int
+    reason: str = Field(min_length=1)
+
+
+class AgentChanges(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    summary: str = Field(min_length=1)
+    creates: list[AgentCreate] = []
+    updates: list[AgentUpdate] = []
+    deletes: list[AgentDelete] = []
+
+
+class AgentImage(BaseModel):
+    media_type: str = Field(pattern=r"^image/(png|jpeg|webp|gif)$")
+    # Base64 without the data: prefix. The API's own limit is 5 MB per
+    # image; the client downscales screenshots well below it.
+    data: str = Field(min_length=1, max_length=7_000_000)
+
+
+class AgentMessageCreate(BaseModel):
+    text: str = ""
+    images: list[AgentImage] = Field(default=[], max_length=6)
+
+
+class AgentProposalRead(BaseModel):
+    id: int
+    summary: str
+    status: str
+    preview: list[dict]
+    error: dict | None
+    import_batch_id: int | None
+
+
+class AgentTranscriptItem(BaseModel):
+    role: str  # user | assistant
+    text: str
+    image_count: int = 0
+    proposal: AgentProposalRead | None = None
+
+
+class AgentConversationRead(BaseModel):
+    id: int
+    title: str | None
+    created_at: datetime
+    updated_at: datetime | None
+    input_tokens: int
+    output_tokens: int
+    items: list[AgentTranscriptItem] = []
+
+
+class AgentStatus(BaseModel):
+    configured: bool
+    model: str

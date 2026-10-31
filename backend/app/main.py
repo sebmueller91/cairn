@@ -10,6 +10,7 @@ from app.ledger import InsufficientHoldingError
 from app.routers import (
     accounts,
     admin,
+    agent,
     allocation,
     attribution,
     auth,
@@ -228,3 +229,4 @@ app.include_router(look_through.router)
 app.include_router(milestones.router)
 app.include_router(projection.router)
 app.include_router(recurring_bookings.router)
+app.include_router(agent.router)
